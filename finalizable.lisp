@@ -66,9 +66,11 @@
   (:method ((object finalizable))
     (call-next-method)
     (loop for slot in (c2mop:class-direct-slots (class-of object))
+          for slot-name = (c2mop:slot-definition-name slot)
           when (and (typep slot 'finalizable-slot)
                     (finalized slot))
-          do (finalize (slot-value object (c2mop:slot-definition-name slot))))
+          do (finalize (slot-value object slot-name))
+             (slot-makunbound object slot-name))
     object))
 
 (defmacro with-finalizing (bindings &body body)
@@ -103,3 +105,7 @@
 (defmethod initialize-instance :after ((finalized gc-finalized) &key)
   (let ((object (unbox finalized)))
     (tg:finalize finalized #'(lambda () (finalize object)))))
+
+(declaim (inline make-gc-finalized))
+(defun make-gc-finalized (object)
+  (make-instance 'gc-finalized :object object))
