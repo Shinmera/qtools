@@ -17,6 +17,7 @@
   :components ((:file "package")
                (:file "toolkit")
                (:file "finalizable")
+               (:file "gc-finalized")
                (:file "readtable"))
   :depends-on (:qt
                :trivial-garbage
