@@ -24,10 +24,15 @@
 (defclass finalizable-slot ()
   ((finalized :initarg :finalized :initform NIL :reader finalized)))
 
-(defclass finalizable-direct-slot-definition (c2mop:standard-direct-slot-definition finalizable-slot)
+(defmethod print-object ((slot finalizable-slot) stream)
+  (print-unreadable-object (slot stream :type T :identity T)
+    (when (finalized slot)
+      (write-string "finalized" stream))))
+
+(defclass finalizable-direct-slot-definition (finalizable-slot c2mop:standard-direct-slot-definition)
   ())
 
-(defclass finalizable-effective-slot-definition (c2mop:standard-effective-slot-definition finalizable-slot)
+(defclass finalizable-effective-slot-definition (finalizable-slot c2mop:standard-effective-slot-definition)
   ())
 
 (defmethod c2mop:direct-slot-definition-class ((class finalizable-class) &rest initargs)
@@ -86,3 +91,15 @@
                                   (,values (push ,var ,values))))
               ,@body)
          (mapc #'finalize ,values)))))
+
+(define-finalizable gc-finalized ()
+  ((object :initarg :object :initform (error "OBJECT required.") :reader unbox :finalized T)))
+
+(defmethod print-object ((finalized gc-finalized) stream)
+  (print-unreadable-object (finalized stream :type T)
+    (format stream "~s" (unbox finalized)))
+  finalized)
+
+(defmethod initialize-instance :after ((finalized gc-finalized) &key)
+  (let ((object (unbox finalized)))
+    (tg:finalize finalized #'(lambda () (finalize object)))))
