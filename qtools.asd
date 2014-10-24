@@ -15,6 +15,7 @@
   :homepage "https://github.com/Shinmera/qtools"
   :serial T
   :components ((:file "package")
+               (:file "class-map")
                (:file "toolkit")
                (:file "finalizable")
                (:file "gc-finalized")
@@ -22,4 +23,5 @@
   :depends-on (:qt
                :trivial-garbage
                :closer-mop
-               :named-readtables))
+               :named-readtables
+               :trivial-indent))
