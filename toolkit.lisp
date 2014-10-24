@@ -5,6 +5,7 @@
 |#
 
 (in-package #:org.shirakumo.qtools)
+(named-readtables:in-readtable :qt)
 
 (defun qobject-alive-p (object)
   (not (or (null-qobject-p object)
@@ -20,7 +21,7 @@
 (defgeneric copy-qobject (qclass instance)
   #+:verbose
   (:method :before (qclass instance)
-    (v:trace tools "Copying QObject: ~a" instance))
+    (v:trace :qtools "Copying QObject: ~a" instance))
   ;; QImage
   (:method ((qclass (eql 11848)) instance) 
     (#_copy instance))
