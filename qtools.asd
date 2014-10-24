@@ -14,5 +14,9 @@
   :description "A collection of tools to aid in development with CommonQt."
   :homepage "https://github.com/Shinmera/qtools"
   :serial T
-  :components ((:file "package"))
-  :depends-on (:qt))
+  :components ((:file "package")
+               (:file "toolkit")
+               (:file "finalizable"))
+  :depends-on (:qt
+               :trivial-garbage
+               :closer-mop))
