@@ -42,6 +42,12 @@
   ()
   (:metaclass finalizable-class))
 
+(defmacro define-finalizable (name direct-superclasses direct-slots &rest options)
+  `(defclass ,name (finalizable ,@direct-superclasses)
+     ,direct-slots
+     (:metaclass finalizable-class)
+     ,@options))
+
 (defgeneric finalize (object)
   #+:verbose
   (:method :before (object)
@@ -59,3 +65,24 @@
                     (finalized slot))
           do (finalize (slot-value object (c2mop:slot-definition-name slot))))
     object))
+
+(defmacro with-finalizing (bindings &body body)
+  (let ((values (gensym "VALUES")))
+    `(let ((,values ()))
+       (unwind-protect
+            (let ,(loop for (var def) in bindings
+                        collect `(,var (let ((,var ,def))
+                                         (push ,var ,values)
+                                         ,var)))
+              ,@body)
+         (mapc #'finalize ,values)))))
+
+(defmacro with-finalizing* (bindings &body body)
+  (let ((values (gensym "VALUES")))
+    `(let ((,values ()))
+       (unwind-protect
+            (let* ,(loop for (var def) in bindings
+                         append `((,var ,def)
+                                  (,values (push ,var ,values))))
+              ,@body)
+         (mapc #'finalize ,values)))))
