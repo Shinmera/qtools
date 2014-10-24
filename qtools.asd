@@ -16,7 +16,9 @@
   :serial T
   :components ((:file "package")
                (:file "toolkit")
-               (:file "finalizable"))
+               (:file "finalizable")
+               (:file "readtable"))
   :depends-on (:qt
                :trivial-garbage
-               :closer-mop))
+               :closer-mop
+               :named-readtables))
