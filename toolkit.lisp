@@ -34,3 +34,25 @@
     `(let ((,key ,keyform))
        (cond ,@(loop for form in forms
                      collect `((qt:enum= ,key ,(car form)) ,@(cdr form)))))))
+
+(defmacro with-class-bindings ((instance class) &body body)
+  (let ((slots (loop for slot in (c2mop:class-direct-slots (etypecase class
+                                                             (symbol (find-class class))
+                                                             (class class)))
+                     for name = (c2mop:slot-definition-name slot)
+                     collect name)))
+    `(with-slots ,slots ,instance
+       (declare (ignorable ,@slots))
+       ,@body)))
+
+(defun to-method-name (thing)
+  (with-output-to-string (stream)
+    (loop with capitalize = NIL
+          for char across (string-downcase thing)
+          do (cond ((char= char #\-)
+                    (setf capitalize T))
+                   (capitalize
+                    (write-char (char-upcase char) stream)
+                    (setf capitalize NIL))
+                   (T
+                    (write-char char stream))))))
