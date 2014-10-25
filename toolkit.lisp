@@ -35,10 +35,15 @@
        (cond ,@(loop for form in forms
                      collect `((qt:enum= ,key ,(car form)) ,@(cdr form)))))))
 
-(defmacro with-class-bindings ((instance class) &body body)
-  (let ((slots (loop for slot in (c2mop:class-direct-slots (etypecase class
-                                                             (symbol (find-class class))
-                                                             (class class)))
+(defun ensure-class (thing)
+  (etypecase thing
+    (symbol (find-class thing))
+    (class thing)
+    (standard-object (class-of thing))))
+
+(defmacro with-slots-bound ((instance class) &body body)
+  (let ((slots (loop for slot in (c2mop:class-direct-slots
+                                  (ensure-class class))
                      for name = (c2mop:slot-definition-name slot)
                      collect name)))
     `(with-slots ,slots ,instance
