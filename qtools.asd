@@ -19,9 +19,11 @@
                (:file "toolkit")
                (:file "finalizable")
                (:file "gc-finalized")
+               (:file "widget")
                (:file "readtable"))
   :depends-on (:qt
                :trivial-garbage
                :closer-mop
                :named-readtables
-               :trivial-indent))
+               :trivial-indent
+               :form-fiddle))
