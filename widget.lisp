@@ -5,6 +5,7 @@
 |#
 
 (in-package #:org.shirakumo.qtools)
+(named-readtables:in-readtable :qt)
 
 (defvar *widget-init-priority* 10)
 (defvar *slot-init-priority* 20)
@@ -31,17 +32,38 @@
        `(,(make-map args))))))
 
 (defclass qt-widget-class (finalizable-class qt-class)
-  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)))
+  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)
+   (methods :initform (make-hash-table) :accessor qt-widget-methods)))
 
 (defun add-initializer (class priority function)
   (vector-push-extend (cons priority function) (qt-widget-initializers class))
   (setf (qt-widget-initializers class)
         (sort (qt-widget-initializers class) #'> :key #'car)))
 
+(defun compile-initializers (class)
+  (loop for init across (qt-widget-initializers class)
+        do (setf (cdr init) (compile NIL (funcall (cdr init) class)))))
+
 (defun call-initializers (object)
-  (loop for init across (qt-widget-initializers (if (typep object 'qt-widget-class)
-                                                    object (class-of object)))
+  (loop for init across (qt-widget-initializers (ensure-class object))
         do (funcall (cdr init) object)))
+
+(declaim (inline qt-widget-method))
+(defun qt-widget-method (class name)
+  (gethash name (qt-widget-methods (ensure-class class))))
+
+(defun (setf qt-widget-method) (function class name)
+  (setf (gethash name (qt-widget-methods (ensure-class class))) function))
+
+(declaim (inline call-qt-widget-method))
+(defun call-qt-widget-method (class name &rest args)
+  (apply (qt-widget-method class name) args))
+
+(defun compile-methods (class)
+  (loop for name being the hash-keys of (qt-widget-methods class)
+        for func being the hash-values of (qt-widget-methods class)
+        do (setf (qt-widget-method class name)
+                 (compile NIL (funcall func class)))))
 
 (defgeneric process-qt-widget-option (option body class)
   (:method (option body class)
@@ -70,35 +92,48 @@
     (let* ((clean-decls (remove 'connected decls :key #'caadr :test #'eql))
            (connections (remove 'connected decls :key #'caadr :test-not #'eql))
            (clean-args (mapcar #'(lambda (a) (if (listp a) (car a) a)) args))
-           (self (first clean-args))
-           (body `(lambda ,clean-args ,@(when doc (list doc)) ,@clean-decls
-                          (with-class-bindings (,(first clean-args) ',class)
-                            ,forms))))
+           (this (first clean-args)))
       (setf name (to-method-name name))
+
+      (when connections
+        (add-initializer
+         class *slot-init-priority*
+         #'(lambda (class)
+             `(lambda (,this)
+                (with-slots-bound (,this ,class)
+                  ,@(loop for connection in connections
+                          for args = (cdadr connection)
+                          collect `(connect ,@args ,this ,name)))))))
+
+      (setf (qt-widget-method class name)
+            #'(lambda (class)
+                `(lambda ,clean-args
+                   ,@(when doc (list doc)) ,@clean-decls
+                   (with-slots-bound (,(first clean-args) ,class)
+                     ,@forms))))
       
-      (add-initializer
-       class *slot-init-priority*
-       #'(lambda (class)
-           `(lambda (,self)
-              (with-class-bindings (,self ,class)
-                ,@(loop for connection in connections
-                        for args = (cdadr connection)
-                        collect `(connect ,@args ,self ,name))))))
-      
-      (canonicize-syntax-map name (mapcar #'cdr (cdr args)) body))))
+      (canonicize-syntax-map
+       name (mapcar #'cdr (cdr args))
+       `(lambda (widget &rest args)
+          (apply #'call-qt-widget-method widget ',name widget args))))))
 
 (define-qt-class-option (:overrides :override) (class name args &rest body)
+  (setf (qt-widget-method class name)
+        #'(lambda (class)
+            `(lambda ,args
+               (with-slots-bound (,(first args) ,class)
+                 ,@body))))
+  
   `(,(to-method-name name)
-    (lambda ,args
-      (with-class-bindings (,(first args) ,class)
-        ,@body))))
+    (lambda (widget &rest args)
+      (apply #'call-qt-widget-method widget ',name widget args))))
 
 (define-qt-class-option (:widget :direct-slots) (class name constructor &rest body)
   (add-initializer
    class *widget-init-priority*
    #'(lambda (class)
        `(lambda (this)
-          (with-class-bindings (this ,class)
+          (with-slots-bound (this ,class)
             (setf ,name ,constructor)
             ,@body))))
   
@@ -109,7 +144,7 @@
    class *layout-init-priority*
    #'(lambda (class)
        `(lambda (this)
-          (with-class-bindings (this ,class)
+          (with-slots-bound (this ,class)
             (let ((,name ,constructor))
               ,@body
               (#_setLayout this ,name)))))))
@@ -124,15 +159,15 @@
     instance))
 
 (defun initialize-qt-widget-class (class next &rest args)
-  (setf (qt-widget-initializers class)
-        (make-array 0 :adjustable T :fill-pointer 0))
+  (setf (qt-widget-initializers class) (make-array 0 :adjustable T :fill-pointer 0)
+        (qt-widget-methods class) (make-hash-table))
   (let ((args (apply #'fuse-plists
                      (loop for (option body) on args by #'cddr
                            collect (process-qt-widget-option option body class)))))
     (apply next class args)
-    ;; Compile the initializers
-    (loop for init across (qt-widget-initializers class)
-          do (setf (cdr init) (compile NIL (funcall (cdr init) class))))))
+    ;; compile stuff now that the class is ready.
+    (compile-initializers class)
+    (compile-methods class)))
 
 (defmethod initialize-instance :around ((class qt-widget-class) &rest args)
   (apply #'initialize-qt-widget-class class #'call-next-method args))
@@ -188,9 +223,9 @@
 
 (defmacro define-qt-complex (&body forms)
   (loop for (function . body) in forms
-        for class-type = (resolve-class-type function)
-        if class-type
-        collect `(,class-type ,body) into body-forms
+        for option = (special-form-option function)
+        if option
+        collect `(,option ,body) into body-forms
         else
         collect `(,function ,@body) into other-forms
         finally (return
