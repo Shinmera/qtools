@@ -6,26 +6,9 @@
 
 (in-package #:org.shirakumo.qtools)
 
-(defclass qt-widget-class (finalizable-class qt-class)
-  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)))
-
 (defvar *widget-init-priority* 10)
 (defvar *slot-init-priority* 20)
 (defvar *layout-init-priority* 100)
-
-(defmacro ensure-option (option options)
-  `(unless (find ,option ,options :key #'car)
-     (push (list ,option) ,options)))
-
-(defun fuse-alists (&rest alists-lists)
-  (let ((target (make-hash-table)))
-    (dolist (alists alists-lists)
-      (loop for (option . args) in alists
-            do (setf (gethash option target)
-                     (append args (gethash option target)))))
-    (loop for key being the hash-keys of target
-          for val being the hash-values of target
-          collect (cons key val))))
 
 (defun fuse-plists (&rest plists-lists)
   (let ((target (make-hash-table)))
@@ -37,11 +20,6 @@
           for val being the hash-values of target
           appending (list key val))))
 
-(defun add-initializer (class priority function)
-  (vector-push-extend (cons priority function) (qt-widget-initializers class))
-  (setf (qt-widget-initializers class)
-        (sort (qt-widget-initializers class) #'> :key #'car)))
-
 (defun canonicize-syntax-map (name args &rest extra)
   (flet ((make-map (args)
            `(,(format NIL "~a(~{~(~a~)~^, ~})" name args) ,@extra)))
@@ -52,75 +30,89 @@
       (T
        `(,(make-map args))))))
 
+(defclass qt-widget-class (finalizable-class qt-class)
+  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)))
+
+(defun add-initializer (class priority function)
+  (vector-push-extend (cons priority function) (qt-widget-initializers class))
+  (setf (qt-widget-initializers class)
+        (sort (qt-widget-initializers class) #'> :key #'car)))
+
+(defun call-initializers (object)
+  (loop for init across (qt-widget-initializers (if (typep object 'qt-widget-class)
+                                                    object (class-of object)))
+        do (funcall (cdr init) object)))
+
 (defgeneric process-qt-widget-option (option body class)
   (:method (option body class)
     (declare (ignore class))
-    `(,option ,body))
+    `(,option ,body)))
+
+(defmacro define-qt-class-option ((option &optional (target option) (mode 'collect)) (class &rest body-lambda) &body forms)
+  (assert (keywordp option) () "Option name must be a keyword.")
+  (assert (or (null target) (keywordp target)) () "Target name must be a keyword.")
+  (let* ((bodies (gensym "BODIES"))
+         (body (gensym "BODY"))
+         (inner-form `(loop for ,body in ,bodies
+                            ,mode (destructuring-bind ,body-lambda ,body
+                                    ,@forms))))
+    `(defmethod process-qt-widget-option ((,(gensym "OPTION") (eql ,option)) ,bodies ,class)
+       ,@(if target
+             `((list ,target ,inner-form))
+             `(,inner-form NIL)))))
+
+(define-qt-class-option (:signal :signals append) (class name args)
+  (canonicize-syntax-map (to-method-name name) args))
+
+(define-qt-class-option (:slot :slots append) (class &rest body)
+  (form-fiddle:with-destructured-lambda-form
+      (:name name :lambda-list args :docstring doc :declarations decls :forms forms) (cons :slot body)
+    (let* ((clean-decls (remove 'connected decls :key #'caadr :test #'eql))
+           (connections (remove 'connected decls :key #'caadr :test-not #'eql))
+           (clean-args (mapcar #'(lambda (a) (if (listp a) (car a) a)) args))
+           (self (first clean-args))
+           (body `(lambda ,clean-args ,@(when doc (list doc)) ,@clean-decls
+                          (with-class-bindings (,(first clean-args) ',class)
+                            ,forms))))
+      (setf name (to-method-name name))
+      
+      (add-initializer
+       class *slot-init-priority*
+       #'(lambda (class)
+           `(lambda (,self)
+              (with-class-bindings (,self ,class)
+                ,@(loop for connection in connections
+                        for args = (cdadr connection)
+                        collect `(connect ,@args ,self ,name))))))
+      
+      (canonicize-syntax-map name (mapcar #'cdr (cdr args)) body))))
+
+(define-qt-class-option (:overrides :override) (class name args &rest body)
+  `(,(to-method-name name)
+    (lambda ,args
+      (with-class-bindings (,(first args) ,class)
+        ,@body))))
+
+(define-qt-class-option (:widget :direct-slots) (class name constructor &rest body)
+  (add-initializer
+   class *widget-init-priority*
+   #'(lambda (class)
+       `(lambda (this)
+          (with-class-bindings (this ,class)
+            (setf ,name ,constructor)
+            ,@body))))
   
-  (:method ((option (eql :signal)) bodies class)
-    (declare (ignore class))
-    `(:signals
-      ,(loop for body in bodies
-             append (destructuring-bind (name args) body
-                      (canonicize-syntax-map (to-method-name name) args)))))
+  `(:name ,name :readers () :writers () :initargs ()))
 
-  (:method ((option (eql :slot)) bodies class)
-    `(:slots
-      ,(loop for body in bodies
-             collect (form-fiddle:with-destructured-lambda-form
-                         (:name name :lambda-list args :docstring doc :declarations decls :forms forms) (cons :slot body)
-                       (let* ((clean-decls (remove 'connected decls :key #'caadr :test #'eql))
-                              (connections (remove 'connected decls :key #'caadr :test-not #'eql))
-                              (clean-args (mapcar #'(lambda (a) (if (listp a) (car a) a)) args))
-                              (self (first clean-args))
-                              (body `(lambda ,clean-args ,@(when doc (list doc)) ,@clean-decls
-                                             (with-class-bindings (,(first clean-args) ',class)
-                                               ,forms))))
-                         (setf name (to-method-name name))
-                         ;; Initializer
-                         (add-initializer class *slot-init-priority*
-                                          #'(lambda (class)
-                                              `(lambda (,self)
-                                                 (with-class-bindings (,self ,class)
-                                                   ,@(loop for connection in connections
-                                                           for args = (cdadr connection)
-                                                           collect `(connect ,@args ,self ,name))))))
-                         ;; Slots
-                         (canonicize-syntax-map name (mapcar #'cdr (cdr args)) body))))))
-
-  (:method ((option (eql :overrides)) bodies class)
-    `(:override
-      ,(loop for body in bodies
-             collect (destructuring-bind (name args &rest body) body
-                       `(,(to-method-name name)
-                         (lambda ,args
-                           (with-class-bindings (,(first args) ,class)
-                             ,@body)))))))
-
-  (:method ((option (eql :widget)) bodies class)
-    `(:direct-slots
-      ,(loop for body in bodies
-             collect (destructuring-bind (name constructor &rest body) body
-                       ;; Initializer
-                       (add-initializer class *widget-init-priority*
-                                        #'(lambda (class)
-                                            `(lambda (this)
-                                               (with-class-bindings (this ,class)
-                                                 (setf ,name ,constructor)
-                                                 ,@body))))
-                       ;; Class-Slot
-                       `(:name ,name :readers () :writers () :initargs ())))))
-
-  (:method ((option (eql :layout)) body class)
-    (destructuring-bind (name constructor &rest body) (first body)
-      (add-initializer class *layout-init-priority*
-                       #'(lambda (class)
-                           `(lambda (this)
-                              (with-class-bindings (this ,class)
-                                (let ((,name ,constructor))
-                                  ,@body
-                                  (#_setLayout this ,name))))))
-      NIL)))
+(define-qt-class-option (:layout NIL) (class name constructor &rest body)
+  (add-initializer
+   class *layout-init-priority*
+   #'(lambda (class)
+       `(lambda (this)
+          (with-class-bindings (this ,class)
+            (let ((,name ,constructor))
+              ,@body
+              (#_setLayout this ,name)))))))
 
 ;; We need to manually recreate this in order to ensure that
 ;; we can pass initargs that are not recognised in slots.
@@ -148,10 +140,6 @@
 (defmethod reinitialize-instance :around ((class qt-widget-class) &rest args)
   (apply #'initialize-qt-widget-class class #'call-next-method args))
 
-(defun call-initializers (object)
-  (loop for init across (qt-widget-initializers (class-of object))
-        do (funcall (cdr init) object)))
-
 (defclass qt-widget (finalizable)
   ()
   (:metaclass qt-widget-class))
@@ -162,6 +150,16 @@
   (when (next-method-p)
     (call-next-method)))
 
+(defun fuse-alists (&rest alists-lists)
+  (let ((target (make-hash-table)))
+    (dolist (alists alists-lists)
+      (loop for (option . args) in alists
+            do (setf (gethash option target)
+                     (append args (gethash option target)))))
+    (loop for key being the hash-keys of target
+          for val being the hash-values of target
+          collect (cons key val))))
+
 (defmacro define-qt-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
   `(defclass ,name (qt-widget ,@direct-superclasses)
      ,direct-slots
@@ -169,17 +167,24 @@
      (:qt-superclass ,(find-qt-class-name qt-class))
      ,@(fuse-alists options)))
 
-(indent:define-indentation define-qt-widget (4 (&whole 6 &rest)
-                                               (&whole 2 (&whole 0 0 &rest 2))
-                                               &rest (&whole 2 2 &rest (&whole 2 2 4 &body))))
+(indent:define-indentation define-qt-widget
+    (4 (&whole 6 &rest)
+       (&whole 2 (&whole 0 0 &rest 2))
+       &rest (&whole 2 2 &rest (&whole 2 2 4 &body))))
 
-;; INTEGRATE!!
-(defun resolve-class-type (symbol)
-  (cdr (find symbol '((define-signal . :signal)
-                      (define-slot . :slot)
-                      (define-widget . :widget)
-                      (define-layout . :layout)
-                      (define-override . :overrides)) :test #'string-equal :key #'car)))
+(defvar *special-form-option-map* (make-hash-table :test 'equalp))
+
+(defun special-form-option (function)
+  (gethash (string function) *special-form-option-map*))
+
+(defun (setf special-form-option) (option function)
+  (setf (gethash (string function) *special-form-option-map*) option))
+
+(setf (special-form-option 'define-signal) :signal
+      (special-form-option 'define-slot) :slot
+      (special-form-option 'define-widget) :widget
+      (special-form-option 'define-override) :overrides
+      (special-form-option 'define-layout) :layout)
 
 (defmacro define-qt-complex (&body forms)
   (loop for (function . body) in forms
