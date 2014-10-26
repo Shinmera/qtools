@@ -16,10 +16,13 @@
   :serial T
   :components ((:file "package")
                (:file "class-map")
+               (:file "name-translation")
                (:file "toolkit")
                (:file "finalizable")
                (:file "gc-finalized")
                (:file "widget")
+               (:file "signal")
+               (:file "environment")
                (:file "readtable"))
   :depends-on (:qt
                :trivial-garbage
