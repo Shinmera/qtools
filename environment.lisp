@@ -30,11 +30,11 @@
       NIL
       (list (list ,option body)))))
 
-(define-environment-form-class-option :signal)
-(define-environment-form-class-option :slot)
-(define-environment-form-class-option :overrides)
-(define-environment-form-class-option :widget)
-(define-environment-form-class-option :layout)
+(define-environment-form-class-option define-signal :signal)
+(define-environment-form-class-option define-slot :slot)
+(define-environment-form-class-option define-overrides :overrides)
+(define-environment-form-class-option define-widget :widget)
+(define-environment-form-class-option define-layout :layout)
 
 (defmacro with-qt-environment (&body forms)
   (loop for (function . body) in forms

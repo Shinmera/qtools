@@ -33,9 +33,6 @@
                       ,@(mapcar #'car args))
         `(generic-signal ,object ,function ,@args))))
 
-(define-signal-method set-value (int))
-(define-signal-method set-values ((int double)))
-
 (defmacro define-signal-method (name args)
   (let ((argvars (loop repeat (length args) collect (gensym "ARG")))
         (args (if (listp (first args)) args (mapcar #'list args)))
