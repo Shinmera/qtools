@@ -15,6 +15,7 @@
   ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)))
 
 (defun add-initializer (class priority function)
+  #+:verbose (v:debug :qtools "Adding initializer (~a ~a): ~a" class priority function)
   (let ((function (etypecase function
                     (function function)
                     (list (compile NIL function)))))
@@ -72,8 +73,8 @@
          `(lambda (,this)
             (with-slots-bound (,this ,class)
               ,@(loop for connection in connections
-                      for args = (cdadr connection)
-                      collect `(connect ,@args ,this ,name))))))
+                      for (object func) = (cdadr connection)
+                      collect `(connect! ,object ,func ,this (,name ,@(cdr func))))))))
 
       `(:slots ,(mapcar #'(lambda (func)
                             `(,func
@@ -111,6 +112,14 @@
         (let ((,name ,constructor))
           ,@body
           (#_setLayout this ,name)))))
+  NIL)
+
+(define-qt-class-option :initializer (class widget priority &rest body)
+  (add-initializer
+   class priority
+   `(lambda (,widget)
+      (with-slots-bound (,widget ,class)
+        ,@body)))
   NIL)
 
 ;; We need to manually recreate this in order to ensure that
