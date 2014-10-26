@@ -33,17 +33,21 @@
                       ,@(mapcar #'car args))
         `(generic-signal ,object ,function ,@args))))
 
+(defun signal-method-for-name (name)
+  (intern (string-upcase (format NIL "SIGNAL-~a" name))))
+
 (defmacro define-signal-method (name args)
-  (let ((argvars (loop repeat (length args) collect (gensym "ARG")))
-        (args (if (listp (first args)) args (mapcar #'list args)))
-        (widget (gensym "WIDGET")))
-    `(defgeneric ,name (,widget ,@argvars)
-       ,@(apply #'map 'list #'(lambda (&rest args)
-                                (let ((method-args (loop for arg in args
-                                                         for var in argvars
-                                                         for type = arg
-                                                         collect `(,var ,type))))
-                                  `(:method (,widget ,@method-args)
-                                     (emit-signal ,widget ,(specified-type-method-name name args)
-                                                  ,@argvars))))
-                args))))
+  (destructuring-bind (method &optional (name (signal-method-for-name method))) (if (listp name) name (list name))
+    (let ((argvars (loop repeat (length args) collect (gensym "ARG")))
+          (args (if (listp (first args)) args (mapcar #'list args)))
+          (widget (gensym "WIDGET")))
+      `(defgeneric ,name (,widget ,@argvars)
+         ,@(apply #'map 'list #'(lambda (&rest args)
+                                  (let ((method-args (loop for arg in args
+                                                           for var in argvars
+                                                           for type = arg
+                                                           collect `(,var ,type))))
+                                    `(:method (,widget ,@method-args)
+                                       (emit-signal ,widget ,(specified-type-method-name method args)
+                                                    ,@argvars))))
+                  args)))))
