@@ -33,6 +33,14 @@
                       ,@(mapcar #'car args))
         `(generic-signal ,object ,function ,@args))))
 
+(defmacro signal! (object function &rest args)
+  `(emit-signal ,object ,(specified-type-method-name function (mapcar #'second args))
+                ,@(mapcar #'first args)))
+
+(defmacro connect! (origin origin-function target target-function)
+  `(connect ,origin ,(specified-type-method-name (car origin-function) (cdr origin-function))
+            ,target ,(specified-type-method-name (car target-function) (cdr target-function))))
+
 (defun signal-method-for-name (name)
   (intern (string-upcase (format NIL "SIGNAL-~a" name))))
 
