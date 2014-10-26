@@ -20,7 +20,7 @@
   (let ((form (gensym "FORM")))
     `(setf (environment-form ',name)
            #'(lambda (,form)
-               (destructuring-bind ,structure ,form
+               (destructuring-bind ,structure (cdr ,form)
                  ,@body)))))
 
 (defmacro define-environment-form-class-option (name option)
@@ -28,17 +28,21 @@
   `(define-environment-form ,name (&rest body)
      (values
       NIL
-      (list (list ,option body)))))
+      (list (list ,option (list body))))))
 
-(define-environment-form-class-option define-signal :signal)
+(define-environment-form define-signal (name args)
+  (values
+   `(define-signal-method ,name ,args)
+   `((:signal (,name ,args)))))
+
 (define-environment-form-class-option define-slot :slot)
 (define-environment-form-class-option define-overrides :overrides)
 (define-environment-form-class-option define-widget :widget)
 (define-environment-form-class-option define-layout :layout)
 
 (defmacro with-qt-environment (&body forms)
-  (loop for (function . body) in forms
-        for (forms options) = (multiple-value-list (environment-form function))
+  (loop for form in forms
+        for (forms options) = (multiple-value-list (funcall (environment-form (car form)) form))
         collect forms into all-forms
         append options into all-options
         finally (return
