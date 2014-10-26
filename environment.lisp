@@ -37,11 +37,11 @@
 
 (define-environment-form-class-option define-slot :slot)
 (define-environment-form-class-option define-overrides :overrides)
-(define-environment-form-class-option define-widget :widget)
+(define-environment-form-class-option define-subwidget :subwidget)
 (define-environment-form-class-option define-layout :layout)
 (define-environment-form-class-option define-initializer :initializer)
 
-(defmacro with-qt-environment (&body forms)
+(defmacro with-widget-environment (&body forms)
   (loop for form in forms
         for (forms options) = (multiple-value-list (funcall (environment-form (car form)) form))
         when forms

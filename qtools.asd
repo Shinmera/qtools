@@ -20,8 +20,9 @@
                (:file "toolkit")
                (:file "finalizable")
                (:file "gc-finalized")
-               (:file "widget")
                (:file "signal")
+               (:file "widget")
+               (:file "widget-options")
                (:file "environment")
                (:file "readtable"))
   :depends-on (:qt
