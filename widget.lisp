@@ -11,26 +11,6 @@
 (defvar *slot-init-priority* 20)
 (defvar *layout-init-priority* 100)
 
-(defun fuse-plists (&rest plists-lists)
-  (let ((target (make-hash-table)))
-    (dolist (plists plists-lists)
-      (loop for (option args) on plists by #'cddr
-            do (setf (gethash option target)
-                     (nconc (gethash option target) args))))
-    (loop for key being the hash-keys of target
-          for val being the hash-values of target
-          appending (list key val))))
-
-(defun canonicize-syntax-map (name args &rest extra)
-  (flet ((make-map (args)
-           `(,(format NIL "~a(~{~(~a~)~^, ~})" name args) ,@extra)))
-    (cond
-      ((and args (listp (first args)))
-       (loop for i from 0 below (length (first args))
-             collect (make-map (mapcar #'(lambda (list) (nth i list)) args))))
-      (T
-       `(,(make-map args))))))
-
 (defclass qt-widget-class (finalizable-class qt-class)
   ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)))
 
@@ -75,7 +55,7 @@
                        ,@forms)))))
 
 (define-qt-class-option :signal (class name args)
-  `(:signals ,(canonicize-syntax-map (to-method-name name) args)))
+  `(:signals ,(mapcar #'list (enumerate-method-descriptors (to-method-name name) args))))
 
 (define-qt-class-option :slot (class &rest body)
   (form-fiddle:with-destructured-lambda-form
@@ -95,12 +75,13 @@
                       for args = (cdadr connection)
                       collect `(connect ,@args ,this ,name))))))
 
-      `(:slots ,(canonicize-syntax-map
-                 name (mapcar #'cdr (cdr args))
-                 `(lambda ,clean-args
-                    ,@(when doc (list doc)) ,@clean-decls
-                    (with-slots-bound (,(first clean-args) ,class)
-                      ,@forms)))))))
+      `(:slots ,(mapcar #'(lambda (func)
+                            `(,func
+                              (lambda ,clean-args
+                                ,@(when doc (list doc)) ,@clean-decls
+                                (with-slots-bound (,(first clean-args) ,class)
+                                  ,@forms))))
+                        (enumerate-method-descriptors name (mapcar #'cdr (cdr args))))))))
 
 (define-qt-class-option :overrides (class name args &rest body)
   `(:override
@@ -196,35 +177,3 @@
     (4 (&whole 6 &rest)
        (&whole 2 (&whole 0 0 &rest 2))
        &rest (&whole 2 2 &rest (&whole 2 2 4 &body))))
-
-(defvar *special-form-option-map* (make-hash-table :test 'equalp))
-
-(defun special-form-option (function)
-  (gethash (string function) *special-form-option-map*))
-
-(defun (setf special-form-option) (option function)
-  (setf (gethash (string function) *special-form-option-map*) option))
-
-(setf (special-form-option 'define-signal) :signal
-      (special-form-option 'define-slot) :slot
-      (special-form-option 'define-widget) :widget
-      (special-form-option 'define-override) :overrides
-      (special-form-option 'define-layout) :layout)
-
-(defmacro define-qt-complex (&body forms)
-  (loop for (function . body) in forms
-        for option = (special-form-option function)
-        if option
-        collect `(,option ,body) into body-forms
-        else
-        collect `(,function ,@body) into other-forms
-        finally (return
-                  (let ((classdef (find 'define-qt-widget other-forms :key #'car)))
-                    (if classdef
-                        `(progn
-                           ,(append classdef body-forms)
-                           ,@(remove 'define-qt-widget other-forms :key #'car))
-                        (progn
-                          (when body-forms (warn "Class body forms found but no class definition!"))
-                          `(progn
-                             ,@other-forms)))))))
