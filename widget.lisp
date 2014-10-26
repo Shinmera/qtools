@@ -32,61 +32,52 @@
        `(,(make-map args))))))
 
 (defclass qt-widget-class (finalizable-class qt-class)
-  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)
-   (methods :initform (make-hash-table) :accessor qt-widget-methods)))
+  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)))
 
 (defun add-initializer (class priority function)
-  (vector-push-extend (cons priority function) (qt-widget-initializers class))
-  (setf (qt-widget-initializers class)
-        (sort (qt-widget-initializers class) #'> :key #'car)))
-
-(defun compile-initializers (class)
-  (loop for init across (qt-widget-initializers class)
-        do (setf (cdr init) (compile NIL (funcall (cdr init) class)))))
+  (let ((function (etypecase function
+                    (function function)
+                    (list (compile NIL function)))))
+    (vector-push-extend (cons priority function) (qt-widget-initializers class))
+    (setf (qt-widget-initializers class)
+          (sort (qt-widget-initializers class) #'> :key #'car))))
 
 (defun call-initializers (object)
   (loop for init across (qt-widget-initializers (ensure-class object))
         do (funcall (cdr init) object)))
 
-(declaim (inline qt-widget-method))
-(defun qt-widget-method (class name)
-  (gethash name (qt-widget-methods (ensure-class class))))
-
-(defun (setf qt-widget-method) (function class name)
-  (setf (gethash name (qt-widget-methods (ensure-class class))) function))
-
-(declaim (inline call-qt-widget-method))
-(defun call-qt-widget-method (class name &rest args)
-  (apply (qt-widget-method class name) args))
-
-(defun compile-methods (class)
-  (loop for name being the hash-keys of (qt-widget-methods class)
-        for func being the hash-values of (qt-widget-methods class)
-        do (setf (qt-widget-method class name)
-                 (compile NIL (funcall func class)))))
-
-(defgeneric process-qt-widget-option (option body class)
+(defgeneric process-qt-class-option (option body class)
   (:method (option body class)
     (declare (ignore class))
-    `(,option ,body)))
+    `((,option ,body))))
 
-(defmacro define-qt-class-option ((option &optional (target option) (mode 'collect)) (class &rest body-lambda) &body forms)
+(defmacro define-qt-class-option (option (class &rest body-lambda) &body forms)
   (assert (keywordp option) () "Option name must be a keyword.")
-  (assert (or (null target) (keywordp target)) () "Target name must be a keyword.")
   (let* ((bodies (gensym "BODIES"))
-         (body (gensym "BODY"))
-         (inner-form `(loop for ,body in ,bodies
-                            ,mode (destructuring-bind ,body-lambda ,body
-                                    ,@forms))))
-    `(defmethod process-qt-widget-option ((,(gensym "OPTION") (eql ,option)) ,bodies ,class)
-       ,@(if target
-             `((list ,target ,inner-form))
-             `(,inner-form NIL)))))
+         (body (gensym "BODY")))
+    `(defmethod process-qt-class-option ((,(gensym "OPTION") (eql ,option)) ,bodies ,class)
+       (loop for ,body in ,bodies
+             collect (destructuring-bind ,body-lambda ,body
+                       ,@forms)))))
 
-(define-qt-class-option (:signal :signals append) (class name args)
-  (canonicize-syntax-map (to-method-name name) args))
+(defgeneric process-qt-slot-option (option body class)
+  (:method (option body class)
+    (declare (ignore class))
+    `((,option ,body))))
 
-(define-qt-class-option (:slot :slots append) (class &rest body)
+(defmacro define-qt-slot-option (option (class &rest body-lambda) &body forms)
+  (assert (keywordp option) () "Option name must be a keyword.")
+  (let* ((bodies (gensym "BODIES"))
+         (body (gensym "BODY")))
+    `(defmethod process-qt-slot-option ((,(gensym "OPTION") (eql ,option)) ,bodies ,class)
+       (loop for ,body in ,bodies
+             collect (destructuring-bind ,body-lambda ,body
+                       ,@forms)))))
+
+(define-qt-class-option :signal (class name args)
+  `(:signals ,(canonicize-syntax-map (to-method-name name) args)))
+
+(define-qt-class-option :slot (class &rest body)
   (form-fiddle:with-destructured-lambda-form
       (:name name :lambda-list args :docstring doc :declarations decls :forms forms) (cons :slot body)
     (let* ((clean-decls (remove 'connected decls :key #'caadr :test #'eql))
@@ -98,56 +89,48 @@
       (when connections
         (add-initializer
          class *slot-init-priority*
-         #'(lambda (class)
-             `(lambda (,this)
-                (with-slots-bound (,this ,class)
-                  ,@(loop for connection in connections
-                          for args = (cdadr connection)
-                          collect `(connect ,@args ,this ,name)))))))
+         `(lambda (,this)
+            (with-slots-bound (,this ,class)
+              ,@(loop for connection in connections
+                      for args = (cdadr connection)
+                      collect `(connect ,@args ,this ,name))))))
 
-      (setf (qt-widget-method class name)
-            #'(lambda (class)
-                `(lambda ,clean-args
-                   ,@(when doc (list doc)) ,@clean-decls
-                   (with-slots-bound (,(first clean-args) ,class)
-                     ,@forms))))
-      
-      (canonicize-syntax-map
-       name (mapcar #'cdr (cdr args))
-       `(lambda (widget &rest args)
-          (apply #'call-qt-widget-method widget ',name widget args))))))
+      `(:slots ,(canonicize-syntax-map
+                 name (mapcar #'cdr (cdr args))
+                 `(lambda ,clean-args
+                    ,@(when doc (list doc)) ,@clean-decls
+                    (with-slots-bound (,(first clean-args) ,class)
+                      ,@forms)))))))
 
-(define-qt-class-option (:overrides :override) (class name args &rest body)
-  (setf (qt-widget-method class name)
-        #'(lambda (class)
-            `(lambda ,args
-               (with-slots-bound (,(first args) ,class)
-                 ,@body))))
-  
-  `(,(to-method-name name)
-    (lambda (widget &rest args)
-      (apply #'call-qt-widget-method widget ',name widget args))))
+(define-qt-class-option :overrides (class name args &rest body)
+  `(:override
+    ((,(to-method-name name)
+       (lambda ,args
+         (with-slots-bound (,(first args) ,class)
+           ,@body))))))
 
-(define-qt-class-option (:widget :direct-slots) (class name constructor &rest body)
+(define-qt-slot-option :widget (class name constructor &rest body)
+  `(:direct-slots ((:name ,name :readers () :writers () :initargs ()))
+    :widget ((,name ,constructor ,@body))))
+
+(define-qt-class-option :widget (class name constructor &rest body)
   (add-initializer
    class *widget-init-priority*
-   #'(lambda (class)
-       `(lambda (this)
-          (with-slots-bound (this ,class)
-            (setf ,name ,constructor)
-            ,@body))))
-  
-  `(:name ,name :readers () :writers () :initargs ()))
+   `(lambda (this)
+      (with-slots-bound (this ,class)
+        (setf ,name ,constructor)
+        ,@body)))
+  NIL)
 
-(define-qt-class-option (:layout NIL) (class name constructor &rest body)
+(define-qt-class-option :layout (class name constructor &rest body)
   (add-initializer
    class *layout-init-priority*
-   #'(lambda (class)
-       `(lambda (this)
-          (with-slots-bound (this ,class)
-            (let ((,name ,constructor))
-              ,@body
-              (#_setLayout this ,name)))))))
+   `(lambda (this)
+      (with-slots-bound (this ,class)
+        (let ((,name ,constructor))
+          ,@body
+          (#_setLayout this ,name)))))
+  NIL)
 
 ;; We need to manually recreate this in order to ensure that
 ;; we can pass initargs that are not recognised in slots.
@@ -158,32 +141,39 @@
     (apply #'initialize-instance instance initargs)
     instance))
 
-(defun initialize-qt-widget-class (class next &rest args)
-  (setf (qt-widget-initializers class) (make-array 0 :adjustable T :fill-pointer 0)
-        (qt-widget-methods class) (make-hash-table))
+(defun initialize-qt-widget-class (class next args)
   (let ((args (apply #'fuse-plists
                      (loop for (option body) on args by #'cddr
-                           collect (process-qt-widget-option option body class)))))
-    (apply next class args)
-    ;; compile stuff now that the class is ready.
-    (compile-initializers class)
-    (compile-methods class)))
+                           append (process-qt-slot-option option body class)))))
+    (apply #'shared-initialize class T args)
+    (setf (qt-widget-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
+    (let ((args (apply #'fuse-plists
+                       (loop for (option body) on args by #'cddr
+                             append (process-qt-class-option option body class)))))
+      (apply next class args))))
 
 (defmethod initialize-instance :around ((class qt-widget-class) &rest args)
-  (apply #'initialize-qt-widget-class class #'call-next-method args))
+  (initialize-qt-widget-class class #'call-next-method args))
 
 (defmethod reinitialize-instance :around ((class qt-widget-class) &rest args)
-  (apply #'initialize-qt-widget-class class #'call-next-method args))
+  (initialize-qt-widget-class class #'call-next-method args))
 
+;; Superclass to further handle integration with the
+;; qt-widget-class, as well as to provide a means of
+;; defining general methods on all widgets.
 (defclass qt-widget (finalizable)
   ()
   (:metaclass qt-widget-class))
 
+;; We can't do with an :after method here since then it
+;; would be called AFTER the user's :after method as per
+;; the standard method combination order, which is too
+;; late for our purposes.
 (defmethod initialize-instance ((widget qt-widget) &key)
-  (new widget)
-  (call-initializers widget)
   (when (next-method-p)
-    (call-next-method)))
+    (call-next-method))
+  (new widget)
+  (call-initializers widget))
 
 (defun fuse-alists (&rest alists-lists)
   (let ((target (make-hash-table)))
