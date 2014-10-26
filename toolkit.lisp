@@ -50,14 +50,22 @@
        (declare (ignorable ,@slots))
        ,@body)))
 
-(defun to-method-name (thing)
-  (with-output-to-string (stream)
-    (loop with capitalize = NIL
-          for char across (string-downcase thing)
-          do (cond ((char= char #\-)
-                    (setf capitalize T))
-                   (capitalize
-                    (write-char (char-upcase char) stream)
-                    (setf capitalize NIL))
-                   (T
-                    (write-char char stream))))))
+(defun fuse-plists (&rest plists-lists)
+  (let ((target (make-hash-table)))
+    (dolist (plists plists-lists)
+      (loop for (option args) on plists by #'cddr
+            do (setf (gethash option target)
+                     (nconc (gethash option target) args))))
+    (loop for key being the hash-keys of target
+          for val being the hash-values of target
+          appending (list key val))))
+
+(defun enumerate-method-descriptors (name args)
+  (flet ((make-map (args)
+           (format NIL "~a(~{~(~a~)~^, ~})" name args)))
+    (cond
+      ((and args (listp (first args)))
+       (loop for i from 0 below (length (first args))
+             collect (make-map (mapcar #'(lambda (list) (nth i list)) args))))
+      (T
+       (make-map args)))))
