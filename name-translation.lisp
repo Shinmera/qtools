@@ -23,6 +23,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defun qt-type-of (object)
   (typecase object
     (boolean "bool")
+    (unsigned-byte "uint")
     ((integer -2147483648 2147483647) "int")
     (real "double")
     (complex "complex")
