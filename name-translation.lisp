@@ -29,7 +29,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (complex "complex")
     (character "char")
     (string "const QString&")
-    (qt-widget "QWidget&")
+    (widget "QWidget&")
     (qobject "QObject&")))
 
 (defun qt-type-for (cl-type)
@@ -41,7 +41,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (complex "complex")
     (character "char")
     (string "const QString&")
-    (qt-widget "QWidget&")
+    (widget "QWidget&")
     (qobject "QObject&")))
 
 (defun to-type-name (thing)
