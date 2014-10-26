@@ -7,6 +7,9 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
+;;;;;
+;; Qt Related Utils
+
 (defun qobject-alive-p (object)
   (not (or (null-qobject-p object)
            (qobject-deleted object))))
@@ -35,6 +38,19 @@
        (cond ,@(loop for form in forms
                      collect `((qt:enum= ,key ,(car form)) ,@(cdr form)))))))
 
+(defun enumerate-method-descriptors (name args)
+  (flet ((make-map (args)
+           (format NIL "~a(~{~(~a~)~^, ~})" name args)))
+    (cond
+      ((and args (listp (first args)))
+       (loop for i from 0 below (length (first args))
+             collect (make-map (mapcar #'(lambda (list) (nth i list)) args))))
+      (T
+       (make-map args)))))
+
+;;;;;
+;; General utils
+
 (defun ensure-class (thing)
   (etypecase thing
     (symbol (find-class thing))
@@ -60,12 +76,12 @@
           for val being the hash-values of target
           appending (list key val))))
 
-(defun enumerate-method-descriptors (name args)
-  (flet ((make-map (args)
-           (format NIL "~a(~{~(~a~)~^, ~})" name args)))
-    (cond
-      ((and args (listp (first args)))
-       (loop for i from 0 below (length (first args))
-             collect (make-map (mapcar #'(lambda (list) (nth i list)) args))))
-      (T
-       (make-map args)))))
+(defun fuse-alists (&rest alists-lists)
+  (let ((target (make-hash-table)))
+    (dolist (alists alists-lists)
+      (loop for (option . args) in alists
+            do (setf (gethash option target)
+                     (append args (gethash option target)))))
+    (loop for key being the hash-keys of target
+          for val being the hash-values of target
+          collect (cons key val))))

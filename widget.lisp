@@ -9,7 +9,7 @@
 
 (defvar *widget-init-priority* 10)
 (defvar *slot-init-priority* 20)
-(defvar *layout-init-priority* 100)
+(defvar *layout-init-priority* 30)
 
 (defclass qt-widget-class (finalizable-class qt-class)
   ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)))
@@ -164,16 +164,6 @@
     (call-next-method))
   (new widget)
   (call-initializers widget))
-
-(defun fuse-alists (&rest alists-lists)
-  (let ((target (make-hash-table)))
-    (dolist (alists alists-lists)
-      (loop for (option . args) in alists
-            do (setf (gethash option target)
-                     (append args (gethash option target)))))
-    (loop for key being the hash-keys of target
-          for val being the hash-values of target
-          collect (cons key val))))
 
 (defmacro define-qt-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
   `(defclass ,name (qt-widget ,@direct-superclasses)
