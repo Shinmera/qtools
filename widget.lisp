@@ -110,7 +110,7 @@
            ,@body))))))
 
 (define-qt-slot-option :widget (class name constructor &rest body)
-  `(:direct-slots ((:name ,name :readers () :writers () :initargs ()))
+  `(:direct-slots ((:name ,name :readers () :writers () :initargs () :finalized T))
     :widget ((,name ,constructor ,@body))))
 
 (define-qt-class-option :widget (class name constructor &rest body)
