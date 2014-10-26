@@ -26,7 +26,7 @@
 
 (defmethod print-object ((slot finalizable-slot) stream)
   (print-unreadable-object (slot stream :type T :identity T)
-    (format NIL "~a~@[ finalized~*~]" (c2mop:slot-definition-name slot) (finalized slot))))
+    (format stream "~s~@[ finalized~*~]" (c2mop:slot-definition-name slot) (finalized slot))))
 
 (defclass finalizable-direct-slot-definition (finalizable-slot c2mop:standard-direct-slot-definition)
   ())
