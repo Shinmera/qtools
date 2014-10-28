@@ -6,17 +6,21 @@
 
 (in-package #:org.shirakumo.qtools)
 
-(defvar *environment-forms* (make-hash-table :test 'equal))
+(defvar *environment-forms* (make-hash-table :test 'equal)
+  "Table mapping form names to evaluator functions.")
 
 (defun environment-form (name)
+  "Returns a function to process the form of NAME with."
   (or (gethash (string name) *environment-forms*)
       #'identity))
 
 (defun (setf environment-form) (function name)
+  "Sets a new evaluator function for the given form NAME."
   (setf (gethash (string name) *environment-forms*)
         function))
 
 (defmacro define-environment-form (name structure &body body)
+  "Define processing for an environment form of NAME with a body of STRUCTURE."
   (let ((form (gensym "FORM")))
     `(setf (environment-form ',name)
            #'(lambda (,form)
@@ -24,6 +28,7 @@
                  ,@body)))))
 
 (defmacro define-environment-form-class-option (name option)
+  "Shorthand macro to translate forms of NAME to widget class OPTION."
   (assert (keywordp option) () "Option must be a keyword!")
   `(define-environment-form ,name (&rest body)
      (values
@@ -38,6 +43,9 @@
 (define-environment-form-class-option define-initializer :initializer)
 
 (defmacro with-widget-environment (&body forms)
+  "Compile the inner forms in an environment that allows a more lispy definition style.
+The main purpose of this macro is to avoid having to press all of your information into
+the class definition form."
   (loop for form in forms
         for (forms options) = (multiple-value-list (funcall (environment-form (car form)) form))
         when forms
