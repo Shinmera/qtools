@@ -15,8 +15,11 @@
   ;; environment.lisp
   (:export
    #:environment-form
+   #:remove-environment-form
    #:define-environment-form
    #:define-environment-form-class-option
+   #:list-environment-forms
+   #:describe-environment-form
    #:with-widget-environment)
   ;; finalizable.lisp
   (:export
@@ -56,14 +59,23 @@
    #:maybe-delete-qobject
    #:copy-qobject
    #:qtenumcase
-   #:enumerate-method-descriptors)
+   #:enumerate-method-descriptors
+   #:ensure-class
+   #:with-slots-bound)
   ;; widget.lisp
   (:export
    #:widget-class
    #:add-initializer
    #:process-widget-class-option
+   #:widget-class-option
+   #:list-widget-class-options
+   #:remove-widget-class-option
    #:define-widget-class-option
+   #:widget-slot-option
+   #:list-widget-slot-options
+   #:remove-widget-slot-otpion
    #:process-widget-slot-option
    #:define-widget-slot-option
+   #:describe-widget-option
    #:widget
    #:define-widget))
