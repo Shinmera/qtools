@@ -30,4 +30,5 @@
                :closer-mop
                :named-readtables
                :trivial-indent
-               :form-fiddle))
+               :form-fiddle
+               :cl-ppcre))
