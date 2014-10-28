@@ -24,7 +24,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (typecase object
     (boolean "bool")
     (unsigned-byte "uint")
-    ((integer -2147483648 2147483647) "int")
+    (fixnum "int")
     (real "double")
     (complex "complex")
     (character "char")
@@ -35,8 +35,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defun qt-type-for (cl-type)
   (case cl-type
     (boolean "bool")
-    (integer "int")
     (unsigned-byte "uint")
+    (fixnum "int")
+    (integer "int")
     (real "double")
     (complex "complex")
     (character "char")
@@ -52,7 +53,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defun cl-type-for (qt-type)
   (cond ((string-equal qt-type "bool") 'boolean)
-        ((string-equal qt-type "int") '(integer -2147483648 2147483647))
+        ((string-equal qt-type "int") 'fixnum)
         ((string-equal qt-type "double") 'real)
         ((string-equal qt-type "complex") 'complex)
         ((string-equal qt-type "char") 'character)
