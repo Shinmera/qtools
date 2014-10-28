@@ -11,10 +11,6 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defvar *slot-init-priority* 20)
 (defvar *layout-init-priority* 30)
 
-(defmacro with-compile-and-run (&body body)
-  `(funcall
-    (compile NIL `(lambda () ,,@body))))
-
 (define-widget-class-option :defsignals (class name args &rest decls)
   (destructuring-bind (declarations methods) (split decls '(method) :key #'caadr :test #'string=)
     (declare (ignore declarations))

@@ -93,3 +93,7 @@
         finally (return (cons (getf table NIL)
                               (loop for item in items
                                     collect (getf table item))))))
+
+(defmacro with-compile-and-run (&body body)
+  `(funcall
+    (compile NIL `(lambda () ,,@body))))
