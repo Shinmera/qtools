@@ -62,6 +62,11 @@
    #:enumerate-method-descriptors
    #:ensure-class
    #:with-slots-bound)
+  ;; widget-options.lisp
+  (:export
+   #:*widget-init-priority*
+   #:*slot-init-priority*
+   #:*layout-init-priority*)
   ;; widget.lisp
   (:export
    #:widget-class
