@@ -132,7 +132,7 @@
 <pre><code>(<a href="http://l1sp.org/cl/defclass">defclass</a> .. (:foo (..) (..)) (:bar ..)) =&gt; (:foo ((..) (..)) :bar (..)) =&gt; (call-slot-option :foo (..)) (call-slot-option :foo (..))...
 </code></pre>
 
-<p>Meaning the class options first get turned into a plist as per the way defclass works. Each 'body' of an option then gets individually passed to an option expander. Each call of an expander then returns a plist to use in place of the original (the plists get merged as per <code>fuse-plists</code>). This allows your option to expand to multiple different options without having to be aware of or risking disturbing other options.</p>
+<p>Meaning the class options first get turned into a plist as per the way defclass works. Each 'body' of an option then gets individually passed to an option expander. Each call of an expander then returns a plist to use in place of the original (the plists get merged as per <code><a href="#QTOOLS:FUSE-PLISTS">fuse-plists</a></code>). This allows your option to expand to multiple different options without having to be aware of or risking disturbing other options.</p>
 
 <p>For example, defining an option that takes a name and adds that as a slot would be something like the following:</p>
 
@@ -429,6 +429,32 @@ symbols and 'lisp-ified' names to Qt class names. Hyphens are stripped from the 
 See *QT-CLASS-MAP*</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:FUSE-ALISTS"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:FUSE-ALISTS">FUSE-ALISTS</a></h4>
+                      <span/>
+                      <span>(&amp;REST ALISTS-LISTS)</span>
+                    </code>
+                  </header>
+                  <pre/>
+                </article>
+              </li><li>
+                <a name="QTOOLS:FUSE-PLISTS"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:FUSE-PLISTS">FUSE-PLISTS</a></h4>
+                      <span/>
+                      <span>(&amp;REST PLISTS-LISTS)</span>
+                    </code>
+                  </header>
+                  <pre/>
+                </article>
+              </li><li>
                 <a name="QTOOLS:GENERIC-SIGNAL"/>
                 <article>
                   <header>
@@ -629,6 +655,24 @@ Look at the source to see the mappings.</pre>
 
 The FUNCTION is transformed as by TO-METHOD-NAME. Each argument type is
 determined as by TO-TYPE-NAME.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:SPLIT"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:SPLIT">SPLIT</a></h4>
+                      <span/>
+                      <span>(LIST ITEMS &amp;KEY (KEY #'IDENTITY) (TEST #'EQL))</span>
+                    </code>
+                  </header>
+                  <pre>Segregates items in LIST into separate lists if they mach an item in ITEMS.
+The first item in the returned list is the list of unmatched items.
+
+Example:
+ (split '((0 a) (0 b) (1 a) (1 b) (2 c)) '(0 2) :key #'car)
+ =&gt; '(((1 a) (1 b)) ((0 a) (0 b)) ((2 c))) </pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:TO-METHOD-NAME"/>

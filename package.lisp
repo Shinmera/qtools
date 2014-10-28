@@ -62,7 +62,10 @@
    #:qtenumcase
    #:enumerate-method-descriptors
    #:ensure-class
-   #:with-slots-bound)
+   #:with-slots-bound
+   #:fuse-alists
+   #:fuse-plists
+   #:split)
   ;; widget-options.lisp
   (:export
    #:*widget-init-priority*
