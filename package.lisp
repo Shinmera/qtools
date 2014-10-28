@@ -29,7 +29,8 @@
    #:finalizable
    #:define-finalizable
    #:finalize
-   #:with-finalizing)
+   #:with-finalizing
+   #:with-finalizing*)
   ;; gc-finalized.lisp
   (:export
    #:gc-finalized

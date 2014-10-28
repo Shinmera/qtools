@@ -57,7 +57,7 @@
 
 <p>The <code><a href="#QTOOLS:FINALIZABLE">finalizable</a></code> class (which you can subclass with <code><a href="#QTOOLS:DEFINE-FINALIZABLE">define-finalizable</a></code>) offers a different slot type with the extra argument <code>:finalizable</code>. If that argument is non-NIL, the slot's value is <code><a href="#QTOOLS:FINALIZE">finalize</a></code>d when the object is <code><a href="#QTOOLS:FINALIZE">finalize</a></code>d. Of course you don't need to use the <code><a href="#QTOOLS:FINALIZED">finalized</a></code> class and can instead define methods for your own classes to handle cleanup explicitly.</p>
 
-<p>If you only need to have certain objects around for the duration of a let body or something similar, you may find the <code><a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a></code> and <code>with-finalizing*</code> functions of use.</p>
+<p>If you only need to have certain objects around for the duration of a let body or something similar, you may find the <code><a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a></code> and <code><a href="#QTOOLS:WITH-FINALIZING*">with-finalizing*</a></code> functions of use.</p>
 
 <p>As an attempt to automate garbage collection, you can also take advantage of the <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> object. This object is a container for another object. Once the gc-finalized object loses all its references and is then at some point hit by the GC, <code><a href="#QTOOLS:FINALIZE">finalize</a></code> is automatically invoked on the contained object. For this to work properly, the container needs to have references for as long as you need the inner object. This might be dangerous if, for example, your contained object is referenced on the C++ side, but the container loses all its references on the CL side. That would result in the C++ object being finalized (and thus deleted), which might cause instability. Always be sure to keep the references in sync if you use the <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> object.</p>
 
@@ -934,6 +934,21 @@ The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                     </code>
                   </header>
                   <pre>Executes the body as by LET and calls FINALIZE on all the objects introduced by
+the bindings on completion of the body. If an error occurs during the binding phase,
+all objects bound up until that point are still finalized.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WITH-FINALIZING*"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WITH-FINALIZING*">WITH-FINALIZING*</a></h4>
+                      <span/>
+                      <span>(BINDINGS &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Executes the body as by LET* and calls FINALIZE on all the objects introduced by
 the bindings on completion of the body. If an error occurs during the binding phase,
 all objects bound up until that point are still finalized.</pre>
                 </article>
