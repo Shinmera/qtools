@@ -11,10 +11,22 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defvar *slot-init-priority* 20)
 (defvar *layout-init-priority* 30)
 
-(define-widget-class-option :signal (class name args)
+(defmacro with-compile-and-run (&body body)
+  `(funcall
+    (compile NIL `(lambda () ,,@body))))
+
+(define-widget-class-option :defsignals (class name args &rest decls)
+  (destructuring-bind (declarations methods) (split decls '(method) :key #'caadr :test #'string=)
+    (declare (ignore declarations))
+    (when methods
+      (assert (= 1 (length methods)) () "Only one method declaration is allowed.")
+      (let ((method-name (or (cadadr (first methods))
+                             (intern (format NIL "SIGNAL-~a" name)))))
+        (with-compile-and-run
+          `(define-signal-method (,name ,method-name) ,args)))))
   `(:signals ,(mapcar #'list (enumerate-method-descriptors (to-method-name name) args))))
 
-(define-widget-class-option :slot (class &rest body)
+(define-widget-class-option :defslots (class &rest body)
   ;; Split apart our lambda
   (form-fiddle:with-destructured-lambda-form (:name name :lambda-list args :docstring doc :declarations decls :forms forms) (cons :slot body)
     ;; Filter declarations
@@ -44,20 +56,19 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
           (setf name (or (cadadr (first methods)) name))
           ;; Compile the methods now.
           (flet ((compile-method (&rest types)
-                   (funcall
-                    (compile NIL `(lambda ()
-                                    (defmethod ,name ((,this ,(class-name class))
-                                                      ,@(loop for type in types
-                                                              for var in (cdr clean-args)
-                                                              collect `(,var ,(ecl-type-for type))))
-                                      ,@func-body))))))
+                   (with-compile-and-run
+                     `(defmethod ,name ((,this ,(class-name class))
+                                        ,@(loop for type in types
+                                                for var in (cdr clean-args)
+                                                collect `(,var ,(ecl-type-for type))))
+                        ,@func-body))))
             (apply #'map NIL #'compile-method cpp-args)))
         ;; Sputter out the slots
         (flet ((build-slot (func)
                  `(,func ,(if methods name `(lambda ,clean-args ,@func-body)))))
-          `(:slots ,(mapcar #'build-slot (enumerate-method-descriptors cpp-name cpp-args))))))))
+          `(:defslots ,(mapcar #'build-slot (enumerate-method-descriptors cpp-name cpp-args))))))))
 
-(define-widget-class-option :overrides (class name args &rest body)
+(define-widget-class-option :defoverrides (class name args &rest body)
   `(:override
     ((,(to-method-name name)
       (lambda ,args
