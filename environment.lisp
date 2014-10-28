@@ -43,6 +43,7 @@
         collect key))
 
 (defun describe-environment-form (form)
+  "Prints out documentation relating to the environment FORM, if any."
   (let ((func (environment-form form)))
     (format T "~a: ~:[No special handling, will evaluate to the same.~;~:[No documentation available.~;~:*~a~]~]"
             form func (when func (documentation func T)))))
