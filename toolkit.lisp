@@ -46,7 +46,7 @@
        (loop for i from 0 below (length (first args))
              collect (make-map (mapcar #'(lambda (list) (nth i list)) args))))
       (T
-       (make-map args)))))
+       (list (make-map args))))))
 
 ;;;;;
 ;; General utils
