@@ -49,13 +49,12 @@
     (let ((argvars (loop repeat (length args) collect (gensym "ARG")))
           (args (if (listp (first args)) args (mapcar #'list args)))
           (widget (gensym "WIDGET")))
-      `(defgeneric ,name (,widget ,@argvars)
-         ,@(apply #'map 'list #'(lambda (&rest args)
-                                  (let ((method-args (loop for arg in args
-                                                           for var in argvars
-                                                           for type = arg
-                                                           collect `(,var ,type))))
-                                    `(:method (,widget ,@method-args)
-                                       (emit-signal ,widget ,(specified-type-method-name method args)
-                                                    ,@argvars))))
-                  args)))))
+      (flet ((generate-method (&rest types)
+               (let ((method-args (loop for type in types
+                                        for var in argvars
+                                        collect `(,var ,(ecl-type-for type)))))
+                 `(:method (,widget ,@method-args)
+                    (emit-signal ,widget ,(specified-type-method-name method types)
+                                 ,@argvars)))))
+        `(defgeneric ,name (,widget ,@argvars)
+           ,@(apply #'map 'list #'generate-method args))))))
