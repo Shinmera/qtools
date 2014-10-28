@@ -18,6 +18,10 @@
   (setf (gethash (string name) *environment-forms*)
         function))
 
+(defun remove-environment-form (name)
+  "Removes the environment-form processor named by NAME."
+  (remhash (string name) *environment-forms*))
+
 (defmacro define-environment-form (name structure &body body)
   "Define processing for an environment form of NAME with a body of STRUCTURE."
   (let ((form (gensym "FORM"))

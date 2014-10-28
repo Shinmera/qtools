@@ -41,6 +41,10 @@ See ADD-INITIALIZER"
   "Sets a new evaluator FUNCTION for the class OPTION."
   (setf (gethash option *widget-class-options*) function))
 
+(defun remove-widget-class-option (option)
+  "Removes the class OPTION evaluator."
+  (remhash option *widget-class-options*))
+
 (defun process-widget-class-option (class option bodies)
   "Processes the passed class OPTION for CLASS and returns
 a new list of plists of options to use in its stead."
@@ -80,6 +84,10 @@ See DEFINE-WIDGET-SLOT-OPTION."
 (defun (setf widget-slot-option) (function option)
   "Sets a new evaluator FUNCTION for the slot OPTION."
   (setf (gethash option *widget-slot-options*) function))
+
+(defun remove-widget-slot-option (option)
+  "Removes the slot OPTION evaluator."
+  (remhash option *widget-slot-options*))
 
 (defun process-widget-slot-option (class option bodies)
   "Processes the passed slot OPTION for CLASS and returns
