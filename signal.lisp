@@ -32,9 +32,10 @@ If all types can be determined statically, EMIT-SIGNAL is used directly instead.
                        (to-method-name (maybe-unwrap-quote function))
                        (progn (setf all-constant NIL) function)))
          (args (loop for arg in args
-                     collect (if (constantp arg env)
-                                 (cons arg (qt-type-of arg))
-                                 (progn (setf all-constant NIL) arg)))))
+                     collect (cond
+                               ((constantp arg env) (cons arg (qt-type-of arg)))
+                               ((consp arg) arg)    
+                               (T (setf all-constant NIL) arg)))))
     (if all-constant
         `(emit-signal ,object
                       ,(determined-type-method-name function args)
