@@ -22,7 +22,21 @@ so GENERIC-SIGNAL is save to use for static values."
   (apply #'emit-signal
          object
          (determined-type-method-name function args)
-         (mapcar #'(lambda (a) (if (consp a) (car a) a)) args)))
+         (mapcar #'(lambda (a) (if (listp a) (car a) a)) args)))
+
+(defun process-list-arg (arg)
+  (flet ((handle-unquote (thing)
+           (typecase thing
+             #+sbcl
+             (sb-impl::comma (sb-impl::comma-expr thing))
+             (T `(quote ,thing)))))
+    (case (first arg)
+      (quote (second arg))
+      #+sbcl
+      (sb-int:quasiquote
+       (list (handle-unquote (first (second arg)))
+             (handle-unquote (second (second arg)))))
+      (T arg))))
 
 (define-compiler-macro generic-signal (&environment env object function &rest args)
   "Attempts to predetermine as much type information for GENERIC-SIGNAL as possible.
@@ -33,14 +47,15 @@ If all types can be determined statically, EMIT-SIGNAL is used directly instead.
                        (progn (setf all-constant NIL) function)))
          (args (loop for arg in args
                      collect (cond
-                               ((constantp arg env) (cons arg (qt-type-of arg)))
-                               ((consp arg) arg)    
+                               ((constantp arg env) (list arg (qt-type-of arg)))
+                               ((listp arg) (process-list-arg arg))    
                                (T (setf all-constant NIL) arg)))))
     (if all-constant
         `(emit-signal ,object
-                      ,(determined-type-method-name function args)
+                      ,(determined-type-method-name function (mapcar #'(lambda (a) (mapcar #'maybe-unwrap-quote a)) args))
                       ,@(mapcar #'car args))
-        `(generic-signal ,object ,function ,@args))))
+        `(generic-signal ,object ,function
+                         ,@(mapcar #'(lambda (a) (if (listp a) `(list ,a) a)) args)))))
 
 (defmacro signal! (object function &rest args)
   "Macro for a more lisp-y writing of EMIT-SIGNAL.
