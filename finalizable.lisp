@@ -7,7 +7,8 @@
 (in-package #:org.shirakumo.qtools)
 
 (defclass finalizable-class (c2mop:standard-class)
-  ())
+  ()
+  (:documentation "Metaclass for classes with finalizable slots."))
 
 (defmethod c2mop:validate-superclass ((class finalizable-class) (superclass t))
   NIL)
@@ -22,7 +23,8 @@
   T)
 
 (defclass finalizable-slot ()
-  ((finalized :initarg :finalized :initform NIL :reader finalized)))
+  ((finalized :initarg :finalized :initform NIL :reader finalized))
+  (:documentation "Superclass for slots with a finalized option."))
 
 (defmethod print-object ((slot finalizable-slot) stream)
   (print-unreadable-object (slot stream :type T :identity T)
@@ -44,15 +46,27 @@
 
 (defclass finalizable ()
   ()
-  (:metaclass finalizable-class))
+  (:metaclass finalizable-class)
+  (:documentation "A class for finalizable objects."))
 
 (defmacro define-finalizable (name direct-superclasses direct-slots &rest options)
+  "Shorthand around DEFCLASS to create a finalizable class.
+
+Automatically adds FINALIZABLE as direct-superclass and 
+FINALIZABLE-CLASS as metaclass."
   `(defclass ,name (finalizable ,@direct-superclasses)
      ,direct-slots
      (:metaclass finalizable-class)
      ,@options))
 
 (defgeneric finalize (object)
+  (:documentation "Finalizes the object. The effects thereof may vary and even result in nothing at all.
+After FINALIZE has been called on an object, it should not be attempted to be used in any fashion
+whatsoever as it may have been rendered unusable or unstable.
+
+This method should be called on any object once it is known that it can be discarded.
+FINALIZE will then try to clean up objects and make sure that they don't clutter your
+memory, as lingering QOBJECTs would.")
   #+:verbose
   (:method :before (object)
     (v:trace :qtools "Finalizing ~s" object))
@@ -73,6 +87,9 @@
     object))
 
 (defmacro with-finalizing (bindings &body body)
+  "Executes the body as by LET and calls FINALIZE on all the objects introduced by
+the bindings on completion of the body. If an error occurs during the binding phase,
+all objects bound up until that point are still finalized."
   (let ((values (gensym "VALUES")))
     `(let ((,values ()))
        (unwind-protect
@@ -84,6 +101,9 @@
          (mapc #'finalize ,values)))))
 
 (defmacro with-finalizing* (bindings &body body)
+  "Executes the body as by LET* and calls FINALIZE on all the objects introduced by
+the bindings on completion of the body. If an error occurs during the binding phase,
+all objects bound up until that point are still finalized."
   (let ((values (gensym "VALUES")))
     `(let ((,values ()))
        (unwind-protect
