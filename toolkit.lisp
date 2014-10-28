@@ -85,3 +85,11 @@
     (loop for key being the hash-keys of target
           for val being the hash-values of target
           collect (cons key val))))
+
+(defun split (list items &key (key #'identity) (test #'eql))
+  (loop with table = ()
+        for item in list
+        do (push item (getf table (find (funcall key item) items :test test)))
+        finally (return (cons (getf table NIL)
+                              (loop for item in items
+                                    collect (getf table item))))))
