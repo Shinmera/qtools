@@ -85,7 +85,8 @@ STANDARD-OBJECT -> CLASS-OF"
     (standard-object (class-of thing))))
 
 (defmacro with-slots-bound ((instance class) &body body)
-  "Turns into a WITH-SLOTS with all direct-slots of CLASS."
+  "Turns into a WITH-SLOTS with all direct-slots of CLASS.
+Class is resolved as per ENSURE-CLASS."
   (let ((slots (loop for slot in (c2mop:class-direct-slots
                                   (ensure-class class))
                      for name = (c2mop:slot-definition-name slot)
