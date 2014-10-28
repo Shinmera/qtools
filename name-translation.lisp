@@ -93,8 +93,8 @@ Look at the source to see the mappings."
 
 (defun %determined-type-method-name-arg (stream arg a b)
   (declare (ignore a b))
-  (write-string (if (consp arg)
-                    (to-type-name (cdr arg))
+  (write-string (if (listp arg)
+                    (to-type-name (second arg))
                     (eqt-type-of arg))
                 stream))
 
