@@ -21,7 +21,7 @@
         (optimized-delete object))
       #+:verbose (v:trace :qtools "Deleting QObject: WARN Tried to delete non-qobject ~a" object)))
 
-(defgeneric copy-qobject (qclass instance)
+(defgeneric copy-qobject-using-class (qclass instance)
   #+:verbose
   (:method :before (qclass instance)
     (v:trace :qtools "Copying QObject: ~a" instance))
@@ -31,6 +31,12 @@
   ;; QColor
   (:method ((qclass (eql 3976)) instance)
     (#_new QColor instance)))
+
+(defgeneric copy-qobject (instance)
+  (:documentation "Generates a copy of the")
+  (:method (instance)
+    (copy-qobject-using-class
+     (qt::qobject-class instance) instance)))
 
 (defmacro qtenumcase (keyform &body forms)
   (let ((key (gensym "KEY")))
