@@ -7,7 +7,7 @@
 (in-package #:org.shirakumo.qtools)
 
 (define-finalizable gc-finalized ()
-  ((object :initarg :object :initform (error "OBJECT required.") :reader unbox :finalized T)))
+  ((%object :initarg :object :initform (error "OBJECT required.") :reader unbox :finalized T)))
 
 (defmethod print-object ((finalized gc-finalized) stream)
   (print-unreadable-object (finalized stream :type T)

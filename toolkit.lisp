@@ -97,3 +97,9 @@
 (defmacro with-compile-and-run (&body body)
   `(funcall
     (compile NIL `(lambda () ,,@body))))
+
+(defun maybe-unwrap-quote (thing)
+  (if (and (listp thing)
+           (eql 'quote (first thing)))
+      (second thing)
+      thing))

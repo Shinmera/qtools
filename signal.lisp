@@ -12,12 +12,6 @@
          (determined-type-method-name function args)
          (mapcar #'(lambda (a) (if (consp a) (car a) a)) args)))
 
-(defun maybe-unwrap-quote (thing)
-  (if (and (listp thing)
-           (eql 'quote (first thing)))
-      (second thing)
-      thing))
-
 (define-compiler-macro generic-signal (&environment env object function &rest args)
   (let* ((all-constant T)
          (function (if (constantp function env)
