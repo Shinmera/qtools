@@ -30,13 +30,9 @@
       NIL
       (list (list ,option (list body))))))
 
-(define-environment-form define-signal (name args)
-  (values
-   `(define-signal-method ,name ,args)
-   `((:signal (,name ,args)))))
-
-(define-environment-form-class-option define-slot :slot)
-(define-environment-form-class-option define-overrides :overrides)
+(define-environment-form-class-option define-signal :defsignals)
+(define-environment-form-class-option define-slot :defslots)
+(define-environment-form-class-option define-overrides :defoverrides)
 (define-environment-form-class-option define-subwidget :subwidget)
 (define-environment-form-class-option define-layout :layout)
 (define-environment-form-class-option define-initializer :initializer)
