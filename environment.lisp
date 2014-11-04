@@ -58,6 +58,7 @@
 (define-environment-form-class-option define-subwidget :subwidget)
 (define-environment-form-class-option define-layout :layout)
 (define-environment-form-class-option define-initializer :initializer)
+(define-environment-form-class-option define-finalizer :finalizer)
 
 (defmacro with-widget-environment (&body forms)
   "Compile the inner forms in an environment that allows a more lispy definition style.

@@ -185,3 +185,22 @@ See *LAYOUT-INIT-PRIORITY*"
       (with-slots-bound (,widget ,class)
         ,@body)))
   NIL)
+
+(define-widget-class-option :finalizer (class widget priority &rest body)
+  "Defines a function to run as a finalizer.
+This is useful in order to interject things to be evaluated
+before the finalization of a widget class.
+
+Expected is a list of the following structure:
+BODY ::= WIDGET PRIORITY FORM*
+
+The main widget is bound to the WIDGET symbol and all its slots
+are bound as per WITH-SLOTS-BOUND. The finalizer is evaluated
+in sequence according to its PRIORITY. The higher the value, the
+later in the process it is executed."
+  (add-finalizer
+   class priority
+   `(lambda (,widget)
+      (with-slots-bound (,widget ,class)
+        ,@body)))
+  NIL)

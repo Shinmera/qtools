@@ -12,14 +12,15 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   "Map from option name to slot option evaluator.")
 
 (defclass widget-class (finalizable-class qt-class)
-  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers))
+  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)
+   (finalizers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-finalizers))
   (:documentation "Metaclass for widgets. Inherits from FINALIZABLE-CLASS and QT-CLASS."))
 
 (defun add-initializer (class priority function)
   "Adds a new initializer FUNCTION to the CLASS with PRIORITY.
 Higher priority means later evaluation. The FUNCTION may be either
 a function object or a lambda form to be compiled by COMPILE."
-  #+:verbose (v:debug :qtools "Compiling initializer for ~s: ~s" class function)
+  #+:verbose (v:debug :qtools "Adding initializer ~s" function)
   (let ((function (etypecase function
                     (function function)
                     (list (compile NIL function)))))
@@ -32,6 +33,25 @@ a function object or a lambda form to be compiled by COMPILE."
 See ENSURE-CLASS
 See ADD-INITIALIZER"
   (loop for init across (qt-widget-initializers (ensure-class object))
+        do (funcall (cdr init) object)))
+
+(defun add-finalizer (class priority function)
+  "Adds a new finalizer FUNCTION to the CLASS with PRIORITY.
+Higher priority means later evaluation. The FUNCTION may be either
+a function object or a lambda form to be compiled by COMPILE."
+  #+:verbose (v:debug :qtools "Adding finalizer ~s" function)
+  (let ((function (etypecase function
+                    (function function)
+                    (list (compile NIL function)))))
+    (vector-push-extend (cons priority function) (qt-widget-finalizers class))
+    (setf (qt-widget-finalizers class)
+          (sort (qt-widget-finalizers class) #'> :key #'car))))
+
+(defun call-finalizers (object)
+  "Calls all finalizers for the class in sequence.
+See ENSURE-CLASS
+See ADD-FINALIZER"
+  (loop for init across (qt-widget-finalizers (ensure-class object))
         do (funcall (cdr init) object)))
 
 (defun widget-class-option (option)
@@ -179,6 +199,12 @@ from this. See DEFINE-WIDGET."))
     (call-next-method))
   (new widget)
   (call-initializers widget))
+
+;; Finalizer methods might want to operate on the objects
+;; of the class, so we need to execute them before the
+;; slots are finalized.
+(defmethod finalize :before ((widget widget))
+  (call-finalizers widget))
 
 (defmacro define-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
   "Shorthand over DEFCLASS.
