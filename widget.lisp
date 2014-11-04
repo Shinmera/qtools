@@ -19,6 +19,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   "Adds a new initializer FUNCTION to the CLASS with PRIORITY.
 Higher priority means later evaluation. The FUNCTION may be either
 a function object or a lambda form to be compiled by COMPILE."
+  #+:verbose (v:debug :qtools "Compiling initializer for ~s: ~s" class function)
   (let ((function (etypecase function
                     (function function)
                     (list (compile NIL function)))))
@@ -50,7 +51,8 @@ See ADD-INITIALIZER"
 a new list of plists of options to use in its stead."
   (let ((func (widget-class-option option)))
     (if func
-        (loop for body in bodies
+        (loop #+:verbose initially #+:verbose (v:debug :qtools "Processing class-option ~s" option)
+              for body in bodies
               collect (apply func class body))
         `((,option ,bodies)))))
 
@@ -94,7 +96,8 @@ See DEFINE-WIDGET-SLOT-OPTION."
 a new list of plists of options to use in its stead."
   (let ((func (widget-slot-option option)))
     (if func
-        (loop for body in bodies
+        (loop #+:verbose initially #+:verbose (v:debug :qtools "Processing slot-option ~s" option)
+              for body in bodies
               collect (apply func class body))
         `((,option ,bodies)))))
 
