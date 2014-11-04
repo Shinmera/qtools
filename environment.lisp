@@ -32,15 +32,6 @@
                (destructuring-bind ,structure (cdr ,form)
                  ,@body)))))
 
-(defmacro define-environment-form-class-option (name option)
-  "Shorthand macro to translate forms of NAME to widget class OPTION."
-  (assert (keywordp option) () "Option must be a keyword!")
-  `(define-environment-form ,name (&rest body)
-     ,(format NIL "Translates to the class option ~s" option)
-     (values
-      NIL
-      (list (list ,option (list body))))))
-
 (defun list-environment-forms ()
   "Lists all specially handled forms in a widget-environment."
   (loop for key being the hash-keys of *environment-forms*
@@ -51,6 +42,15 @@
   (let ((func (environment-form form)))
     (format T "~a: ~:[No special handling, will evaluate to the same.~;~:[No documentation available.~;~:*~a~]~]"
             form func (when func (documentation func T)))))
+
+(defmacro define-environment-form-class-option (name option)
+  "Shorthand macro to translate forms of NAME to widget class OPTION."
+  (assert (keywordp option) () "Option must be a keyword!")
+  `(define-environment-form ,name (&rest body)
+     ,(format NIL "Translates to the class option ~s" option)
+     (values
+      NIL
+      (list (list ,option body)))))
 
 (define-environment-form-class-option define-signal :defsignals)
 (define-environment-form-class-option define-slot :defslots)
@@ -70,9 +70,9 @@ the class definition form."
         collect forms into all-forms
         append options into all-options
         finally (return
-                  (let ((classdef (find 'define-qt-widget all-forms :key #'car)))
+                  (let ((classdef (find 'define-widget all-forms :key #'car)))
                     (when (and all-options (not classdef))
                       (warn "Class body forms found but no class definition!"))
                     `(progn
                        ,@(when classdef (list (append classdef all-options)))
-                       ,@(remove 'define-qt-widget all-forms :key #'car))))))
+                       ,@(remove 'define-widget all-forms :key #'car))))))
