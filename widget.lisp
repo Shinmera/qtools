@@ -154,6 +154,7 @@ See DEFINE-WIDGET-CLASS-OPTION."
 (defclass widget (finalizable)
   ()
   (:metaclass widget-class)
+  (:qt-superclass "QObject")
   (:documentation "Superclass for widgets. All your widgets should inherit
 from this. See DEFINE-WIDGET."))
 

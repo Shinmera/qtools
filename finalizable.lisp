@@ -13,10 +13,10 @@
 (defmethod c2mop:validate-superclass ((class finalizable-class) (superclass t))
   NIL)
 
-(defmethod c2mop:validate-superclass ((class c2mop:standard-class) (superclass finalizable-class))
+(defmethod c2mop:validate-superclass ((class standard-class) (superclass finalizable-class))
   T)
 
-(defmethod c2mop:validate-superclass ((class finalizable-class) (superclass c2mop:standard-class))
+(defmethod c2mop:validate-superclass ((class finalizable-class) (superclass standard-class))
   T)
 
 (defmethod c2mop:validate-superclass ((class finalizable-class) (superclass finalizable-class))
