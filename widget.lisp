@@ -124,12 +124,20 @@ See DEFINE-WIDGET-CLASS-OPTION."
 
 ;; We need to manually recreate this in order to ensure that
 ;; we can pass initargs that are not recognised in slots.
+;; This suffices for our hack on SBCL.
 (defmethod make-instance ((class (eql (find-class 'widget-class))) &rest initargs)
   (unless (c2mop:class-finalized-p class)
     (c2mop:finalize-inheritance class))
   (let ((instance (apply #'allocate-instance class initargs)))
     (apply #'initialize-instance instance initargs)
     instance))
+
+;; On CCL we need to reach deeper.
+#+:ccl
+(defmethod ccl::class-slot-initargs :around ((class (eql (find-class 'widget-class))))
+  (append (list-widget-slot-options)
+          (list-widget-class-options)
+          (call-next-method)))
 
 (defun initialize-widget-class (class next args)
   (let ((args (apply #'fuse-plists
