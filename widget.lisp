@@ -172,6 +172,7 @@ See DEFINE-WIDGET-CLASS-OPTION."
     (let ((args (apply #'fuse-plists
                        (loop for (option body) on args by #'cddr
                              append (process-widget-class-option class option body)))))
+      #+:verbose (v:debug :qtools "Resulting class options: ~s" args)
       (apply next class args))))
 
 (defmethod initialize-instance :around ((class widget-class) &rest args)
