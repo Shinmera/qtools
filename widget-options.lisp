@@ -94,7 +94,7 @@ of the slot-name."
         ;; Sputter out the slots
         (flet ((build-slot (func)
                  `(,func ,(if methods name `(lambda ,clean-args ,@func-body)))))
-          `(:defslots ,(mapcar #'build-slot (enumerate-method-descriptors cpp-name cpp-args))))))))
+          `(:slots ,(mapcar #'build-slot (enumerate-method-descriptors cpp-name cpp-args))))))))
 
 (define-widget-class-option :defoverrides (class name args &rest body)
   "Allows a more handy definition of override methods.
