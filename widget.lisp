@@ -12,8 +12,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   "Map from option name to slot option evaluator.")
 
 (defclass widget-class (finalizable-class qt-class)
-  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-initializers)
-   (finalizers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor qt-widget-finalizers))
+  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor widget-class-initializers)
+   (finalizers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor widget-class-finalizers))
   (:documentation "Metaclass for widgets. Inherits from FINALIZABLE-CLASS and QT-CLASS."))
 
 (defun add-initializer (class priority function)
@@ -24,15 +24,15 @@ a function object or a lambda form to be compiled by COMPILE."
   (let ((function (etypecase function
                     (function function)
                     (list (compile NIL function)))))
-    (vector-push-extend (cons priority function) (qt-widget-initializers class))
-    (setf (qt-widget-initializers class)
-          (sort (qt-widget-initializers class) #'> :key #'car))))
+    (vector-push-extend (cons priority function) (widget-class-initializers class))
+    (setf (widget-class-initializers class)
+          (sort (widget-class-initializers class) #'< :key #'car))))
 
 (defun call-initializers (object)
   "Calls all initializers for the class in sequence.
 See ENSURE-CLASS
 See ADD-INITIALIZER"
-  (loop for init across (qt-widget-initializers (ensure-class object))
+  (loop for init across (widget-class-initializers (ensure-class object))
         do (funcall (cdr init) object)))
 
 (defun add-finalizer (class priority function)
@@ -43,15 +43,15 @@ a function object or a lambda form to be compiled by COMPILE."
   (let ((function (etypecase function
                     (function function)
                     (list (compile NIL function)))))
-    (vector-push-extend (cons priority function) (qt-widget-finalizers class))
-    (setf (qt-widget-finalizers class)
-          (sort (qt-widget-finalizers class) #'> :key #'car))))
+    (vector-push-extend (cons priority function) (widget-class-finalizers class))
+    (setf (widget-class-finalizers class)
+          (sort (widget-class-finalizers class) #'< :key #'car))))
 
 (defun call-finalizers (object)
   "Calls all finalizers for the class in sequence.
 See ENSURE-CLASS
 See ADD-FINALIZER"
-  (loop for init across (qt-widget-finalizers (ensure-class object))
+  (loop for init across (widget-class-finalizers (ensure-class object))
         do (funcall (cdr init) object)))
 
 (defun widget-class-option (option)
@@ -167,7 +167,8 @@ See DEFINE-WIDGET-CLASS-OPTION."
                      (loop for (option body) on args by #'cddr
                            append (process-widget-slot-option class option body)))))
     (apply #'shared-initialize class T args)
-    (setf (qt-widget-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
+    (setf (widget-class-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
+    (setf (widget-class-finalizers class) (make-array 0 :adjustable T :fill-pointer 0))
     (let ((args (apply #'fuse-plists
                        (loop for (option body) on args by #'cddr
                              append (process-widget-class-option class option body)))))
