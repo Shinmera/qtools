@@ -136,9 +136,10 @@ The main widget is bound to the symbol QTOOLS:WIDGET."
   (add-initializer
    class *widget-init-priority*
    `(lambda (widget)
-      (with-slots-bound (widget ,class)
-        (setf ,name ,constructor)
-        ,@body)))
+      (with-simple-restart (:skip ,(format NIL "Skip the ~s subwidget setup (Not recommended.)" name))
+        (with-slots-bound (widget ,class)
+          (setf ,name ,constructor)
+          ,@body))))
   NIL)
 
 (define-widget-class-option :layout (class name constructor &rest body)
@@ -157,10 +158,11 @@ The main widget is bound to the symbol QTOOLS:WIDGET"
   (add-initializer
    class *layout-init-priority*
    `(lambda (widget)
-      (with-slots-bound (widget ,class)
-        (let ((,name ,constructor))
-          ,@body
-          (#_setLayout widget ,name)))))
+      (with-simple-restart (:skip ,(format NIL "Skip the ~s layout setup (Not recommended.)" name))
+        (with-slots-bound (widget ,class)
+          (let ((,name ,constructor))
+            ,@body
+            (#_setLayout widget ,name))))))
   NIL)
 
 (define-widget-class-option :initializer (class widget priority &rest body)
@@ -182,8 +184,9 @@ See *LAYOUT-INIT-PRIORITY*"
   (add-initializer
    class priority
    `(lambda (,widget)
-      (with-slots-bound (,widget ,class)
-        ,@body)))
+      (with-simple-restart (:skip "Skip the initializer.")
+        (with-slots-bound (,widget ,class)
+          ,@body))))
   NIL)
 
 (define-widget-class-option :finalizer (class widget priority &rest body)
@@ -201,6 +204,7 @@ later in the process it is executed."
   (add-finalizer
    class priority
    `(lambda (,widget)
-      (with-slots-bound (,widget ,class)
-        ,@body)))
+      (with-simple-restart (:skip "Skip the finalizer.")
+        (with-slots-bound (,widget ,class)
+          ,@body))))
   NIL)
