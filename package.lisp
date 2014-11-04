@@ -75,6 +75,7 @@
   (:export
    #:widget-class
    #:add-initializer
+   #:add-finalizer
    #:process-widget-class-option
    #:widget-class-option
    #:list-widget-class-options
