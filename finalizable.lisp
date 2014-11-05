@@ -59,6 +59,21 @@ FINALIZABLE-CLASS as metaclass."
      (:metaclass finalizable-class)
      ,@options))
 
+(defgeneric finalize-using-class (class object)
+  (:documentation "Extension to the FINALIZE generic function to support differentiating by the
+classes of an object, mostly used for native QObjects as they don't integrate into CLOS directly.
+You need to use EQL specializers on the class, as a Qt class is represented as an integer.
+
+E.g: (defmethod finalize-using-class ((class (eql (find-class \"QWidget\"))) object) ..)
+
+This method should not be called directly.
+
+See FINALIZE")
+  (:method (class object)
+    object)
+  (:method ((class (eql (find-qclass "QPainter"))) painter)
+    (#_end painter)))
+
 (defgeneric finalize (object)
   (:documentation "Finalizes the object. The effects thereof may vary and even result in nothing at all.
 After FINALIZE has been called on an object, it should not be attempted to be used in any fashion
@@ -72,6 +87,9 @@ memory, as lingering QOBJECTs would.")
     (v:trace :qtools "Finalizing ~s" object))
   (:method (object)
     object)
+  (:method ((object qobject))
+    (call-next-method)
+    (finalize-qobject (qt::qobject-class object) object))
   (:method ((object abstract-qobject))
     (call-next-method)
     (maybe-delete-qobject object)
