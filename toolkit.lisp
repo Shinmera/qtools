@@ -29,11 +29,9 @@ appropriate for the given qclass.")
   #+:verbose
   (:method :before (qclass instance)
     (v:trace :qtools "Copying QObject: ~a" instance))
-  ;; QImage
-  (:method ((qclass (eql 11848)) instance) 
+  (:method ((qclass (eql (find-qclass "QImage"))) instance) 
     (#_copy instance))
-  ;; QColor
-  (:method ((qclass (eql 3976)) instance)
+  (:method ((qclass (eql (find-qclass "QColor"))) instance)
     (#_new QColor instance)))
 
 (defgeneric copy-qobject (instance)
