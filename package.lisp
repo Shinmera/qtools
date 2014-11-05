@@ -28,6 +28,7 @@
    #:finalized
    #:finalizable
    #:define-finalizable
+   #:finalize-using-class
    #:finalize
    #:with-finalizing
    #:with-finalizing*)
@@ -58,6 +59,7 @@
   (:export
    #:qobject-alive-p
    #:maybe-delete-qobject
+   #:copy-qobject-using-class
    #:copy-qobject
    #:qtenumcase
    #:enumerate-method-descriptors
