@@ -30,6 +30,7 @@
    #:define-finalizable
    #:finalize-using-class
    #:finalize
+   #:define-finalize-method
    #:with-finalizing
    #:with-finalizing*)
   ;; gc-finalized.lisp
@@ -59,8 +60,9 @@
   (:export
    #:qobject-alive-p
    #:maybe-delete-qobject
-   #:copy-qobject-using-class
-   #:copy-qobject
+   #:copy-using-class
+   #:copy
+   #:define-copy-method
    #:qtenumcase
    #:enumerate-method-descriptors
    #:ensure-class
