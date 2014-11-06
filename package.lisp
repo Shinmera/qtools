@@ -12,6 +12,12 @@
    #:*qt-class-vector*
    #:*qt-class-map*
    #:find-qt-class-name)
+  ;; copying.lisp
+  (:export
+   #:copy-using-class
+   #:copy
+   #:define-copy-method
+   #:describe-copy-method)
   ;; environment.lisp
   (:export
    #:environment-form
@@ -60,9 +66,6 @@
   (:export
    #:qobject-alive-p
    #:maybe-delete-qobject
-   #:copy-using-class
-   #:copy
-   #:define-copy-method
    #:qtenumcase
    #:enumerate-method-descriptors
    #:ensure-class

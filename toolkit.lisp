@@ -28,57 +28,6 @@
         (optimized-delete object))
       #+:verbose (v:trace :qtools "Deleting QObject: WARN Tried to delete non-qobject ~a" object)))
 
-(defgeneric copy-using-class (qclass instance)
-  (:documentation "Creates a copy of the given instance by using methods
-appropriate for the given qclass.")
-  #+:verbose
-  (:method :before (qclass instance)
-    (v:trace :qtools "Copying: ~a" instance)))
-
-(defgeneric copy (instance)
-  (:documentation "Generates a copy of the qobject.
-Uses COPY-QOBJECT-USING-CLASS and determines the class by QT::QOBJECT-CLASS.")
-  (:method (instance)
-    (copy-using-class
-     (qt::qobject-class instance) instance)))
-
-(defmacro define-copy-method ((instance class) &body body)
-  "Defines a method to copy an object of CLASS.
-CLASS can be either a common-lisp class type or a Qt class name.
-
-Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
-is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
-is defined with the CLASS directly as specializer for the instance.
-
-In cases where you need to define a method on a same-named CL class,
-directly use DEFMETHOD on COPY-QOBJECT.
-
-See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS"
-  (let ((qclass (gensym "QCLASS"))
-        (qt-class-name (find-qt-class-name class)))
-    (if qt-class-name
-        `(defmethod copy-using-class ((,qclass (eql (find-qclass ,qt-class-name))) ,instance)
-           (declare (ignore ,qclass))
-           ,@body)
-        `(defmethod copy ((,instance ,class))
-           ,@body))))
-
-(define-copy-method (instance QColor)
-  (#_new QColor instance))
-
-(define-copy-method (instance QImage)
-  (#_copy instance (#_rect instance)))
-
-(define-copy-method (instance QPixmap)
-  (#_copy instance (#_rect instance)))
-
-(define-copy-method (instance QTransform)
-  (#_new QTransform
-         (#_m11 instance) (#_m12 instance) (#_m13 instance)
-         (#_m21 instance) (#_m22 instance) (#_m23 instance)
-         (#_m31 instance) (#_m32 instance) (#_m33 instance)))
-
 (defmacro qtenumcase (keyform &body forms)
   "Just like CASE, but for Qt enums using QT:ENUM=."
   (let ((key (gensym "KEY")))
