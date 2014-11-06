@@ -43,7 +43,7 @@ automatically ensured to be GC-ed and FINALIZEd once the body exits."
                        collect `(,(gensym (string symbol)) (make-gc-finalized ,form)))))
     `(let ,gensyms
        (symbol-macrolet
-           ,(loop for (symbol form) in bindings
-                  for (gensym oform) in gensyms
-                  collect `(,symbol (unbox ,gensym)))
+           ,(loop for binding in bindings
+                  for gensym in gensyms
+                  collect `(,(car binding) (unbox ,(car gensym))))
          ,@body))))

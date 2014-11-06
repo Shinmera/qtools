@@ -71,6 +71,7 @@ This method should not be called directly.
 
 See FINALIZE")
   (:method (class object)
+    (declare (ignore class))
     object))
 
 (defgeneric finalize (object)
@@ -88,7 +89,7 @@ memory, as lingering QOBJECTs would.")
     object)
   (:method ((object qobject))
     (call-next-method)
-    (finalize-qobject (qt::qobject-class object) object)))
+    (finalize-using-class (qt::qobject-class object) object)))
 
 (defmacro define-finalize-method ((instance class) &body body)
   "Defines a method to finalize an object of CLASS.

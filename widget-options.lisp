@@ -24,6 +24,7 @@ DECLARATION ::= (declare (method [NAME]))
 A METHOD declaration has the effect of generating
 signalling methods for the signal. See
 DEFIEN-SIGNAL-METHOD."
+  (declare (ignore class))
   (destructuring-bind (declarations methods) (split decls '(method) :key #'caadr :test #'string=)
     (declare (ignore declarations))
     (when methods
