@@ -7,6 +7,11 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  ;; We need this here so that we can use FIND-QCLASS.
+  (ensure-smoke :qtcore)
+  (ensure-smoke :qtgui))
+
 ;;;;;
 ;; Qt Related Utils
 
