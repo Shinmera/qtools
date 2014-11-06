@@ -71,9 +71,7 @@ This method should not be called directly.
 
 See FINALIZE")
   (:method (class object)
-    object)
-  (:method ((class (eql (find-qclass "QPainter"))) painter)
-    (#_end painter)))
+    object))
 
 (defgeneric finalize (object)
   (:documentation "Finalizes the object. The effects thereof may vary and even result in nothing at all.
@@ -90,20 +88,47 @@ memory, as lingering QOBJECTs would.")
     object)
   (:method ((object qobject))
     (call-next-method)
-    (finalize-qobject (qt::qobject-class object) object))
-  (:method ((object abstract-qobject))
-    (call-next-method)
-    (maybe-delete-qobject object)
-    object)
-  (:method ((object finalizable))
-    (call-next-method)
-    (loop for slot in (c2mop:class-direct-slots (class-of object))
-          for slot-name = (c2mop:slot-definition-name slot)
-          when (and (typep slot 'finalizable-slot)
-                    (finalized slot))
-          do (finalize (slot-value object slot-name))
-             (slot-makunbound object slot-name))
-    object))
+    (finalize-qobject (qt::qobject-class object) object)))
+
+(defmacro define-finalize-method ((instance class) &body body)
+  "Defines a method to finalize an object of CLASS.
+CLASS can be either a common-lisp class type or a Qt class name.
+
+Qt class names will take precedence, meaning that if CLASS resolves
+to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
+is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
+is defined with the CLASS directly as specializer for the instance.
+
+In cases where you need to define a method on a same-named CL class,
+directly use DEFMETHOD on FINALIZE.
+
+See FINALIZE, FINALIZE-USING-CLASS"
+  (let ((qclass (gensym "QCLASS"))
+        (qt-class-name (find-qt-class-name class)))
+    (if qt-class-name
+        `(defmethod finalize-using-class ((,qclass (eql (find-qclass ,qt-class-name))) ,instance)
+           (declare (ignore ,qclass))
+           ,@body)
+        `(defmethod finalize ((,instance ,class))
+           ,@body))))
+
+(define-finalize-method (object QPainter)
+  (#_end object))
+
+(define-finalize-method (object abstract-qobject)
+  (call-next-method)
+  (maybe-delete-qobject object)
+  object)
+
+(define-finalize-method (object finalizable)
+  (call-next-method)
+  (loop for slot in (c2mop:class-direct-slots (class-of object))
+        for slot-name = (c2mop:slot-definition-name slot)
+        when (and (typep slot 'finalizable-slot)
+                  (finalized slot))
+        do (finalize (slot-value object slot-name))
+           (slot-makunbound object slot-name))
+  object)
 
 (defmacro with-finalizing (bindings &body body)
   "Executes the body as by LET and calls FINALIZE on all the objects introduced by
