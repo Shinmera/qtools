@@ -92,6 +92,7 @@ See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS"
   (make-gc-finalized (copy (unbox instance))))
 
 (defun describe-copy-method (class)
+  "Prints information about the copy method for the specified class if possible."
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
                      (find-method #'copy-using-class () `((eql ,(find-qclass qt-class-name)) T))

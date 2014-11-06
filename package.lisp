@@ -37,6 +37,7 @@
    #:finalize-using-class
    #:finalize
    #:define-finalize-method
+   #:describe-finalize-method
    #:with-finalizing
    #:with-finalizing*)
   ;; gc-finalized.lisp

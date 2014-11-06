@@ -114,14 +114,18 @@ See FINALIZE, FINALIZE-USING-CLASS"
            ,@body))))
 
 (define-finalize-method (object QPainter)
+  "Calls the next method and then invokes QPainter::end."
+  (call-next-method)
   (#_end object))
 
 (define-finalize-method (object abstract-qobject)
+  "Calls the next method and then invokes MAYBE-DELETE-QOBJECT."
   (call-next-method)
   (maybe-delete-qobject object)
   object)
 
 (define-finalize-method (object finalizable)
+  "Calls the next method and then finalizes and unbinds all slots on the object that are marked as FINALIZED."
   (call-next-method)
   (loop for slot in (c2mop:class-direct-slots (class-of object))
         for slot-name = (c2mop:slot-definition-name slot)
@@ -130,6 +134,17 @@ See FINALIZE, FINALIZE-USING-CLASS"
         do (finalize (slot-value object slot-name))
            (slot-makunbound object slot-name))
   object)
+
+(defun describe-finalize-method (class)
+  "Prints information about the finalize method for the given class if possible."
+  (let* ((qt-class-name (find-qt-class-name class))
+         (method (if qt-class-name
+                     (find-method #'finalize-using-class () `((eql ,(find-qclass qt-class-name)) T))
+                     (find-method #'finalize () `(,(ensure-class class))))))
+    (if method
+        (format T "Finalize method for ~:[CL class~;Qt class~] ~a.~%~:[No docstring specified.~;~:*~s~]~%"
+                qt-class-name class (documentation method T))
+        (format T "No finalize method for the given class found.~%"))))
 
 (defmacro with-finalizing (bindings &body body)
   "Executes the body as by LET and calls FINALIZE on all the objects introduced by
