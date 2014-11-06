@@ -112,3 +112,19 @@ into
 
     (progn (define-widget foo () () (:documentation "foo")))
 
+### Copying and Finalizing
+In order to account for your own objects and operations you can extend the `copy` and `finalize` functions by using `define-copy-method` and `define-finalize-method` or `defmethod` directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using `copy/finalize-using-class`) if possible, making it all look a bit cleaner.
+
+    (define-copy-method (instance QPixmap)
+      "Creates a new QPixmap using QPixmap::copy (deep copy)."
+      (#_copy instance (#_rect instance)))
+
+Since copying and finalizing are operations associated with a certain amount of ambiguity, it is advisable to always write documentation strings for your `copy`/`finalize` methods. That way users can get a better idea of what will happen by reading about it using `describe-copy-method` and `describe-finalize-method` respectively.
+
+## Support
+Currently the following implementations are tested and supported by Qtools:
+
+* [SBCL](http://www.sbcl.org/) (1.2.4 Lin64)
+* [CCL](http://ccl.clozure.com/) (1.10 Lin64)
+
+It may or may not work more or less smoothly on other implementations and platforms depending on MOP and CommonQt support and general implementation quirks.

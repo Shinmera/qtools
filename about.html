@@ -161,6 +161,28 @@
 
 <pre><code>(<a href="http://l1sp.org/cl/progn">progn</a> (<a href="#QTOOLS:DEFINE-WIDGET">define-widget</a> foo () () (:documentation &quot;foo&quot;)))
 </code></pre>
+
+<h3>Copying and Finalizing</h3>
+
+<p>In order to account for your own objects and operations you can extend the <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:FINALIZE">finalize</a></code> functions by using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code> and <code><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">define-finalize-method</a></code> or <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using <code>copy/finalize-using-class</code>) if possible, making it all look a bit cleaner.</p>
+
+<pre><code>(<a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a> (instance QPixmap)
+  &quot;Creates a new QPixmap using QPixmap::copy (deep copy).&quot;
+  (#_copy instance (#_rect instance)))
+</code></pre>
+
+<p>Since copying and finalizing are operations associated with a certain amount of ambiguity, it is advisable to always write documentation strings for your <code><a href="#QTOOLS:COPY">copy</a></code>/<code><a href="#QTOOLS:FINALIZE">finalize</a></code> methods. That way users can get a better idea of what will happen by reading about it using <code><a href="#QTOOLS:DESCRIBE-COPY-METHOD">describe-copy-method</a></code> and <code><a href="#QTOOLS:DESCRIBE-FINALIZE-METHOD">describe-finalize-method</a></code> respectively.</p>
+
+<h2>Support</h2>
+
+<p>Currently the following implementations are tested and supported by Qtools:</p>
+
+<ul>
+<li><a href="http://www.sbcl.org/">SBCL</a> (1.2.4 Lin64)</li>
+<li><a href="http://ccl.clozure.com/">CCL</a> (1.10 Lin64)</li>
+</ul>
+
+<p>It may or may not work more or less smoothly on other implementations and platforms depending on MOP and CommonQt support and general implementation quirks.</p>
 </span>
         </c:documentate>
       </article>
