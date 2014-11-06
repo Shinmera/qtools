@@ -5,6 +5,7 @@
 |#
 
 (in-package #:org.shirakumo.qtools)
+(named-readtables:in-readtable :qt)
 
 (defclass finalizable-class (c2mop:standard-class)
   ()
