@@ -64,11 +64,20 @@ See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS"
         `(defmethod copy ((,instance ,class))
            ,@body))))
 
-(define-copy-method (instance QImage)
-  (#_copy instance))
-
 (define-copy-method (instance QColor)
   (#_new QColor instance))
+
+(define-copy-method (instance QImage)
+  (#_copy instance (#_rect instance)))
+
+(define-copy-method (instance QPixmap)
+  (#_copy instance (#_rect instance)))
+
+(define-copy-method (instance QTransform)
+  (#_new QTransform
+         (#_m11 instance) (#_m12 instance) (#_m13 instance)
+         (#_m21 instance) (#_m22 instance) (#_m23 instance)
+         (#_m31 instance) (#_m32 instance) (#_m33 instance)))
 
 (defmacro qtenumcase (keyform &body forms)
   "Just like CASE, but for Qt enums using QT:ENUM=."
