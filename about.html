@@ -18,8 +18,8 @@
   </head>
   <body>
     <header>
-      <h1>qtools</h1>
-      <span>0.2.1</span>
+      <h1><img src="qtools-logo.png" alt="qtools"/></h1>
+      <span>0.3.0</span>
       <p>A collection of tools to aid in development with CommonQt.</p>
     </header>
     <div id="content">
@@ -47,7 +47,7 @@
 
 <h4>Other Stuff</h4>
 
-<p>Aside from name handling, Qtools also offers some convenience functions like <code><a href="#QTOOLS:COPY-QOBJECT">copy-qobject</a></code>, <code><a href="#QTOOLS:MAYBE-DELETE-QOBJECT">maybe-delete-qobject</a></code> and <code><a href="#QTOOLS:QTENUMCASE">qtenumcase</a></code> to ease handling of Qt objects.</p>
+<p>Aside from name handling, Qtools also offers some convenience functions like <code>copy-qobject</code>, <code><a href="#QTOOLS:MAYBE-DELETE-QOBJECT">maybe-delete-qobject</a></code> and <code><a href="#QTOOLS:QTENUMCASE">qtenumcase</a></code> to ease handling of Qt objects.</p>
 
 <h3>Working Without GC</h3>
 
@@ -263,6 +263,21 @@ from this. See DEFINE-WIDGET.</pre>
                   <pre>Metaclass for widgets. Inherits from FINALIZABLE-CLASS and QT-CLASS.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:ADD-FINALIZER"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:ADD-FINALIZER">ADD-FINALIZER</a></h4>
+                      <span/>
+                      <span>(CLASS PRIORITY FUNCTION)</span>
+                    </code>
+                  </header>
+                  <pre>Adds a new finalizer FUNCTION to the CLASS with PRIORITY.
+Higher priority means later evaluation. The FUNCTION may be either
+a function object or a lambda form to be compiled by COMPILE.</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:ADD-INITIALIZER"/>
                 <article>
                   <header>
@@ -304,6 +319,19 @@ Look at the source to see the mappings.</pre>
                     </code>
                   </header>
                   <pre>Prints out documentation relating to the environment FORM, if any.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DESCRIBE-FINALIZE-METHOD"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DESCRIBE-FINALIZE-METHOD">DESCRIBE-FINALIZE-METHOD</a></h4>
+                      <span/>
+                      <span>(CLASS)</span>
+                    </code>
+                  </header>
+                  <pre>Prints information about the finalize method for the given class if possible.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:DESCRIBE-WIDGET-OPTION"/>
@@ -735,20 +763,6 @@ returned, or the STRING-DOWNCASE of THING.</pre>
                   <pre>Returns the slot OPTION evaluator, fi any.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:COPY-QOBJECT"/>
-                <article>
-                  <header>
-                    <span>GENERIC</span>
-                    <code>
-                      <h4><a href="#QTOOLS:COPY-QOBJECT">COPY-QOBJECT</a></h4>
-                      <span/>
-                      <span>(INSTANCE)</span>
-                    </code>
-                  </header>
-                  <pre>Generates a copy of the qobject.
-Uses COPY-QOBJECT-USING-CLASS and determines the class by QT::QOBJECT-CLASS.</pre>
-                </article>
-              </li><li>
                 <a name="QTOOLS:FINALIZE"/>
                 <article>
                   <header>
@@ -766,6 +780,27 @@ whatsoever as it may have been rendered unusable or unstable.
 This method should be called on any object once it is known that it can be discarded.
 FINALIZE will then try to clean up objects and make sure that they don't clutter your
 memory, as lingering QOBJECTs would.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:FINALIZE-USING-CLASS"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:FINALIZE-USING-CLASS">FINALIZE-USING-CLASS</a></h4>
+                      <span/>
+                      <span>(CLASS OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>Extension to the FINALIZE generic function to support differentiating by the
+classes of an object, mostly used for native QObjects as they don't integrate into CLOS directly.
+You need to use EQL specializers on the class, as a Qt class is represented as an integer.
+
+E.g: (defmethod finalize-using-class ((class (eql (find-class &quot;QWidget&quot;))) object) ..)
+
+This method should not be called directly.
+
+See FINALIZE</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:FINALIZED"/>
@@ -850,6 +885,30 @@ SPECIFIED-TYPE-METHOD-NAME.</pre>
 
 Automatically adds FINALIZABLE as direct-superclass and 
 FINALIZABLE-CLASS as metaclass.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-FINALIZE-METHOD"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">DEFINE-FINALIZE-METHOD</a></h4>
+                      <span/>
+                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Defines a method to finalize an object of CLASS.
+CLASS can be either a common-lisp class type or a Qt class name.
+
+Qt class names will take precedence, meaning that if CLASS resolves
+to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
+is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
+is defined with the CLASS directly as specializer for the instance.
+
+In cases where you need to define a method on a same-named CL class,
+directly use DEFMETHOD on FINALIZE.
+
+See FINALIZE, FINALIZE-USING-CLASS</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:DEFINE-SIGNAL-METHOD"/>
