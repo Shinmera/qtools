@@ -210,13 +210,17 @@ from this. See DEFINE-WIDGET."))
 
 (defmacro define-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
   "Shorthand over DEFCLASS.
-Adds WIDGET as direct-superclass and WIDGET-CLASS as metaclass.
-Sets qt-class as the qt-superclass (after resolving it through
-FIND-QT-CLASS-NAME).
+Adds WIDGET as direct-superclass if it does not appear as a
+superclass to the specified direct-superclasses. Sets 
+WIDGET-CLASS as metaclass and qt-class as the qt-superclass 
+after resolving it through FIND-QT-CLASS-NAME.
 
 All options are fused as per FUSE-ALISTS. You may therefore use
 the same form multiple times."
-  `(defclass ,name (widget ,@direct-superclasses)
+  (when (loop for super in direct-superclasses
+              never (c2mop:subclassp (find-class super) (find-class 'widget)))
+    (push 'widget direct-superclasses))
+  `(defclass ,name ,direct-superclasses
      ,direct-slots
      (:metaclass widget-class)
      (:qt-superclass ,(find-qt-class-name qt-class))
