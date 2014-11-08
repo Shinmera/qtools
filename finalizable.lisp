@@ -7,7 +7,7 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
-(defclass finalizable-class (c2mop:standard-class)
+(defclass finalizable-class (standard-class)
   ()
   (:documentation "Metaclass for classes with finalizable slots."))
 
