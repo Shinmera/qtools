@@ -167,10 +167,10 @@ See DEFINE-WIDGET-CLASS-OPTION."
   ;; In order to have the class properly set up, we need to call initialize-instance
   ;; once without our class-option processing. After that we need to manually set
   ;; find-class so that the class is readily registered (something that otherwise
-  ;; happens after initialize-instance.
+  ;; happens after initialize-instance).
   ;;
-  ;; The reason why we need to recall initialize-instance is that (at least) on CCL
-  ;; the class seems to, for some reason, not be of the required type class yet.
+  ;; The reason why we need to recall initialize-instance is that (at least on CCL)
+  ;; the class seems to, for some reason, not be of the required type 'class yet.
   ;;
   ;; Since we only use ANSI functions here I hope that this will work on all impls,
   ;; but since I'm a realist I expect this hackery to either not be sufficient or
