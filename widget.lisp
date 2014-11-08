@@ -191,7 +191,8 @@ See DEFINE-WIDGET-CLASS-OPTION."
     (ensure-class-ready class args)
     (setf (widget-class-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
     (setf (widget-class-finalizers class) (make-array 0 :adjustable T :fill-pointer 0))
-    (setf args (transform-options class args #'process-widget-class-option)))
+    (setf args (transform-options class args #'process-widget-class-option))
+    #+:verbose (v:debug :qtools "Final class options: ~s" args))
   (apply next class args))
 
 (defmethod initialize-instance :around ((class widget-class) &rest args)
