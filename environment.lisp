@@ -54,7 +54,7 @@
 
 (define-environment-form-class-option define-signal :defsignals)
 (define-environment-form-class-option define-slot :defslots)
-(define-environment-form-class-option define-overrides :defoverrides)
+(define-environment-form-class-option define-override :defoverrides)
 (define-environment-form-class-option define-subwidget :subwidget)
 (define-environment-form-class-option define-layout :layout)
 (define-environment-form-class-option define-initializer :initializer)
