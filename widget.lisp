@@ -155,25 +155,42 @@ See DEFINE-WIDGET-CLASS-OPTION."
     (apply #'initialize-instance instance initargs)
     instance))
 
-;; On CCL we need to reach deeper.
+;; On CCL we need to reach deeper, additionally to the make-instance override.
 #+:ccl
 (defmethod ccl::class-slot-initargs :around ((class (eql (find-class 'widget-class))))
   (append (list-widget-slot-options)
           (list-widget-class-options)
           (call-next-method)))
 
+;; Make sure the class is ready for our extra crazy hackery.
+(defun ensure-class-ready (class args)
+  ;; In order to have the class properly set up, we need to call initialize-instance
+  ;; once without our class-option processing. After that we need to manually set
+  ;; find-class so that the class is readily registered (something that otherwise
+  ;; happens after initialize-instance.
+  ;;
+  ;; The reason why we need to recall initialize-instance is that (at least) on CCL
+  ;; the class seems to, for some reason, not be of the required type class yet.
+  ;;
+  ;; Since we only use ANSI functions here I hope that this will work on all impls,
+  ;; but since I'm a realist I expect this hackery to either not be sufficient or
+  ;; break horribly on other implementations.
+  (let ((class (apply #'initialize-instance class 'inner-initialize T args)))
+    (setf (find-class (getf args :name)) class)))
+
+(defun transform-options (class args func)
+  (apply #'fuse-plists
+         (loop for (option body) on args by #'cddr
+               append (funcall func class option body))))
+
 (defun initialize-widget-class (class next args)
-  (let ((args (apply #'fuse-plists
-                     (loop for (option body) on args by #'cddr
-                           append (process-widget-slot-option class option body)))))
-    (apply #'shared-initialize class T args)
+  (unless (getf args 'inner-initialize)
+    (setf args (transform-options class args #'process-widget-slot-option))
+    (ensure-class-ready class args)
     (setf (widget-class-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
     (setf (widget-class-finalizers class) (make-array 0 :adjustable T :fill-pointer 0))
-    (let ((args (apply #'fuse-plists
-                       (loop for (option body) on args by #'cddr
-                             append (process-widget-class-option class option body)))))
-      #+:verbose (v:debug :qtools "Resulting class options: ~s" args)
-      (apply next class args))))
+    (setf args (transform-options class args #'process-widget-class-option)))
+  (apply next class args))
 
 (defmethod initialize-instance :around ((class widget-class) &rest args)
   (initialize-widget-class class #'call-next-method args))
