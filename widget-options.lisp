@@ -97,6 +97,15 @@ of the slot-name."
                  `(,func ,(if methods name `(lambda ,clean-args ,@func-body)))))
           `(:slots ,(mapcar #'build-slot (enumerate-method-descriptors cpp-name cpp-args))))))))
 
+(defun make-lambda-body (class args body &optional (body-constructor #'identity))
+  (form-fiddle:with-destructured-lambda-form (:docstring doc :declarations decls :forms forms) (list* :foo () body)
+    `(lambda ,args
+       ,@(when doc (list doc))
+       ,@decls
+       (with-simple-restart (:skip "Skip this function.")
+         (with-slots-bound (,(first args) ,class)
+           ,@(funcall body-constructor forms))))))
+
 (define-widget-class-option :defoverrides (class name args &rest body)
   "Allows a more handy definition of override methods.
 See the CommonQt :overrides class slot option.
@@ -109,9 +118,7 @@ WITH-SLOTS-BOUND, making all direct class-slots bound to symbols
 of the slot-name."
   `(:override
     ((,(to-method-name name)
-      (lambda ,args
-        (with-slots-bound (,(first args) ,class)
-          ,@body))))))
+      ,(make-lambda-body class args body)))))
 
 (define-widget-slot-option :subwidget (class name constructor &rest body)
   "Defines a slot on the class to store the subwidget. The slot has no readers or writers and is FINALIZED."
@@ -136,11 +143,10 @@ to set up signal connections, etc.
 The main widget is bound to the symbol QTOOLS:WIDGET."
   (add-initializer
    class *widget-init-priority*
-   `(lambda (widget)
-      (with-simple-restart (:skip ,(format NIL "Skip the ~s subwidget setup (Not recommended.)" name))
-        (with-slots-bound (widget ,class)
-          (setf ,name ,constructor)
-          ,@body))))
+   (make-lambda-body
+    class '(widget) body
+    #'(lambda (forms)
+        `((setf ,name ,constructor) ,@forms))))
   NIL)
 
 (define-widget-class-option :layout (class name constructor &rest body)
@@ -158,12 +164,11 @@ evaluated and then #_setLayout is executed using NAME.
 The main widget is bound to the symbol QTOOLS:WIDGET"
   (add-initializer
    class *layout-init-priority*
-   `(lambda (widget)
-      (with-simple-restart (:skip ,(format NIL "Skip the ~s layout setup (Not recommended.)" name))
-        (with-slots-bound (widget ,class)
-          (let ((,name ,constructor))
-            ,@body
-            (#_setLayout widget ,name))))))
+   (make-lambda-body
+    class '(widget) body
+    #'(lambda (forms)
+        `((let ((,name ,constructor))
+            ,@forms (#_setLayout widget ,name))))))
   NIL)
 
 (define-widget-class-option :initializer (class widget priority &rest body)
@@ -184,10 +189,7 @@ See *SLOT-INIT-PRIORITY*
 See *LAYOUT-INIT-PRIORITY*"
   (add-initializer
    class priority
-   `(lambda (,widget)
-      (with-simple-restart (:skip "Skip the initializer.")
-        (with-slots-bound (,widget ,class)
-          ,@body))))
+   (make-lambda-body class (list widget) body))
   NIL)
 
 (define-widget-class-option :finalizer (class widget priority &rest body)
@@ -204,8 +206,5 @@ in sequence according to its PRIORITY. The higher the value, the
 later in the process it is executed."
   (add-finalizer
    class priority
-   `(lambda (,widget)
-      (with-simple-restart (:skip "Skip the finalizer.")
-        (with-slots-bound (,widget ,class)
-          ,@body))))
+   (make-lambda-body class (list widget) body))
   NIL)
