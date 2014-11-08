@@ -176,7 +176,9 @@ See DEFINE-WIDGET-CLASS-OPTION."
   ;; but since I'm a realist I expect this hackery to either not be sufficient or
   ;; break horribly on other implementations.
   (let ((class (apply #'initialize-instance class 'inner-initialize T args)))
-    (setf (find-class (getf args :name)) class)))
+    (setf (find-class (or (getf args :name)
+                          (class-name class)))
+          class)))
 
 (defun transform-options (class args func)
   (apply #'fuse-plists
