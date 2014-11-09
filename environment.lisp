@@ -59,6 +59,7 @@
 (define-environment-form-class-option define-layout :layout)
 (define-environment-form-class-option define-initializer :initializer)
 (define-environment-form-class-option define-finalizer :finalizer)
+(define-environment-form-class-option define-menu :menus)
 
 (defmacro with-widget-environment (&body forms)
   "Compile the inner forms in an environment that allows a more lispy definition style.
@@ -74,6 +75,6 @@ the class definition form."
                   (let ((classdef (find 'define-widget all-forms :key #'car)))
                     (when (and all-options (not classdef))
                       (warn "Class body forms found but no class definition!"))
-                    `(progn
+                    `(eval-when (:compile-toplevel :load-toplevel :execute)
                        ,@(when classdef (list (append classdef all-options)))
                        ,@(remove 'define-widget all-forms :key #'car))))))

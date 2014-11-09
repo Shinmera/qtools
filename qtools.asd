@@ -23,6 +23,7 @@
                (:file "signal")
                (:file "widget")
                (:file "widget-options")
+               (:file "widget-menu")
                (:file "environment")
                (:file "readtable"))
   :depends-on (:qt
