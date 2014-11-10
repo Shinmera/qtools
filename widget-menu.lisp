@@ -5,117 +5,101 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
 (in-package #:org.shirakumo.qtools)
+(named-readtables:in-readtable :qt)
 
 (defvar *actions* ())
 
-;; Fixme: Doesn't work atm as Qtools widgets don't handle
-;; C++ init args...
-(with-widget-environment
-  (define-widget keychord-editor ("QDialog")
-    ((old-accelerator :initform "")))
+(defvar *menu-options* (make-hash-table))
 
-  (define-subwidget action-table (#_new QTableWidget (length *actions*) 2)
-    (connect! action-table (current-changed int int) widget (record-action int int))
-    (connect! action-table (value-changed int int) widget (validate-action int int))
-    
-    (#_setText (#_horizontalHeaderItem action-table 0) "Item")
-    (#_setText (#_horizontalHeaderItem action-table 1) "Keychord")
-    (#_setLeftMargin action-table 0)
-    (#_setColumnReadOnly action-table 0 T)
-    (loop for row from 0
-          for action in *actions*
-          do (#_setText action-table row 0 (#_text action))
-             (#_setText action-table row 1 (#_new QString (#_accel action)))))
+(defun menu-option (name)
+  (gethash name *menu-options*))
 
-  (define-subwidget ok-button (#_new QPushButton "&Ok")
-    (connect! ok-button (clicked) widget (accept)))
-  
-  (define-subwidget cancel-button (#_new QPushButton "&Cancel")
-    (connect! cancel-button (clicked) widget (reject)))
+(defun (setf menu-option) (func name)
+  (setf (gethash name *menu-options*)
+        func))
 
-  (define-subwidget button-layout (#_new QHBoxLayout)
-    (#_setSpacing button-layout 8)
-    (#_addStretch button-layout 8)
-    (#_addWidget button-layout ok-button)
-    (#_addWidget button-layout cancel-button))
+(defun remove-menu-option (name)
+  (remhash name *menu-options*))
 
-  (define-layout layout (#_new QVBoxLayout)
-    (#_setMargin layout 8)
-    (#_setSpacing layout 8)
-    (#_addWidget layout action-table)
-    (#_addLayout layout button-layout))
+(defmacro define-menu-option (name (widget menu &rest args) &body body)
+  `(setf (menu-option ,name)
+         #'(lambda (,widget ,menu ,@args)
+             (declare (ignorable ,widget ,menu))
+             ,@body)))
 
-  (define-override accept (widget)
-    (loop for row from 0
-          for action in *actions*
-          do (#_setAccel action (#_new QKeySequence (#_text action-table row 1))))
-    (#_QDialog::accept))
+(defun call-menu-option (name widget menu body)
+  (apply (or (menu-option name)
+             (error "No such menu option ~s" name))
+         widget menu body))
 
-  (define-slot record-action (widget (row int) (column int))
-    (setf old-accelerator (#_text (#_item action-table row column))))
+(defun make-label (name &optional (delim #\Space))
+  (with-output-to-string (stream)
+    (loop with capitalize = T
+          for char across (string-downcase name)
+          do (cond ((char= char #\-)
+                    (setf capitalize T)
+                    (write-char delim stream))
+                   (capitalize
+                    (write-char (char-upcase char) stream)
+                    (setf capitalize NIL))
+                   (T
+                    (write-char char stream))))))
 
-  (define-slot validate-action (widget (row int) (column int))
-    (let* ((item (#_item action-table row column))
-           (text (#_new QString (#_new QKeySequence (#_text item)))))
-      (if (and (#_isEmpty text)
-               (not (#_isEmpty (#_text item))))
-          (#_setText item old-accelerator)
-          (#_setText item text)))))
+(defun make-chord (chord)
+  (etypecase chord
+    (null NIL)
+    (list (format NIL "~{~@(~a~)~^+~}" chord))
+    (symbol (make-label chord #\+))
+    (string chord)))
+
+(defun make-action (widget menu name &key slot keychord)
+  (let ((item (#_new QAction (make-label name) menu)))
+    (when keychord
+      (#_setShortcut item (#_new QKeySequence (make-chord keychord))))
+    (when slot
+      (connect item "triggered()" widget slot))
+    (push item *actions*)
+    (#_addAction menu item)
+    item))
+
+(define-menu-option :item (widget menu name &rest body)
+  (destructuring-bind (name &optional keychord) (if (listp name) name (list name))
+    (let ((slot (specified-type-method-name (make-symbol (format NIL "MENU-ITEM-~:(~a~)" name)) ())))
+      (values
+       `((make-action ,widget ,menu ',name :slot ,slot :keychord ,(make-chord keychord)))
+       `(:slots ((,slot
+                  (lambda (widget)
+                    (declare (ignorable widget))
+                    ,@body))))))))
+
+(define-menu-option :separator (widget menu)
+  `((#_addSeparator ,menu)))
+
+(define-menu-option :slot-menu (widget menu slot)
+  `((#_addMenu ,menu (slot-value ,widget ',slot))))
+
+(define-menu-option :menu (widget outer name &rest forms)
+  (let ((menu (gensym "MENU")))
+    (loop for (type . body) in forms
+          for (forms options) = (multiple-value-list (call-menu-option type widget menu body))
+          appending forms into all-forms
+          appending options into all-options
+          finally (return
+                    (values
+                     `((let ((,menu (#_new QMenu ,(make-label name))))
+                         (#_addMenu ,outer ,menu)
+                         ,@all-forms
+                         ,menu))
+                     all-options)))))
 
 (define-widget-class-option :menus (class name &rest items)
   ""
-  (let ((slots ())
-        (widget (gensym "WIDGET"))
-        (menu (gensym "MENU"))
-        (item (gensym "ITEM")))
-    (labels ((make-label (name &optional (delim #\Space))
-               (with-output-to-string (stream)
-                 (loop with capitalize = T
-                       for char across (string-downcase name)
-                       do (cond ((char= char #\-)
-                                 (setf capitalize T)
-                                 (write-char delim stream))
-                                (capitalize
-                                 (write-char (char-upcase char) stream)
-                                 (setf capitalize NIL))
-                                (T
-                                 (write-char char stream))))))
-             (make-chord (chord)
-               (etypecase chord
-                 (list (format NIL "~{~@(~a~)~^+~}" chord))
-                 (symbol (make-label chord #\+))
-                 (string chord)))
-             (make-menu (name &rest forms)
-               `(let ((,menu (#_new QMenu ,(make-label name))))
-                  ,@(loop for (type . body) in forms
-                          collect (ecase type
-                                    (:item `(#_addAction ,menu ,(apply #'make-item body)))
-                                    (:menu `(#_addMenu ,menu ,(apply #'make-menu body)))
-                                    (:slot-menu `(#_addMenu ,menu (slot-value ,widget ',(car body))))
-                                    (:separator `(#_addSeparator ,menu))))
-                  ,menu))
-             (make-slot (name &rest body)
-               (let ((name (make-symbol (format NIL "MENU-ITEM-~:(~a~)" name))))
-                 (push `(,(specified-type-method-name name ())
-                         (lambda (widget)
-                           (declare (ignorable widget))
-                           ,@body))
-                       slots)
-                 name))
-             (make-item (name &rest body)
-               (destructuring-bind (name &optional keychord) (if (listp name) name (list name))
-                 `(let ((,item (#_new QAction ,(make-label name) ,menu)))
-                    ,@(when keychord
-                        `((#_setShortcut ,item (#_new QKeySequence ,(make-chord keychord)))))
-                    ,@(when body
-                        `((connect! ,item (triggered) ,widget (,(apply #'make-slot name body)))))
-                    (push ,item *actions*)
-                    ,item))))
+  (let ((widget (gensym "WIDGET"))
+        (bar (gensym "BAR")))
+    (multiple-value-bind (forms options) (call-menu-option :menu widget bar (list* name items))
       (add-initializer
        class 50
        `(lambda (,widget)
-          (#_addMenu
-           (#_menuBar ,widget)
-           ,(apply #'make-menu name items)))))
-    
-    `(:slots ,slots)))
+          (let ((,bar (#_menuBar ,widget)))
+            ,@forms)))
+      options)))
