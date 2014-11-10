@@ -15,9 +15,9 @@
   :homepage "https://github.com/Shinmera/qtools"
   :serial T
   :components ((:file "package")
+               (:file "toolkit")
                (:file "class-map")
                (:file "name-translation")
-               (:file "toolkit")
                (:file "finalizable")
                (:file "gc-finalized")
                (:file "signal")

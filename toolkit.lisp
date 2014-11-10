@@ -125,3 +125,17 @@ Example:
            (eql 'quote (first thing)))
       (second thing)
       thing))
+
+(defun capitalize-on (character string &optional (replacement character) start-capitalized)
+  (with-output-to-string (stream)
+    (loop with capitalize = start-capitalized
+          for char across (string-downcase string)
+          do (cond ((char= char character)
+                    (setf capitalize T)
+                    (when replacement
+                      (write-char replacement stream)))
+                   (capitalize
+                    (write-char (char-upcase char) stream)
+                    (setf capitalize NIL))
+                   (T
+                    (write-char char stream))))))

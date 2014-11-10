@@ -14,16 +14,7 @@ character after a hyphen into its uppercase equivalent
 and dropping the hyphen. Therefore: foo-bar fooBar"
   (etypecase thing
     (string thing)
-    (symbol (with-output-to-string (stream)
-              (loop with capitalize = NIL
-                    for char across (string-downcase thing)
-                    do (cond ((char= char #\-)
-                              (setf capitalize T))
-                             (capitalize
-                              (write-char (char-upcase char) stream)
-                              (setf capitalize NIL))
-                             (T
-                              (write-char char stream))))))))
+    (symbol (capitalize-on #\- thing NIL))))
 
 (defun qt-type-of (object)
   "Attempts to determine a proper Qt type descriptor for the type of the OBJECT.
