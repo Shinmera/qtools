@@ -16,9 +16,15 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (loop for actions being the hash-values of *actions*
             append actions)))
 
+(defun (setf actions) (list class)
+  (setf (gethash (class-name (ensure-class class)) *actions*)
+        list))
+
 (defun add-action (action class)
-  (pushnew action (gethash (class-name (ensure-class class)) *actions*)
-           :key #'(lambda (o) (#_text o)) :test #'string-equal))
+  (let ((pos (position (#_text action) (actions class) :key #'(lambda (o) (#_text o)) :test #'string-equal)))
+    (if pos
+        (setf (nth pos (actions class)) action)
+        (push action (actions class)))))
 
 (defun menu-option (name)
   (gethash name *menu-options*))
@@ -95,7 +101,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
           appending options into all-options
           finally (return
                     (values
-                     `((let ((,menu (#_new QMenu ,(make-label name))))
+                     `((let ((,menu (#_new QMenu ,(make-label name) ,outer)))
                          (#_addMenu ,outer ,menu)
                          ,@all-forms
                          ,menu))
