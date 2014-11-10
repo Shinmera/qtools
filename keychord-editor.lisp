@@ -15,14 +15,18 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (connect! action-table (current-changed int int) widget (record-action int int))
     (connect! action-table (value-changed int int) widget (validate-action int int))
     
-    ;; (#_setText (#_horizontalHeaderItem action-table 0) "Item")
-    ;; (#_setText (#_horizontalHeaderItem action-table 1) "Keychord")
-    ;; (#_setLeftMargin action-table 0)
-    ;; (#_setColumnReadOnly action-table 0 T)
-    ;; (loop for row from 0
-    ;;       for action in *actions*
-    ;;       do (#_setText action-table row 0 (#_text action))
-    ;;          (#_setText action-table row 1 (#_new QString (#_accel action))))
+    (#_setHorizontalHeaderItem action-table 0 (#_new QTableWidgetItem "Item Name"))
+    (#_setHorizontalHeaderItem action-table 1 (#_new QTableWidgetItem "Keychord"))
+    (#_setVisible (#_verticalHeader action-table) NIL)
+    (#_setResizeMode (#_horizontalHeader action-table) (#_QHeaderView::Stretch))
+    (loop for row from 0
+          for action in *actions*
+          for label = (#_new QTableWidgetItem (#_text action))
+          for accel = (#_new QTableWidgetItem (#_toString (#_shortcut action)))
+          do (#_setFlags label 0)
+             (#_setItem action-table row 0 label)
+             (#_setItem action-table row 1 accel)
+          )
     )
 
   (define-subwidget ok-button (#_new QPushButton "&Ok")
