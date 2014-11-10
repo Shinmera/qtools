@@ -9,9 +9,10 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (with-widget-environment
   (define-widget keychord-editor ("QDialog")
-    ((old-accelerator :initform "")))
+    ((old-accelerator :initform "")
+     (keychord-class :initarg :class :initform NIL)))
   
-  (define-subwidget action-table (#_new QTableWidget (length *actions*) 2)
+  (define-subwidget action-table (#_new QTableWidget (length (actions)) 2)
     (connect! action-table (current-changed int int) widget (record-action int int))
     (connect! action-table (value-changed int int) widget (validate-action int int))
     
@@ -20,14 +21,12 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (#_setVisible (#_verticalHeader action-table) NIL)
     (#_setResizeMode (#_horizontalHeader action-table) (#_QHeaderView::Stretch))
     (loop for row from 0
-          for action in *actions*
+          for action in (actions keychord-class)
           for label = (#_new QTableWidgetItem (#_text action))
           for accel = (#_new QTableWidgetItem (#_toString (#_shortcut action)))
           do (#_setFlags label 0)
              (#_setItem action-table row 0 label)
-             (#_setItem action-table row 1 accel)
-          )
-    )
+             (#_setItem action-table row 1 accel)))
 
   (define-subwidget ok-button (#_new QPushButton "&Ok")
     (connect! ok-button (clicked) widget (accept)))
@@ -49,9 +48,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
   (define-override accept (widget)
     (loop for row from 0
-          for action in *actions*
-          do (#_setAccel action (#_new QKeySequence (#_text action-table row 1))))
-    (#_QDialog::accept))
+          for action in (actions keychord-class)
+          do (#_setShortcut action (#_new QKeySequence (#_text (#_item action-table row 1)))))
+    (stop-overriding))
 
   (define-slot record-action (widget (row int) (column int))
     (setf old-accelerator (#_text (#_item action-table row column))))
