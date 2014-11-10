@@ -7,9 +7,18 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
-(defvar *actions* ())
-
+(defvar *actions* (make-hash-table))
 (defvar *menu-options* (make-hash-table))
+
+(defun actions (&optional class)
+  (if class
+      (gethash (class-name (ensure-class class)) *actions*)
+      (loop for actions being the hash-values of *actions*
+            append actions)))
+
+(defun add-action (action class)
+  (pushnew action (gethash (class-name (ensure-class class)) *actions*)
+           :key #'(lambda (o) (#_text o)) :test #'string-equal))
 
 (defun menu-option (name)
   (gethash name *menu-options*))
@@ -58,7 +67,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (#_setShortcut item (#_new QKeySequence (make-chord keychord))))
     (when slot
       (connect item "triggered()" widget slot))
-    (push item *actions*)
+    (add-action item widget)
     (#_addAction menu item)
     item))
 
