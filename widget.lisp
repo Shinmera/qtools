@@ -205,7 +205,7 @@ See DEFINE-WIDGET-CLASS-OPTION."
 ;; widget-class, as well as to provide a means of
 ;; defining general methods on all widgets.
 (defclass widget (finalizable)
-  ()
+  ((args :initarg :args :initform ()))
   (:metaclass widget-class)
   (:qt-superclass "QObject")
   (:documentation "Superclass for widgets. All your widgets should inherit
@@ -219,7 +219,7 @@ from this. See DEFINE-WIDGET."))
   "Responsible for calling NEW on the widget instance, as well as invoking the INITIALIZERS."
   (when (next-method-p)
     (call-next-method))
-  (new widget)
+  (apply #'interpret-new widget (slot-value widget 'args))
   (call-initializers widget))
 
 ;; Finalizer methods might want to operate on the objects
@@ -250,3 +250,6 @@ the same form multiple times."
     (4 (&whole 6 &rest)
        (&whole 2 (&whole 0 0 &rest 2))
        &rest (&whole 2 2 &rest (&whole 2 2 4 &body))))
+
+(defmacro make-widget (class c++-init-args &rest args)
+  `(make-instance ,class :args (list ,@c++-init-args) ,@args))
