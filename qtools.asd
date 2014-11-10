@@ -25,6 +25,7 @@
                (:file "widget-options")
                (:file "widget-menu")
                (:file "environment")
+               (:file "keychord-editor")
                (:file "readtable"))
   :depends-on (:qt
                :trivial-garbage
