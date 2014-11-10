@@ -26,7 +26,7 @@ a function object or a lambda form to be compiled by COMPILE."
                     (list (compile NIL function)))))
     (vector-push-extend (cons priority function) (widget-class-initializers class))
     (setf (widget-class-initializers class)
-          (sort (widget-class-initializers class) #'< :key #'car))))
+          (stable-sort (widget-class-initializers class) #'< :key #'car))))
 
 (defun call-initializers (object)
   "Calls all initializers for the class in sequence.

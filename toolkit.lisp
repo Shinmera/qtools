@@ -95,7 +95,7 @@ Class is resolved as per ENSURE-CLASS."
     (dolist (alists alists-lists)
       (loop for (option . args) in alists
             do (setf (gethash option target)
-                     (append args (gethash option target)))))
+                     (append (gethash option target) args))))
     (loop for key being the hash-keys of target
           for val being the hash-values of target
           collect (cons key val))))
