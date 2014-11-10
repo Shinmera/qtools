@@ -26,6 +26,10 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         (setf (nth pos (actions class)) action)
         (push action (actions class)))))
 
+(defun prune-deleted-actions (class)
+  (setf (actions class)
+        (delete-if #'qt:qobject-deleted (actions class))))
+
 (defun menu-option (name)
   (gethash name *menu-options*))
 
@@ -47,28 +51,15 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
              (error "No such menu option ~s" name))
          widget menu body))
 
-(defun make-label (name &optional (delim #\Space))
-  (with-output-to-string (stream)
-    (loop with capitalize = T
-          for char across (string-downcase name)
-          do (cond ((char= char #\-)
-                    (setf capitalize T)
-                    (write-char delim stream))
-                   (capitalize
-                    (write-char (char-upcase char) stream)
-                    (setf capitalize NIL))
-                   (T
-                    (write-char char stream))))))
-
 (defun make-chord (chord)
   (etypecase chord
     (null NIL)
     (list (format NIL "~{~@(~a~)~^+~}" chord))
-    (symbol (make-label chord #\+))
+    (symbol (capitalize-on #\- chord #\+ T))
     (string chord)))
 
 (defun make-action (widget menu name &key slot keychord)
-  (let ((item (#_new QAction (make-label name) menu)))
+  (let ((item (#_new QAction (capitalize-on #\- name #\Space T) menu)))
     (when keychord
       (#_setShortcut item (#_new QKeySequence (make-chord keychord))))
     (when slot
@@ -101,7 +92,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
           appending options into all-options
           finally (return
                     (values
-                     `((let ((,menu (#_new QMenu ,(make-label name) ,outer)))
+                     `((let ((,menu (#_new QMenu ,(capitalize-on #\- name #\Space T) ,outer)))
                          (#_addMenu ,outer ,menu)
                          ,@all-forms
                          ,menu))
@@ -115,6 +106,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (add-initializer
        class 50
        `(lambda (,widget)
+          (prune-deleted-actions ,class)
           (let ((,bar (#_menuBar ,widget)))
             ,@forms)))
       options)))
