@@ -40,16 +40,15 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defun remove-menu-option (name)
   (remhash name *menu-options*))
 
-(defmacro define-menu-option (name (widget menu &rest args) &body body)
+(defmacro define-menu-option (name args &body body)
   `(setf (menu-option ,name)
-         #'(lambda (,widget ,menu ,@args)
-             (declare (ignorable ,widget ,menu))
+         #'(lambda (,@args)
              ,@body)))
 
-(defun call-menu-option (name widget menu body)
+(defun call-menu-option (name body)
   (apply (or (menu-option name)
              (error "No such menu option ~s" name))
-         widget menu body))
+         body))
 
 (defun make-chord (chord)
   (etypecase chord
@@ -68,26 +67,32 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (#_addAction menu item)
     item))
 
-(define-menu-option :item (widget menu name &rest body)
+(defvar *menu*)
+(defvar *widget*)
+(defvar *class*)
+
+(define-menu-option :item (name &rest body)
   (destructuring-bind (name &optional keychord) (if (listp name) name (list name))
     (let ((slot (specified-type-method-name (make-symbol (format NIL "MENU-ITEM-~:(~a~)" name)) ())))
       (values
-       `((make-action ,widget ,menu ',name :slot ,slot :keychord ,(make-chord keychord)))
+       `((make-action ,*widget* ,*menu* ',name :slot ,slot :keychord ,(make-chord keychord)))
        `(:slots ((,slot
                   (lambda (widget)
-                    (declare (ignorable widget))
-                    ,@body))))))))
+                    (with-slots-bound (widget ,*class*)
+                      ,@body)))))))))
 
-(define-menu-option :separator (widget menu)
-  `((#_addSeparator ,menu)))
+(define-menu-option :separator ()
+  `((#_addSeparator ,*menu*)))
 
-(define-menu-option :slot-menu (widget menu slot)
-  `((#_addMenu ,menu (slot-value ,widget ',slot))))
+(define-menu-option :slot-menu (slot)
+  `((#_addMenu ,*menu* (slot-value ,*widget* ',slot))))
 
-(define-menu-option :menu (widget outer name &rest forms)
-  (let ((menu (gensym "MENU")))
+(define-menu-option :menu (name &rest forms)
+  (let* ((menu (gensym "MENU"))
+         (outer *menu*)
+         (*menu* menu))
     (loop for (type . body) in forms
-          for (forms options) = (multiple-value-list (call-menu-option type widget menu body))
+          for (forms options) = (multiple-value-list (call-menu-option type body))
           appending forms into all-forms
           appending options into all-options
           finally (return
@@ -100,13 +105,14 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (define-widget-class-option :menus (class name &rest items)
   ""
-  (let ((widget (gensym "WIDGET"))
-        (bar (gensym "BAR")))
-    (multiple-value-bind (forms options) (call-menu-option :menu widget bar (list* name items))
+  (let ((*widget* (gensym "WIDGET"))
+        (*menu* (gensym "BAR"))
+        (*class* class))
+    (multiple-value-bind (forms options) (call-menu-option :menu (list* name items))
       (add-initializer
        class 50
-       `(lambda (,widget)
+       `(lambda (,*widget*)
           (prune-deleted-actions ,class)
-          (let ((,bar (#_menuBar ,widget)))
+          (let ((,*menu* (#_menuBar ,*widget*)))
             ,@forms)))
       options)))
