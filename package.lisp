@@ -79,6 +79,9 @@
    #:split)
   ;; widget-menu.lisp
   (:export
+   #:*menu*
+   #:*widget*
+   #:*class*
    #:actions
    #:add-action
    #:menu-option
