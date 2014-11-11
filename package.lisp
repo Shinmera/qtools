@@ -46,6 +46,9 @@
    #:unbox
    #:make-gc-finalized
    #:with-gc-finalized)
+  ;; keychord-editor.lisp
+  (:export
+   #:keychord-editor)
   ;; name-translation.lisp
   (:export
    #:to-method-name
@@ -74,6 +77,16 @@
    #:fuse-alists
    #:fuse-plists
    #:split)
+  ;; widget-menu.lisp
+  (:export
+   #:actions
+   #:add-action
+   #:menu-option
+   #:remove-menu-option
+   #:define-menu-option
+   #:call-menu-option
+   #:make-chord
+   #:make-action)
   ;; widget-options.lisp
   (:export
    #:*widget-init-priority*
@@ -96,4 +109,5 @@
    #:define-widget-slot-option
    #:describe-widget-option
    #:widget
-   #:define-widget))
+   #:define-widget
+   #:make-widget))
