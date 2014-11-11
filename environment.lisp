@@ -60,6 +60,7 @@
 (define-environment-form-class-option define-initializer :initializer)
 (define-environment-form-class-option define-finalizer :finalizer)
 (define-environment-form-class-option define-menu :menus)
+(indent:define-indentation define-menu (4 &rest (&whole 2 2 4 &body)))
 
 (defmacro with-widget-environment (&body forms)
   "Compile the inner forms in an environment that allows a more lispy definition style.
