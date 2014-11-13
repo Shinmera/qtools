@@ -16,11 +16,11 @@
   :serial T
   :components ((:file "package")
                (:file "toolkit")
-               (:file "copying")
                (:file "class-map")
                (:file "name-translation")
                (:file "finalizable")
                (:file "gc-finalized")
+               (:file "copying")
                (:file "signal")
                (:file "widget")
                (:file "widget-options")
