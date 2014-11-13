@@ -112,6 +112,8 @@ into
 
     (progn (define-widget foo () () (:documentation "foo")))
 
+You can read more about what an environment form might do by using `describe-environment-form`.
+
 ### Copying and Finalizing
 In order to account for your own objects and operations you can extend the `copy` and `finalize` functions by using `define-copy-method` and `define-finalize-method` or `defmethod` directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using `copy/finalize-using-class`) if possible, making it all look a bit cleaner.
 
@@ -120,6 +122,9 @@ In order to account for your own objects and operations you can extend the `copy
       (#_copy instance (#_rect instance)))
 
 Since copying and finalizing are operations associated with a certain amount of ambiguity, it is advisable to always write documentation strings for your `copy`/`finalize` methods. That way users can get a better idea of what will happen by reading about it using `describe-copy-method` and `describe-finalize-method` respectively.
+
+## Debugging Qtools
+Since Qtools does a bunch of contrived things, you might want to check what exactly is done if something doesn't go according to plan. I'm not excluding the possibility of bugs being around that mess your code up. In order to check this, you will want to load [verbose](http://shinmera.github.io/verbose/) before loading Qtools and set the logging level to trace: `(setf (v:repl-level) :trace)`. Qtools will emit log messages when you compile `define-widget` forms that contain the generated options. It will also log all objects that get passed to `finalize` and `copy`. Hopefully the log output will help you in discovering what's going on behind the scenes.
 
 ## Support
 Currently the following implementations are tested and supported by Qtools:
