@@ -16,6 +16,7 @@
   :serial T
   :components ((:file "package")
                (:file "toolkit")
+               (:file "copying")
                (:file "class-map")
                (:file "name-translation")
                (:file "finalizable")

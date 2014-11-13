@@ -5,6 +5,7 @@
 |#
 
 (in-package #:org.shirakumo.qtools)
+(named-readtables:in-readtable :qt)
 
 (defgeneric copy-using-class (qclass instance)
   (:documentation "Creates a copy of the given instance by using methods
