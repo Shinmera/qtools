@@ -115,8 +115,9 @@ See FINALIZE, FINALIZE-USING-CLASS"
 
 (define-finalize-method (object QPainter)
   "Calls the next method and then invokes QPainter::end."
-  (call-next-method)
-  (#_end object))
+  (when (qobject-alive-p object)
+    (#_end object))
+  (call-next-method))
 
 (define-finalize-method (object abstract-qobject)
   "Calls the next method and then invokes MAYBE-DELETE-QOBJECT."
