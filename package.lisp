@@ -76,7 +76,8 @@
    #:with-slots-bound
    #:fuse-alists
    #:fuse-plists
-   #:split)
+   #:split
+   #:capitalize-on)
   ;; widget-menu.lisp
   (:export
    #:*menu*
