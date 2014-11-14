@@ -62,15 +62,19 @@ returned, or the STRING-DOWNCASE of THING."
   "Attempts to determine the CL type for the given Qt type descriptor.
 
 Look at the source to see the mappings."
-  (cond ((string-equal qt-type "bool") 'boolean)
+  (cond ((string-equal qt-type "bool") 'T)
         ((string-equal qt-type "int") 'fixnum)
         ((string-equal qt-type "double") 'real)
         ((string-equal qt-type "complex") 'complex)
         ((string-equal qt-type "char") 'character)
         ((string-equal qt-type "const QString&") 'string)
         ((string-equal qt-type "QString&") 'string)
+        ((string-equal qt-type "QString") 'string)
+        ((string-equal qt-type "string") 'string)
         ((string-equal qt-type "QWidget&") 'qt-widget)
-        ((string-equal qt-type "QObject&") 'qobject)))
+        ((string-equal qt-type "QWidget") 'qt-widget)
+        ((string-equal qt-type "QObject&") 'qobject)
+        ((string-equal qt-type "QObject") 'qobject)))
 
 (defun eqt-type-of (object)
   "Same as QT-TYPE-OF, but signals an error if no matching type could be found."
