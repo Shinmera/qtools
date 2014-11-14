@@ -8,6 +8,8 @@
 
 (defvar *environment-forms* (make-hash-table :test 'equal)
   "Table mapping form names to evaluator functions.")
+(defvar *environment-widget-forms* ()
+  "List of forms detected as widget definition in the environment.")
 
 (defun environment-form (name)
   "Returns a function to process the form of NAME with, if any.."
@@ -62,6 +64,17 @@
 (define-environment-form-class-option define-menu :menus)
 (indent:define-indentation define-menu (4 &rest (&whole 2 2 4 &body)))
 
+(defun declare-environment-widget-form (name)
+  "Declares forms that start with the symbol NAME a widget-defining form."
+  (pushnew name *environment-widget-forms*))
+
+(defun undeclare-environment-widget-form (name)
+  "Undeclares the NAME a widget-defining form."
+  (setf *environment-widget-forms*
+        (delete name *environment-widget-forms*)))
+
+(declare-environment-widget-form 'define-widget)
+
 (defmacro with-widget-environment (&body forms)
   "Compile the inner forms in an environment that allows a more lispy definition style.
 The main purpose of this macro is to avoid having to press all of your information into
@@ -73,9 +86,13 @@ the class definition form."
         collect forms into all-forms
         append options into all-options
         finally (return
-                  (let ((classdef (find 'define-widget all-forms :key #'car)))
+                  (let ((classdef (loop for form-name in *environment-widget-forms*
+                                        for form = (find form-name all-forms :key #'car)
+                                        when form collect form)))
                     (when (and all-options (not classdef))
                       (warn "Class body forms found but no class definition!"))
+                    (when (< 1 (length classdef))
+                      (error "Multiple widget definition forms found; don't know what to do."))
                     `(eval-when (:compile-toplevel :load-toplevel :execute)
-                       ,@(when classdef (list (append classdef all-options)))
-                       ,@(remove 'define-widget all-forms :key #'car))))))
+                       ,@(when classdef (list (append (first classdef) all-options)))
+                       ,@(remove-if #'(lambda (a) (find a *environment-widget-forms*)) all-forms :key #'car))))))

@@ -20,12 +20,15 @@
    #:describe-copy-method)
   ;; environment.lisp
   (:export
+   #:*environment-widget-forms*
    #:environment-form
    #:remove-environment-form
    #:define-environment-form
    #:define-environment-form-class-option
    #:list-environment-forms
    #:describe-environment-form
+   #:declare-environment-widget-form
+   #:undeclare-environment-widget-form
    #:with-widget-environment)
   ;; finalizable.lisp
   (:export
