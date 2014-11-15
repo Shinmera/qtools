@@ -175,10 +175,10 @@ See DEFINE-WIDGET-CLASS-OPTION."
   ;; Since we only use ANSI functions here I hope that this will work on all impls,
   ;; but since I'm a realist I expect this hackery to either not be sufficient or
   ;; break horribly on other implementations.
-  (let ((class (apply #'initialize-instance class 'inner-initialize T args)))
+  (let ((init-class (apply #'initialize-instance class 'inner-initialize T args)))
     (setf (find-class (or (getf args :name)
-                          (class-name class)))
-          class)))
+                          (class-name (or init-class class))))
+          (or init-class class))))
 
 (defun transform-options (class args func)
   (apply #'fuse-plists
