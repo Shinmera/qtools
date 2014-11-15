@@ -185,14 +185,22 @@ See DEFINE-WIDGET-CLASS-OPTION."
          (loop for (option body) on args by #'cddr
                append (funcall func class option body))))
 
+(defmacro with-redefinitions-muffled (&body body)
+  `(locally
+       (declare #+sbcl(sb-ext:muffle-conditions sb-kernel:redefinition-warning))
+     (handler-bind
+         (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
+       ,@body)))
+
 (defun initialize-widget-class (class next args)
-  (unless (getf args 'inner-initialize)
-    (setf args (transform-options class args #'process-widget-slot-option))
-    (ensure-class-ready class args)
-    (setf (widget-class-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
-    (setf (widget-class-finalizers class) (make-array 0 :adjustable T :fill-pointer 0))
-    (setf args (transform-options class args #'process-widget-class-option))
-    #+:verbose (v:debug :qtools "Final class options: ~s" args))
+  (with-redefinitions-muffled
+    (unless (getf args 'inner-initialize)
+      (setf args (transform-options class args #'process-widget-slot-option))
+      (ensure-class-ready class args)
+      (setf (widget-class-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
+      (setf (widget-class-finalizers class) (make-array 0 :adjustable T :fill-pointer 0))
+      (setf args (transform-options class args #'process-widget-class-option))
+      #+:verbose (v:debug :qtools "Final class options: ~s" args)))
   (apply next class args))
 
 (defmethod initialize-instance :around ((class widget-class) &rest args)
