@@ -48,7 +48,7 @@ Examples:
  (.. foo '((a b))) => (\"foo(a)\" \"foo(b)\")
  (.. foo '((a b) (0 1))) => (\"foo(a,0)\" \"foo(b,1)\")"
   (flet ((make-map (args)
-           (format NIL "~a(~{~(~a~)~^, ~})" name args)))
+           (format NIL "~a(~{~a~^, ~})" name (mapcar #'to-type-name args))))
     (cond
       ((and args (listp (first args)))
        (loop for i from 0 below (length (first args))
