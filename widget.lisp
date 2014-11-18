@@ -12,7 +12,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   "Map from option name to slot option evaluator.")
 
 (defclass widget-class (finalizable-class qt-class)
-  ((initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor widget-class-initializers)
+  ((direct-initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor widget-class-direct-initializers)
+   (direct-finalizers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor widget-class-direct-finalizers)
+   (initializers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor widget-class-initializers)
    (finalizers :initform (make-array 0 :adjustable T :fill-pointer 0) :accessor widget-class-finalizers))
   (:documentation "Metaclass for widgets. Inherits from FINALIZABLE-CLASS and QT-CLASS."))
 
@@ -24,9 +26,7 @@ a function object or a lambda form to be compiled by COMPILE."
   (let ((function (etypecase function
                     (function function)
                     (list (compile NIL function)))))
-    (vector-push-extend (cons priority function) (widget-class-initializers class))
-    (setf (widget-class-initializers class)
-          (stable-sort (widget-class-initializers class) #'< :key #'car))))
+    (vector-push-extend (cons priority function) (widget-class-direct-initializers class))))
 
 (defun call-initializers (object)
   "Calls all initializers for the class in sequence.
@@ -43,9 +43,7 @@ a function object or a lambda form to be compiled by COMPILE."
   (let ((function (etypecase function
                     (function function)
                     (list (compile NIL function)))))
-    (vector-push-extend (cons priority function) (widget-class-finalizers class))
-    (setf (widget-class-finalizers class)
-          (sort (widget-class-finalizers class) #'< :key #'car))))
+    (vector-push-extend (cons priority function) (widget-class-direct-finalizers class))))
 
 (defun call-finalizers (object)
   "Calls all finalizers for the class in sequence.
@@ -192,14 +190,27 @@ See DEFINE-WIDGET-CLASS-OPTION."
          (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
        ,@body)))
 
+(defun %inherit-slot (class target source)
+  (setf (slot-value class target) (make-array 0 :adjustable T :fill-pointer 0))
+  (labels ((inherit (inner)
+             (print inner)
+             (loop for func across (slot-value inner source)
+                   do (vector-push-extend func (slot-value class target)))
+             (loop for super in (c2mop:class-direct-superclasses inner)
+                   when (typep super 'widget-class)
+                   do (inherit super))))
+    (inherit class))
+  (setf (slot-value class target)
+        (sort (slot-value class target) #'< :key #'car)))
+
 (defun initialize-widget-class (class next args)
   (with-redefinitions-muffled
     (unless (getf args 'inner-initialize)
       (setf args (transform-options class args #'process-widget-slot-option))
       (ensure-class-ready class args)
-      (setf (widget-class-initializers class) (make-array 0 :adjustable T :fill-pointer 0))
-      (setf (widget-class-finalizers class) (make-array 0 :adjustable T :fill-pointer 0))
       (setf args (transform-options class args #'process-widget-class-option))
+      (%inherit-slot class 'initializers 'direct-initializers)
+      (%inherit-slot class 'finalizers 'direct-finalizers)
       #+:verbose (v:debug :qtools "Final class options: ~s" args)))
   (apply next class args))
 
