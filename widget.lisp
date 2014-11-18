@@ -200,7 +200,7 @@ See DEFINE-WIDGET-CLASS-OPTION."
                    do (inherit super))))
     (inherit class))
   (setf (slot-value class target)
-        (sort (slot-value class target) #'< :key #'car)))
+        (stable-sort (slot-value class target) #'< :key #'car)))
 
 (defun initialize-widget-class (class next args)
   (with-redefinitions-muffled
