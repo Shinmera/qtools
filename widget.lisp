@@ -207,6 +207,8 @@ See DEFINE-WIDGET-CLASS-OPTION."
     (unless (getf args 'inner-initialize)
       (setf args (transform-options class args #'process-widget-slot-option))
       (ensure-class-ready class args)
+      (setf (fill-pointer (widget-class-direct-initializers class)) 0)
+      (setf (fill-pointer (widget-class-direct-finalizers class)) 0)
       (setf args (transform-options class args #'process-widget-class-option))
       (%inherit-slot class 'initializers 'direct-initializers)
       (%inherit-slot class 'finalizers 'direct-finalizers)
