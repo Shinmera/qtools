@@ -193,7 +193,6 @@ See DEFINE-WIDGET-CLASS-OPTION."
 (defun %inherit-slot (class target source)
   (setf (slot-value class target) (make-array 0 :adjustable T :fill-pointer 0))
   (labels ((inherit (inner)
-             (print inner)
              (loop for func across (slot-value inner source)
                    do (vector-push-extend func (slot-value class target)))
              (loop for super in (c2mop:class-direct-superclasses inner)
