@@ -38,6 +38,14 @@
                                  `(T ,@form)
                                  `((qt:enum= ,key ,comp) ,@form)))))))
 
+(defun clear-layout (layout)
+  "Removews all widgets from the layout and returns them as a list.
+It does not do anything with the widgets themselves."
+  (loop for item = (#_takeAt layout 0)
+        until (typep item 'null-qobject)
+        do (#_removeWidget layout (#_widget item))
+        collect (#_widget item)))
+
 (defun enumerate-method-descriptors (name args)
   "Returns a list of all possible method descriptors with NAME and ARGS.
 Args may be either a list of direct types to use or a list of alternative types.

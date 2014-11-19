@@ -74,6 +74,7 @@
    #:qobject-alive-p
    #:maybe-delete-qobject
    #:qtenumcase
+   #:clear-layout
    #:enumerate-method-descriptors
    #:ensure-class
    #:with-slots-bound
