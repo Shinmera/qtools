@@ -190,6 +190,23 @@ See DEFINE-WIDGET-CLASS-OPTION."
          (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
        ,@body)))
 
+(defun initialize-widget-class (class next args)
+  (with-redefinitions-muffled
+    (unless (getf args 'inner-initialize)
+      (setf args (transform-options class args #'process-widget-slot-option))
+      (ensure-class-ready class args)
+      (setf (fill-pointer (widget-class-direct-initializers class)) 0)
+      (setf (fill-pointer (widget-class-direct-finalizers class)) 0)
+      (setf args (transform-options class args #'process-widget-class-option))
+      #+:verbose (v:debug :qtools "Final class options: ~s" args)))
+  (apply next class args))
+
+(defmethod initialize-instance :around ((class widget-class) &rest args)
+  (initialize-widget-class class #'call-next-method args))
+
+(defmethod reinitialize-instance :around ((class widget-class) &rest args)
+  (initialize-widget-class class #'call-next-method args))
+
 (defun %inherit-slot (class target source)
   (setf (slot-value class target) (make-array 0 :adjustable T :fill-pointer 0))
   (labels ((inherit (inner)
@@ -202,24 +219,19 @@ See DEFINE-WIDGET-CLASS-OPTION."
   (setf (slot-value class target)
         (stable-sort (slot-value class target) #'< :key #'car)))
 
-(defun initialize-widget-class (class next args)
-  (with-redefinitions-muffled
-    (unless (getf args 'inner-initialize)
-      (setf args (transform-options class args #'process-widget-slot-option))
-      (ensure-class-ready class args)
-      (setf (fill-pointer (widget-class-direct-initializers class)) 0)
-      (setf (fill-pointer (widget-class-direct-finalizers class)) 0)
-      (setf args (transform-options class args #'process-widget-class-option))
-      (%inherit-slot class 'initializers 'direct-initializers)
-      (%inherit-slot class 'finalizers 'direct-finalizers)
-      #+:verbose (v:debug :qtools "Final class options: ~s" args)))
-  (apply next class args))
+(defun cascade-option-changes (class)
+  (%inherit-slot class 'initializers 'direct-initializers)
+  (%inherit-slot class 'finalizers 'direct-finalizers)
+  (loop for sub-class in (c2mop:class-direct-subclasses class)
+        when (and (c2mop:subclassp sub-class (find-class 'tool-class))
+                  (c2mop:class-finalized-p sub-class))
+        do (cascade-option-changes sub-class)))
 
-(defmethod initialize-instance :around ((class widget-class) &rest args)
-  (initialize-widget-class class #'call-next-method args))
-
-(defmethod reinitialize-instance :around ((class widget-class) &rest args)
-  (initialize-widget-class class #'call-next-method args))
+(defmethod c2mop:finalize-inheritance :after ((class widget-class))
+  (dolist (super (c2mop:class-direct-superclasses class))
+    (unless (c2mop:class-finalized-p super)
+      (c2mop:finalize-inheritance super)))
+  (cascade-option-changes class))
 
 ;; Superclass to further handle integration with the
 ;; widget-class, as well as to provide a means of
