@@ -223,7 +223,7 @@ See DEFINE-WIDGET-CLASS-OPTION."
   (%inherit-slot class 'initializers 'direct-initializers)
   (%inherit-slot class 'finalizers 'direct-finalizers)
   (loop for sub-class in (c2mop:class-direct-subclasses class)
-        when (and (c2mop:subclassp sub-class (find-class 'tool-class))
+        when (and (c2mop:subclassp sub-class (find-class 'widget-class))
                   (c2mop:class-finalized-p sub-class))
         do (cascade-option-changes sub-class)))
 
