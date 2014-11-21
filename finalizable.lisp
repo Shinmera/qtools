@@ -55,13 +55,15 @@
 
 Automatically adds FINALIZABLE as direct-superclass and 
 FINALIZABLE-CLASS as metaclass."
-  (when (loop for superclass in direct-superclasses
-              never (c2mop:subclassp (find-class superclass) (find-class 'finalizable)))
+  (when (loop for name in direct-superclasses
+              for superclass = (find-class name NIL)
+              never (and superclass (c2mop:subclassp superclass (find-class 'finalizable))))
     (push 'finalizable direct-superclasses))
-  `(defclass ,name ,direct-superclasses
-     ,direct-slots
-     (:metaclass finalizable-class)
-     ,@options))
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (defclass ,name ,direct-superclasses
+       ,direct-slots
+       (:metaclass finalizable-class)
+       ,@options)))
 
 (defgeneric finalize-using-class (class object)
   (:documentation "Extension to the FINALIZE generic function to support differentiating by the
