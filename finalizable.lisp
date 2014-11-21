@@ -158,8 +158,8 @@ See FINALIZE, FINALIZE-USING-CLASS"
   object)
 
 (define-finalize-method (object finalizable)
-  "Calls the next method and then finalizes and unbinds all slots on the object that are marked as FINALIZED."
-  (call-next-method)
+  "Finalizes and unbinds all slots on the object that are marked as FINALIZED and then calls the next method."
+  (v:debug :qtools "Finalizing slots on ~s" object)
   (loop for slot in (c2mop:class-slots (class-of object))
         for slot-name = (c2mop:slot-definition-name slot)
         when (and (typep slot 'finalizable-slot)
@@ -167,6 +167,7 @@ See FINALIZE, FINALIZE-USING-CLASS"
                   (slot-boundp object slot-name))
         do (finalize (slot-value object slot-name))
            (slot-makunbound object slot-name))
+  (call-next-method)
   object)
 
 (defun describe-finalize-method (class)
