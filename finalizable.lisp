@@ -37,6 +37,13 @@
 (defclass finalizable-effective-slot-definition (finalizable-slot c2mop:standard-effective-slot-definition)
   ())
 
+;; For some reason the slot doesn't get set? (?????)
+(defmethod c2mop:compute-effective-slot-definition ((class finalizable-class) name slotdefs)
+  (let ((slot (call-next-method)))
+    (when (typep (first slotdefs) 'finalizable-direct-slot-definition)
+      (setf (slot-value slot 'finalized) (finalized (first slotdefs))))
+    slot))
+
 (defmethod c2mop:direct-slot-definition-class ((class finalizable-class) &rest initargs)
   (declare (ignore initargs))
   (find-class 'finalizable-direct-slot-definition))
@@ -156,7 +163,8 @@ See FINALIZE, FINALIZE-USING-CLASS"
   (loop for slot in (c2mop:class-slots (class-of object))
         for slot-name = (c2mop:slot-definition-name slot)
         when (and (typep slot 'finalizable-slot)
-                  (finalized slot))
+                  (finalized slot)
+                  (slot-boundp object slot-name))
         do (finalize (slot-value object slot-name))
            (slot-makunbound object slot-name))
   object)
