@@ -32,6 +32,7 @@ a function object or a lambda form to be compiled by COMPILE."
   "Calls all initializers for the class in sequence.
 See ENSURE-CLASS
 See ADD-INITIALIZER"
+  #+:verbose (v:debug :qtools "Running initializers of ~s" object)
   (loop for init across (widget-class-initializers (ensure-class object))
         do (funcall (cdr init) object)))
 
@@ -49,6 +50,7 @@ a function object or a lambda form to be compiled by COMPILE."
   "Calls all finalizers for the class in sequence.
 See ENSURE-CLASS
 See ADD-FINALIZER"
+  #+:verbose (v:debug :qtools "Running finalizers of ~s" object)
   (loop for init across (widget-class-finalizers (ensure-class object))
         do (funcall (cdr init) object)))
 
