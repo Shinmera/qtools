@@ -28,8 +28,8 @@ Look at the source to see the mappings."
     (complex "complex")
     (character "char")
     (string "const QString&")
-    (widget "QWidget&")
-    (qobject "QObject&")))
+    (widget "const QWidget&")
+    (qobject "const QObject&")))
 
 (defun qt-type-for (cl-type)
   "Attempts to determine the proper Qt type descriptor for the passed cl type name.
@@ -44,8 +44,8 @@ Look at the source to see the mappings."
     (complex "complex")
     (character "char")
     (string "const QString&")
-    (widget "QWidget&")
-    (qobject "QObject&")))
+    (widget "const QWidget&")
+    (qobject "const QObject&")))
 
 (defun to-type-name (thing)
   "Returns the type name for THING.
@@ -71,8 +71,10 @@ Look at the source to see the mappings."
         ((string-equal qt-type "QString&") 'string)
         ((string-equal qt-type "QString") 'string)
         ((string-equal qt-type "string") 'string)
+        ((string-equal qt-type "const QWidget&") 'qt-widget)
         ((string-equal qt-type "QWidget&") 'qt-widget)
         ((string-equal qt-type "QWidget") 'qt-widget)
+        ((string-equal qt-type "const QObject&") 'qobject)
         ((string-equal qt-type "QObject&") 'qobject)
         ((string-equal qt-type "QObject") 'qobject)))
 
