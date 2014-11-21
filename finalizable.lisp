@@ -55,7 +55,10 @@
 
 Automatically adds FINALIZABLE as direct-superclass and 
 FINALIZABLE-CLASS as metaclass."
-  `(defclass ,name (finalizable ,@direct-superclasses)
+  (when (loop for superclass in direct-superclasses
+              never (c2mop:subclassp (find-class superclass) (find-class 'finalizable)))
+    (push 'finalizable direct-superclasses))
+  `(defclass ,name ,direct-superclasses
      ,direct-slots
      (:metaclass finalizable-class)
      ,@options))
@@ -125,10 +128,30 @@ See FINALIZE, FINALIZE-USING-CLASS"
   (maybe-delete-qobject object)
   object)
 
+(define-finalize-method (object hash-table)
+  "Calls the next method and then invokes FINALIZE on all the keys and values of the table."
+  (call-next-method)
+  (maphash #'(lambda (a b) (finalize a) (finalize b)) object)
+  object)
+
+(define-finalize-method (object vector)
+  "Calls the next method and then invokes FINALIZE on all items of the vector."
+  (call-next-method)
+  (loop for item across object
+        do (finalize item))
+  object)
+
+(define-finalize-method (object list)
+  "Calls the next method and then invokes FINALIZE on all items of the list."
+  (call-next-method)
+  (dolist (item object)
+    (finalize item))
+  object)
+
 (define-finalize-method (object finalizable)
   "Calls the next method and then finalizes and unbinds all slots on the object that are marked as FINALIZED."
   (call-next-method)
-  (loop for slot in (c2mop:class-direct-slots (class-of object))
+  (loop for slot in (c2mop:class-slots (class-of object))
         for slot-name = (c2mop:slot-definition-name slot)
         when (and (typep slot 'finalizable-slot)
                   (finalized slot))
