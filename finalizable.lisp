@@ -146,8 +146,9 @@ See FINALIZE, FINALIZE-USING-CLASS"
 (define-finalize-method (object vector)
   "Calls the next method and then invokes FINALIZE on all items of the vector."
   (call-next-method)
-  (loop for item across object
-        do (finalize item))
+  (unless (stringp object)
+    (loop for item across object
+          do (finalize item)))
   object)
 
 (define-finalize-method (object list)
