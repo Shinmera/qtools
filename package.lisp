@@ -71,6 +71,7 @@
    #:define-signal-method)
   ;; toolkit.lisp
   (:export
+   #:value
    #:qobject-alive-p
    #:maybe-delete-qobject
    #:qtenumcase

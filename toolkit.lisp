@@ -15,6 +15,16 @@
 ;;;;;
 ;; Qt Related Utils
 
+(defgeneric value (object)
+  (:documentation "Returns the VALUE of object. This usually translates to (#_value object) unless overriden.")
+  (:method ((object qobject))
+    (#_value object)))
+
+(defgeneric (setf value) (value object)
+  (:documentation "Sets the VALUE of object. This usually translates to (#_setValue object) unless overriden.")
+  (:method (value (object qobject))
+    (#_setValue object value)))
+
 (defun qobject-alive-p (object)
   "Returns T if the object is not null and not deleted."
   (not (or (null-qobject-p object)

@@ -262,6 +262,14 @@ from this. See DEFINE-WIDGET."))
 (defmethod finalize :before ((widget widget))
   (call-finalizers widget))
 
+;; Widgets are not qobject instances, but they often exhibit
+;; a value method, so provide a default here.
+(defmethod value ((widget widget))
+  (#_value widget))
+
+(defmethod (setf value) (value (widget widget))
+  (#_setValue widget value))
+
 (defmacro define-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
   "Shorthand over DEFCLASS.
 Adds WIDGET as direct-superclass if it does not appear as a
