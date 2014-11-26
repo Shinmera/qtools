@@ -5,6 +5,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
 (in-package #:org.shirakumo.qtools)
+(named-readtables:in-readtable :qt)
 
 (defvar *widget-class-options* (make-hash-table)
   "Map from option name to class option evaluator.")
