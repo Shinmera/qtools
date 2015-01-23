@@ -38,11 +38,16 @@
   ())
 
 ;; For some reason the slot doesn't get set? (?????)
-(defmethod c2mop:compute-effective-slot-definition ((class finalizable-class) name slotdefs)
-  (let ((slot (call-next-method)))
-    (when (typep (first slotdefs) 'finalizable-direct-slot-definition)
-      (setf (slot-value slot 'finalized) (finalized (first slotdefs))))
-    slot))
+(defmethod c2mop:compute-effective-slot-definition ((class finalizable-class) name direct-slots)
+  (let ((effective-slot (call-next-method)))
+    (loop for direct-slot in direct-slots
+          do (when (and (typep direct-slot 'finalizable-direct-slot-definition)
+                        (eql (c2mop:slot-definiton-name direct-slot)
+                             (c2mop:slot-definiton-name effective-slot)))
+               (setf (slot-value effective-slot 'finalized)
+                     (finalized direct-slot))
+               (return)))
+    effective-slot))
 
 (defmethod c2mop:direct-slot-definition-class ((class finalizable-class) &rest initargs)
   (declare (ignore initargs))
