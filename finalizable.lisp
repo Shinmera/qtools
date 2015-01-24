@@ -42,8 +42,8 @@
   (let ((effective-slot (call-next-method)))
     (loop for direct-slot in direct-slots
           do (when (and (typep direct-slot 'finalizable-direct-slot-definition)
-                        (eql (c2mop:slot-definiton-name direct-slot)
-                             (c2mop:slot-definiton-name effective-slot)))
+                        (eql (c2mop:slot-definition-name direct-slot)
+                             (c2mop:slot-definition-name effective-slot)))
                (setf (slot-value effective-slot 'finalized)
                      (finalized direct-slot))
                (return)))
