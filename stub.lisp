@@ -5,66 +5,60 @@
 (in-package #:org.shirakumo.qtools.alternate)
 
 (defclass widget-class (qtools:finalizable-class qt:qt-class)
-  ((direct-slots :initform () :accessor widget-class-direct-slots)
-   (direct-signals :initform () :accessor widget-class-direct-signals)
-   (direct-override :initform () :accessor widget-class-direct-override)
-   (slots :initform () :accessor widget-class-slots)
-   (signals :initform () :accessor widget-class-signals)
-   (override :initform () :accessor widget-class-override)))
+  ((direct-options :initform () :accessor widget-class-direct-options)
+   (extern-options :initform () :accessor widget-class-extern-options)))
 
 (defclass widget (qtools:finalizable)
   ()
   (:metaclass widget-class)
   (:qt-superclass "QObject"))
 
-(defun setup-widget-class (class next-method &rest args &key slots signals override update-widget-class &allow-other-keys)
+(defun setup-widget-class (class next-method &rest options &key update-widget-class &allow-other-keys)
   ;; Append extra options
-  (unless update-widget-class
-    (macrolet ((append! (arg accessor)
-                 `(setf (getf args ,arg) (append (,accessor class) (getf args ,arg)))))
-      (append! :slots widget-class-slots)
-      (append! :signals widget-class-signals)
-      (append! :override widget-class-override)))
+  (when (and (not update-widget-class)
+             (slot-boundp class 'extern-options))
+    (loop for (name value) on (widget-class-extern-options class) by #'cddr
+          do (setf (getf options name) (append (getf options name) value))))
   ;; Delegate
-  (remf args :update-widget-class)
-  (apply next-method class args)
+  (print options)
+  (remf options :update-widget-class)
+  (apply next-method class options)
   ;; Save directly specified options
   (unless update-widget-class
-    (setf (widget-class-direct-slots class) slots)
-    (setf (widget-class-direct-signals class) signals)
-    (setf (widget-class-direct-override class) override)))
+    (setf (widget-class-direct-options class) options)))
 
-(cl:defmethod initialize-instance :around ((class widget-class) &rest args)
-  (apply #'setup-widget-class class #'call-next-method args))
+(cl:defmethod initialize-instance :around ((class widget-class) &rest options)
+  (apply #'setup-widget-class class #'call-next-method options))
 
-(cl:defmethod reinitialize-instance :around ((class widget-class) &rest args)
-  (apply #'setup-widget-class class #'call-next-method args))
+(cl:defmethod reinitialize-instance :around ((class widget-class) &rest options)
+  (apply #'setup-widget-class class #'call-next-method options))
 
 (defun update-qt-class-options (class)
-  (let ((class (qtools:ensure-class class)))
-    (reinitialize-instance
-     class :slots (append (widget-class-slots class)
-                          (widget-class-direct-slots class))
-           :signals (append (widget-class-signals class)
-                            (widget-class-direct-signals class))
-           :override (append (widget-class-override class)
-                             (widget-class-direct-override class))
-           :update-widget-class T)))
+  (let ((class (qtools:ensure-class class))
+        ;; !! Copy list since we're destructively modifying.
+        (options (copy-list (widget-class-direct-options class))))
+    (loop for (name value) on (widget-class-extern-options class) by #'cddr
+          do (setf (getf options name) (append (getf options name) value)))
+    ;; Press new options into the class definition
+    (apply #'reinitialize-instance class :update-widget-class T options)
+    ;; CommonQt performs computations on finalisation
+    (c2mop:finalize-inheritance class)))
 
-(defun set-widget-class-option (class slot option)
-  (let ((class (qtools:ensure-class class)))
-    (let* ((options (slot-value class slot))
-           (cell (find (first option) options :key #'first :test #'string=)))
-      (if cell
-          (when (second option)
-            (setf (second cell) (second option)))
-          (push option (slot-value class slot))))
+(defun set-widget-class-option (class option identifier value)
+  (let* ((class (qtools:ensure-class class))
+         (idents (getf (widget-class-extern-options class) option)))
+    (setf (getf (widget-class-extern-options class) option)
+          (cons (if value
+                    `(,identifier ,value)
+                    `(,identifier))
+                (remove identifier idents :key #'first :test #'string=)))
     (update-qt-class-options class)))
 
-(defun remove-widget-class-option (class slot identifier)
+(defun remove-widget-class-option (class option identifier)
   (let ((class (qtools:ensure-class class)))
-    (setf (slot-value class slot)
-          (remove identifier (slot-value class slot) :key #'first :test #'string=))
+    (setf (getf (widget-class-extern-options class) option)
+          (remove identifier (getf (widget-class-extern-options class) option)
+                  :key #'first :test #'string=))
     (update-qt-class-options class)))
 
 (defmacro define-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
@@ -77,16 +71,64 @@
      (:qt-superclass ,(qtools:find-qt-class-name qt-class))
      ,@options))
 
-;; (defmacro define-subwidget ((widget-class name) initform &body body)
-;;   `(progn
-;;      ))
+(defvar *method*)
+(defvar *method-declarations* (make-hash-table :test 'eql))
 
-(defmacro define-signal ((widget-class name) args &body options)
-  (declare (ignore options))
-  (let ((signal (qtools:specified-type-method-name name args)))
-    `(progn
-       (set-widget-class-option ',widget-class 'signals '(,signal))
-       ',name)))
+(defun method-declaration (name)
+  (gethash name *method-declarations*))
+
+(defun (setf method-declaration) (function name)
+  (setf (gethash name *method-declarations*) function))
+
+(defun remove-method-declaration (name)
+  (remhash name *method-declarations*))
+
+(defmacro define-method-declaration (name args &body body)
+  `(setf (method-declaration ',name)
+         #'(lambda ,args ,@body)))
+
+(define-method-declaration slot (name args)
+  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
+    (let ((slot (qtools:specified-type-method-name name args)))
+      `(set-widget-class-option ',(second (first lambda)) :slots ,slot ',method))))
+
+(define-method-declaration override (&optional name)
+  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
+    (let ((slot (qtools:to-method-name (or name method))))
+      `(set-widget-class-option ',(second (first lambda)) :override ,slot ',name))))
+
+(define-method-declaration initializer (priority)
+  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
+    (let ((widget-class (second (first lambda))))
+      `(set-widget-class-option ',widget-class :initializer '(,widget-class ,priority
+                                                              (funcall (function ,method) ,widget-class))))))
+
+(define-method-declaration finalizer (priority)
+  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
+    (let ((widget-class (second (first lambda))))
+      `(set-widget-class-option ',widget-class :finalizer '(,widget-class ,priority
+                                                            (funcall (function ,method) ,widget-class))))))
+
+(defmacro defmethod (&whole whole name &rest args)
+  (declare (ignore name args))
+  (destructuring-bind (function name qualifiers lambda-list docstring declarations forms) (form-fiddle:split-lambda-form whole)
+    (declare (ignore function))
+    (let ((declaration-forms)
+          (unknown-declarations)
+          (*method* whole))
+      (loop for declaration in declarations
+            for (name . args) = (second declaration)
+            for declaration-function = (method-declaration name)
+            do (if declaration-function
+                   (push (apply declaration-function args) declaration-forms)
+                   (push declaration unknown-declarations)))
+      `(progn
+         (cl:defmethod ,name ,@qualifiers ,lambda-list
+           ,@(when docstring (list docstring))
+           ,@unknown-declarations
+           ,@forms)
+         ,@declaration-forms
+         ',name))))
 
 (defmacro define-slot ((widget-class method-name &optional (slot method-name)) args &body body)
   `(defmethod ,method-name ((,widget-class ,widget-class) ,@(mapcar #'first args))
@@ -98,32 +140,6 @@
      (declare (override ,override))
      ,@body))
 
-(defmacro defmethod (&whole whole name &rest args)
-  (declare (ignore name args))
-  (destructuring-bind (function name qualifiers lambda-list docstring declarations forms) (form-fiddle:split-lambda-form whole)
-    (declare (ignore function))
-    (let ((slot (second (find 'slot declarations :key #'caadr)))
-          (override (second (find 'override declarations :key #'caadr)))
-          (declarations (remove-if #'(lambda (a) (or (eql a 'slot) (eql a 'override))) declarations :key #'caadr))
-          (widget-class (when (listp (first lambda-list)) (second (first lambda-list)))))
-      ;; Check and translate special declarations
-      (when (and (or slot override)
-                 (or (not widget-class)
-                     (listp widget-class)))
-        (error "Missing widget-class primary specializer!"))
-      (when slot
-        (unless (cddr slot) (error "Slot declaration lambda-list required."))
-        (setf slot (qtools:specified-type-method-name (second slot) (third slot))))
-      (when override
-        (setf slot (qtools:to-method-name (or (second override) name))))
-      ;; Spit out
-      `(progn
-         (cl:defmethod ,name ,@qualifiers ,lambda-list
-           ,@(when docstring (list docstring))
-           ,@declarations
-           ,@forms)
-         ,@(when slot
-             `((set-widget-class-option ',widget-class 'slots '(,slot ,name))))
-         ,@(when override
-             `((set-widget-class-option ',widget-class 'override '(,override ,name))))
-         ',name))))
+;; (defmacro define-subwidget ((widget-class name) initform &body body)
+;;   `(progn
+;;      ))
