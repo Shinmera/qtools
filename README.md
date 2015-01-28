@@ -103,7 +103,6 @@ CommonQt provides a necessary readtable to add a convenient way to write foreign
 Currently, the reader macros `#<` to call `unbox` and `#>` to call `make-gc-finalized` on the following object are available.
 
 ## Extending Qtools
-The Widget class options and the widget environment can be extended by the user. If you find yourself repeating certain actions or definitions, you may want to define shortcuts using these.
 
 ### Copying and Finalizing
 In order to account for your own objects and operations you can extend the `copy` and `finalize` functions by using `define-copy-method` and `define-finalize-method` or `defmethod` directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using `copy/finalize-using-class`) if possible, making it all look a bit cleaner.

@@ -148,8 +148,6 @@
 
 <h2>Extending Qtools</h2>
 
-<p>The Widget class options and the widget environment can be extended by the user. If you find yourself repeating certain actions or definitions, you may want to define shortcuts using these.</p>
-
 <h3>Copying and Finalizing</h3>
 
 <p>In order to account for your own objects and operations you can extend the <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:FINALIZE">finalize</a></code> functions by using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code> and <code><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">define-finalize-method</a></code> or <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using <code>copy/finalize-using-class</code>) if possible, making it all look a bit cleaner.</p>
