@@ -31,6 +31,7 @@
 (defmethod initialize-instance ((widget widget) &key)
   (when (next-method-p)
     (call-next-method))
+  ;; FIXME: Some constructors require arguments.
   (new widget)
   (call-initializers widget))
 
@@ -110,9 +111,6 @@ the same form multiple times."
     (4 (&whole 6 &rest)
        (&whole 2 (&whole 0 0 &rest 2))
        &rest (&whole 2 2 &rest (&whole 2 2 4 &body))))
-
-(defmacro make-widget (class c++-init-args &rest args)
-  `(make-instance ,class :args (list ,@c++-init-args) ,@args))
 
 ;; Widgets are not qobject instances, but they often exhibit
 ;; a value method, so provide a default here.
