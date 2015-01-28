@@ -50,7 +50,6 @@
     (remf options :initializers)
     (remf options :finalizers)
     (remf options :save-direct-options)
-    (print options)
     (apply next-method class options)
     ;; Now that the class is ready, process init/finalizers
     (flet ((sort-clean (list)
@@ -101,11 +100,12 @@ the same form multiple times."
   (when (loop for super in direct-superclasses
               never (c2mop:subclassp (find-class super) (find-class 'widget)))
     (push 'widget direct-superclasses))
-  `(defclass ,name ,direct-superclasses
-     ,direct-slots
-     (:metaclass widget-class)
-     (:qt-superclass ,(find-qt-class-name qt-class))
-     ,@(fuse-alists options)))
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (defclass ,name ,direct-superclasses
+       ,direct-slots
+       (:metaclass widget-class)
+       (:qt-superclass ,(find-qt-class-name qt-class))
+       ,@(fuse-alists options))))
 
 (indent:define-indentation define-widget
     (4 (&whole 6 &rest)
