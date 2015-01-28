@@ -18,18 +18,6 @@
    #:copy
    #:define-copy-method
    #:describe-copy-method)
-  ;; environment.lisp
-  (:export
-   #:*environment-widget-forms*
-   #:environment-form
-   #:remove-environment-form
-   #:define-environment-form
-   #:define-environment-form-class-option
-   #:list-environment-forms
-   #:describe-environment-form
-   #:declare-environment-widget-form
-   #:undeclare-environment-widget-form
-   #:with-widget-environment)
   ;; finalizable.lisp
   (:export
    #:finalizable-class
@@ -83,40 +71,42 @@
    #:fuse-plists
    #:split
    #:capitalize-on)
-  ;; widget-menu.lisp
-  (:export
-   #:*menu*
-   #:*widget*
-   #:*class*
-   #:actions
-   #:add-action
-   #:menu-option
-   #:remove-menu-option
-   #:define-menu-option
-   #:call-menu-option
-   #:make-chord
-   #:make-action)
-  ;; widget-options.lisp
-  (:export
-   #:*widget-init-priority*
-   #:*slot-init-priority*
-   #:*layout-init-priority*)
   ;; widget.lisp
   (:export
    #:widget-class
-   #:add-initializer
-   #:add-finalizer
-   #:process-widget-class-option
-   #:widget-class-option
-   #:list-widget-class-options
-   #:remove-widget-class-option
-   #:define-widget-class-option
-   #:widget-slot-option
-   #:list-widget-slot-options
-   #:remove-widget-slot-otpion
-   #:process-widget-slot-option
-   #:define-widget-slot-option
-   #:describe-widget-option
+   #:widget-class-direct-options
+   #:widget-class-extern-options
+   #:widget-class-initializers
+   #:widget-class-finalizers
    #:widget
-   #:define-widget
-   #:make-widget))
+   #:call-initializers
+   #:call-finalizers
+   #:softly-redefine-widget-class
+   #:set-widget-class-option
+   #:remove-widget-class-option
+   #:define-widget)
+  ;; widget-convenience.lisp
+  (:export
+   #:define-slot
+   #:define-override
+   #:define-initializer
+   #:define-finalizer
+   #:define-signal
+   #:define-subwidget)
+  ;; widget-defmethod.lisp
+  (:shadow
+   #:defmethod)
+  (:export
+   #:*method*
+   #:method-declaration
+   #:remove-method-declaration
+   #:define-method-declaration
+   #:defmethod
+   #:slot
+   #:override
+   #:initializer
+   #:finalizer))
+
+;; hack to make defmethod shadowing convenient
+(setf (macro-function 'qtools:defmethod)
+      (macro-function 'cl:defmethod))
