@@ -105,7 +105,17 @@
    #:slot
    #:override
    #:initializer
-   #:finalizer))
+   #:finalizer)
+  ;; widget-menu
+  (:export
+   #:*widget*
+   #:widget-actions
+   #:menu-content-type
+   #:remove-menu-content-type
+   #:define-menu-content-type
+   #:build-menu-content
+   #:make-chord
+   #:define-menu))
 
 ;; hack to make defmethod shadowing convenient
 (setf (macro-function 'qtools:defmethod)

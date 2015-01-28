@@ -11,7 +11,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   ((old-accelerator :initform "")
    (keychord-class :initarg :class :initform NIL)))
 
-(define-subwidget (keychord-editor action-table) (#_new QTableWidget (length (actions)) 2)
+(define-subwidget (keychord-editor action-table) (#_new QTableWidget (length (widget-actions keychord-editor)) 2)
   (connect! action-table (current-changed int int) keychord-editor (record-action int int))
   (connect! action-table (value-changed int int) keychord-editor (validate-action int int))
   
@@ -20,7 +20,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (#_setVisible (#_verticalHeader action-table) NIL)
   (#_setResizeMode (#_horizontalHeader action-table) (#_QHeaderView::Stretch))
   (loop for row from 0
-        for action in (actions keychord-class)
+        for action in (widget-actions keychord-editor)
         for label = (#_new QTableWidgetItem (#_text action))
         for accel = (#_new QTableWidgetItem (#_toString (#_shortcut action)))
         do (#_setFlags label 0)
@@ -48,7 +48,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (define-override (keychord-editor accept) ()
   (loop for row from 0
-        for action in (actions keychord-class)
+        for action in (widget-actions keychord-editor)
         do (#_setShortcut action (#_new QKeySequence (#_text (#_item action-table row 1)))))
   (stop-overriding))
 
