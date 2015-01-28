@@ -19,7 +19,7 @@
   <body>
     <header>
       <h1><img src="qtools-logo.png" alt="qtools"/></h1>
-      <span>0.3.0</span>
+      <span>0.4.1</span>
       <p>A collection of tools to aid in development with CommonQt.</p>
     </header>
     <div id="content">
@@ -91,29 +91,54 @@
   ())
 </code></pre>
 
-<p>As you can see, it doesn't require string-escaping the Qt class name, as it can leverage <code><a href="#QTOOLS:FIND-QT-CLASS-NAME">find-qt-class-name</a></code>. Further, it adds more class options: <code>:defsignals</code>, <code>:defslots</code>, <code>:defoverrides</code>, <code>:subwidget</code>, <code>:layout</code> and <code>:initializer</code>. You can get a detailed description of what each of them do with <code><a href="#QTOOLS:DESCRIBE-WIDGET-OPTION">describe-widget-option</a></code>. For example, the <code>:subwidget</code> option allows you to more easily define widgets within your main class:</p>
+<p>As you can see, it doesn't require string-escaping the Qt class name, as it can leverage <code><a href="#QTOOLS:FIND-QT-CLASS-NAME">find-qt-class-name</a></code>. Aside form this minor convenience in definition shortage, a widget class keeps track of a few more things for you, which allow changing of class options outside of the definition form itself. This is useful precisely because it allows us to use a much more lispy approach to widget definition that would ordinarily be possible. With widgets you have access to <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code>, <code><a href="#QTOOLS:DEFINE-SLOT">define-slot</a></code>, <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>, <code><a href="#QTOOLS:DEFINE-INITIALIZER">define-initializer</a></code>, <code><a href="#QTOOLS:DEFINE-FINALIZER">define-finalizer</a></code>, <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code>, and <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code> that Qtools provides out of the box:</p>
 
-<pre><code>(<a href="#QTOOLS:DEFINE-WIDGET">define-widget</a> my-widget (QWidget)
-  ()
-  (:subwidget 
-    (button (#_new QPushButton &quot;Hi!&quot;)
-      (#_setFlat button T))))
+<pre><code>(<a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a> (my-widget chant) (<a href="http://l1sp.org/cl/string">string</a>))
+
+(<a href="#QTOOLS:DEFINE-SLOT">define-slot</a> (my-widget hear) ((thing string))
+  (<a href="http://l1sp.org/cl/format">format</a> T &quot;I heard: ~s&quot; thing))
+
+(<a href="#QTOOLS:DEFINE-SLOT">define-slot</a> (my-widget chant) ()
+  (<a href="#QTOOLS:SIGNAL!">signal!</a> my-widget chant (&quot;MORE CODE&quot; string)))
+
+(<a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a> (my-widget chant-button) (#_new QPushButton &quot;Chant!&quot;)
+  (<a href="#QTOOLS:CONNECT!">connect!</a> chant-button (released) my-widget (chant)))
 </code></pre>
 
-<p>Subwidgets are added to the class as a slot of the same name and are automatically finalized. All the special options that accept function bodies wrap them in <code>with-class-slots</code>, which means you'll always have easy access to your class properties by simply using their slot name.</p>
+<h3>The <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code></h3>
 
-<h3>The Widget Environment</h3>
+<p>Qtools provides its own version of <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>. Now, I understand and agree that usually it is a bad idea to alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> (in fact, it will emit such a form) and only gives special treatment to <code><a href="http://l1sp.org/cl/declare">declare</a></code> forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for <code><a href="#QTOOLS:SLOT">slot</a></code>, <code><a href="#QTOOLS:OVERRIDE">override</a></code>, <code><a href="#QTOOLS:INITIALIZER">initializer</a></code>, and <code><a href="#QTOOLS:FINALIZER">finalizer</a></code> are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.</p>
 
-<p>Since using class options is awkward for bigger functions, there's another macro: <code><a href="#QTOOLS:WITH-WIDGET-ENVIRONMENT">with-widget-environment</a></code>. This allows you to 'outsource' the widget options into forms of their own, which then automatically get repackaged into the class definition. The above example thus becomes:</p>
-
-<pre><code>(<a href="#QTOOLS:WITH-WIDGET-ENVIRONMENT">with-widget-environment</a>
-  (<a href="#QTOOLS:DEFINE-WIDGET">define-widget</a> my-widget (QWidget) ())
-
-  (define-subwidget button (#_new QPushButton &quot;Hi!&quot;)
-    (#_setFlat button T)))
+<pre><code>(<a href="#QTOOLS:DEFMETHOD">defmethod</a> paint ((widget foo) paint-event)
+  (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="#QTOOLS:OVERRIDE">override</a> paint-event))
+  ...)
 </code></pre>
 
-<p>The same works for all the other class options, with a similar <code>define-</code> form alias. You may however use any other form you normally would as well, it will be evaluated just as if it were put at the toplevel.</p>
+<p>In order to be able to use this effectively and painlessly, you should probably <code>:use</code> the extra package <code>cl+qt</code> instead of <code>cl</code> in your package. This package exports <code>cl</code>, <code>qt</code>, and <code>qtools</code> with the proper shadowing in place to use Qtools' <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>.</p>
+
+<h3>Menu Definition</h3>
+
+<p>As mentioned above, Qtools also offers a <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code> macro which allows you to write menus in an extremely compact format:</p>
+
+<pre><code>(<a href="#QTOOLS:DEFINE-MENU">define-menu</a> (my-widget File)
+  (:item (&quot;Open...&quot; (ctrl o))
+    (open-file))
+  (:menu recent-files)
+  (:separator)
+  (:item (&quot;Save&quot; (ctrl s))
+    (save-file))
+  (:item (&quot;Save As...&quot; (ctrl alt s))
+    (save-file NIL))
+  (:menu &quot;Export&quot;
+    (:item &quot;PNG&quot; (save-file NIL &quot;png&quot;)))
+  (:separator)
+  (:item (&quot;Quit&quot; (ctrl q))
+    (#_close widget)))
+</code></pre>
+
+<p>In the case of items and menus, if the first argument is a symbol, it picks the object from the according slot on the widget. Otherwise it expects a string to use as text, or in the case of an item a string and a mnemonic. For items the body can be arbitrary lisp forms to be executed when the item is triggered. Menus can also be nested to arbitrary depth. All items that are created in a menu are also automatically stored in a list of QAction objects. You can retrieve this list for any class using <code><a href="#QTOOLS:WIDGET-ACTIONS">widget-actions</a></code>.</p>
+
+<p>A frequent task is allowing the user to redefine the keyboard shortcuts of menu items. Since Qtools' <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code> keeps track of all its items, it is easy to inspect them and change their mnemonics. However, there's also the <code><a href="#QTOOLS:KEYCHORD-EDITOR">keychord-editor</a></code> widget class, which should offer you a simple but effective dialog to change keyboard shortcuts.</p>
 
 <h3>Readtable</h3>
 
@@ -125,46 +150,9 @@
 
 <p>The Widget class options and the widget environment can be extended by the user. If you find yourself repeating certain actions or definitions, you may want to define shortcuts using these.</p>
 
-<h3>Widget Options</h3>
-
-<p>Widget option expansion happens in two stages in order to account for the complications that arise with class initialisation. If your option needs to modify or add class slot options, you will have to use <code><a href="#QTOOLS:DEFINE-WIDGET-SLOT-OPTION">define-widget-slot-option</a></code>. For expanding to qt-class options or other parts, rely on <code><a href="#QTOOLS:DEFINE-WIDGET-CLASS-OPTION">define-widget-class-option</a></code>. When an option is evaluated it is done in the following manner:</p>
-
-<pre><code>(<a href="http://l1sp.org/cl/defclass">defclass</a> .. (:foo (..) (..)) (:bar ..)) =&gt; (:foo ((..) (..)) :bar (..)) =&gt; (call-slot-option :foo (..)) (call-slot-option :foo (..))...
-</code></pre>
-
-<p>Meaning the class options first get turned into a plist as per the way defclass works. Each 'body' of an option then gets individually passed to an option expander. Each call of an expander then returns a plist to use in place of the original (the plists get merged as per <code><a href="#QTOOLS:FUSE-PLISTS">fuse-plists</a></code>). This allows your option to expand to multiple different options without having to be aware of or risking disturbing other options.</p>
-
-<p>For example, defining an option that takes a name and adds that as a slot would be something like the following:</p>
-
-<pre><code>(<a href="#QTOOLS:DEFINE-WIDGET-SLOT-OPTION">define-widget-slot-option</a> class-slot (<a href="http://l1sp.org/cl/class">class</a> name)
-  `(:direct-slots ((:name ,name :readers () :writers () :initargs ()))))
-</code></pre>
-
-<p>When writing slot expanders you need to be aware of the following complication: The class has not been initialised at the point the expander is evaluated, which means that none of the class' slots will be available and even the class' name might be undefined. You should really only use slot expanders to add slots and for everything else a class expander should be used. At that point the class should be properly initialised with its slots (as per <code><a href="http://l1sp.org/cl/shared-initialize">shared-initialize</a></code>).</p>
-
-<h3>Environment Forms</h3>
-
-<p>Environment forms can be added with <code><a href="#QTOOLS:DEFINE-ENVIRONMENT-FORM">define-environment-form</a></code>. As the primary value you should return a form to put in place of the original form (just like a macro would). The secondary value, if provided, should be a list of defclass options to pack into the <code><a href="#QTOOLS:DEFINE-WIDGET">define-widget</a></code> form. For example you could do something like this:</p>
-
-<pre><code>(<a href="#QTOOLS:DEFINE-ENVIRONMENT-FORM">define-environment-form</a> docstring (<a href="http://l1sp.org/cl/string">string</a>)
-  (<a href="http://l1sp.org/cl/values">values</a> NIL `((:documentation ,string))))
-</code></pre>
-
-<p>Which would then turn</p>
-
-<pre><code>(<a href="#QTOOLS:WITH-WIDGET-ENVIRONMENT">with-widget-environment</a>
-  (<a href="#QTOOLS:DEFINE-WIDGET">define-widget</a> foo () ()) 
-  (docstring &quot;foo&quot;))
-</code></pre>
-
-<p>into</p>
-
-<pre><code>(<a href="http://l1sp.org/cl/progn">progn</a> (<a href="#QTOOLS:DEFINE-WIDGET">define-widget</a> foo () () (:documentation &quot;foo&quot;)))
-</code></pre>
-
 <h3>Copying and Finalizing</h3>
 
-<p>In order to account for your own objects and operations you can extend the <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:FINALIZE">finalize</a></code> functions by using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code> and <code><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">define-finalize-method</a></code> or <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using <code>copy/finalize-using-class</code>) if possible, making it all look a bit cleaner.</p>
+<p>In order to account for your own objects and operations you can extend the <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:FINALIZE">finalize</a></code> functions by using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code> and <code><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">define-finalize-method</a></code> or <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using <code>copy/finalize-using-class</code>) if possible, making it all look a bit cleaner.</p>
 
 <pre><code>(<a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a> (instance QPixmap)
   &quot;Creates a new QPixmap using QPixmap::copy (deep copy).&quot;
@@ -172,6 +160,24 @@
 </code></pre>
 
 <p>Since copying and finalizing are operations associated with a certain amount of ambiguity, it is advisable to always write documentation strings for your <code><a href="#QTOOLS:COPY">copy</a></code>/<code><a href="#QTOOLS:FINALIZE">finalize</a></code> methods. That way users can get a better idea of what will happen by reading about it using <code><a href="#QTOOLS:DESCRIBE-COPY-METHOD">describe-copy-method</a></code> and <code><a href="#QTOOLS:DESCRIBE-FINALIZE-METHOD">describe-finalize-method</a></code> respectively.</p>
+
+<h3>Adding <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> declarations</h3>
+
+<p>Using <code><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a></code> you can add your own processing to method declarations. Your function should extract the necessary information from its declaration arguments and the <code><a href="#QTOOLS:*METHOD*">*method*</a></code> form. Each method declaration processing function should return a single form (like a macro) to be put before the resulting <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>. The existing declaration processors are really short:</p>
+
+<pre><code>(<a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a> override (&amp;optional name)
+  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
+    (<a href="http://l1sp.org/cl/let">let</a> ((slot (<a href="#QTOOLS:TO-METHOD-NAME">qtools:to-method-name</a> (<a href="http://l1sp.org/cl/or">or</a> name method))))
+      `(<a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a> ',(<a href="http://l1sp.org/cl/second">second</a> (<a href="http://l1sp.org/cl/first">first</a> lambda)) :override '(,slot ,name)))))
+</code></pre>
+
+<h3>Extending the menu definition</h3>
+
+<p>The menu definition form allows for arbitrary content types, so you may add new ones yourself by using <code><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">define-menu-content-type</a></code>. This function will be called during the initialisation sequence of the widget, with the widget instance bound to <code><a href="#QTOOLS:*WIDGET*">*widget*</a></code>. If your menu option requires modification of the class instance of some sort, you can take advantage of <code><a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a></code> and <code><a href="#QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS">softly-redefine-widget-class</a></code>. In case the option should be able to contain sub-forms like a <code>:menu</code> does, you can process further forms by using <code><a href="#QTOOLS:BUILD-MENU-CONTENT">build-menu-content</a></code>.</p>
+
+<h2>Debugging Qtools</h2>
+
+<p>Since Qtools does a bunch of contrived things, you might want to check what exactly is done if something doesn't go according to plan. I'm not excluding the possibility of bugs being around that mess your code up. In order to check this, you will want to load <a href="http://shinmera.github.io/verbose/">verbose</a> before loading Qtools and set the logging level to trace: <code>(<a href="http://l1sp.org/cl/setf">setf</a> (v:repl-level) :trace)</code>. Qtools will emit log messages when you compile <code><a href="#QTOOLS:DEFINE-WIDGET">define-widget</a></code> forms that contain the generated options. It will also log all objects that get passed to <code><a href="#QTOOLS:FINALIZE">finalize</a></code> and <code><a href="#QTOOLS:COPY">copy</a></code>. Hopefully the log output will help you in discovering what's going on behind the scenes.</p>
 
 <h2>Support</h2>
 
@@ -188,7 +194,7 @@
       </article>
       <article>
         <h2>Copyright</h2>
-        <span>qtools</span> is licensed under the <span><a href="https://tldrlegal.com/search?q=Artistic">Artistic</a></span> license and ©<span>2014</span> <span>Nicolas Hafner &lt;shinmera@tymoon.eu&gt;</span>. This library can be obtained on <a href="https://github.com/Shinmera/qtools">https://github.com/Shinmera/qtools</a>.
+        <span>qtools</span> is licensed under the <span><a href="https://tldrlegal.com/search?q=Artistic">Artistic</a></span> license and ©<span>2015</span> <span>Nicolas Hafner &lt;shinmera@tymoon.eu&gt;</span>. This library can be obtained on <a href="https://github.com/Shinmera/qtools">https://github.com/Shinmera/qtools</a>.
       </article>
       <article id="symbol-index">
         <h2>Package Index</h2>
@@ -258,6 +264,19 @@ called on the object it contains.
 In order to retrieve the contained object, use UNBOX.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:KEYCHORD-EDITOR"/>
+                <article>
+                  <header>
+                    <span>CLASS</span>
+                    <code>
+                      <h4><a href="#QTOOLS:KEYCHORD-EDITOR">KEYCHORD-EDITOR</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre/>
+                </article>
+              </li><li>
                 <a name="QTOOLS:WIDGET"/>
                 <article>
                   <header>
@@ -268,8 +287,11 @@ In order to retrieve the contained object, use UNBOX.</pre>
                       <span/>
                     </code>
                   </header>
-                  <pre>Superclass for widgets. All your widgets should inherit
-from this. See DEFINE-WIDGET.</pre>
+                  <pre>Common superclass for all widgets in order to allow for
+general initialization and cleanup forms that are standardised across all
+widgets. 
+
+See QTOOLS:DEFINE-WIDGET.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:WIDGET-CLASS"/>
@@ -282,37 +304,75 @@ from this. See DEFINE-WIDGET.</pre>
                       <span/>
                     </code>
                   </header>
-                  <pre>Metaclass for widgets. Inherits from FINALIZABLE-CLASS and QT-CLASS.</pre>
+                  <pre>Metaclass for widgets storing necessary information.
+
+The metadata stored in this is mostly responsible for two things:
+ 1) Providing access to a sequence of mutually independent
+    initializers and finalizers for convenient setup and cleanup.
+ 2) Allowing after-the-fact out-of-form changes to the class
+    definition, which is necessary to have for a distributed
+    definition form syntax as provided by WIDGET-CONVENIENCE macros.
+In order to modify the metadata, please look at SET/REMOVE-WIDGET-CLASS-OPTION.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:ADD-FINALIZER"/>
+                <a name="QTOOLS:BUILD-MENU-CONTENT"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:ADD-FINALIZER">ADD-FINALIZER</a></h4>
+                      <h4><a href="#QTOOLS:BUILD-MENU-CONTENT">BUILD-MENU-CONTENT</a></h4>
                       <span/>
-                      <span>(CLASS PRIORITY FUNCTION)</span>
+                      <span>(PARENT TYPE CONTENTS)</span>
                     </code>
                   </header>
-                  <pre>Adds a new finalizer FUNCTION to the CLASS with PRIORITY.
-Higher priority means later evaluation. The FUNCTION may be either
-a function object or a lambda form to be compiled by COMPILE.</pre>
+                  <pre>Calls the appropriate function to parse menu content of TYPE.
+
+See (SETF QTOOLS:MENU-CONTENT-TYPE).</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:ADD-INITIALIZER"/>
+                <a name="QTOOLS:CALL-FINALIZERS"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:ADD-INITIALIZER">ADD-INITIALIZER</a></h4>
+                      <h4><a href="#QTOOLS:CALL-FINALIZERS">CALL-FINALIZERS</a></h4>
                       <span/>
-                      <span>(CLASS PRIORITY FUNCTION)</span>
+                      <span>(CLASS)</span>
                     </code>
                   </header>
-                  <pre>Adds a new initializer FUNCTION to the CLASS with PRIORITY.
-Higher priority means later evaluation. The FUNCTION may be either
-a function object or a lambda form to be compiled by COMPILE.</pre>
+                  <pre>Calls all the finalizers specified on CLASS in their proper sequence.
+
+CLASS can be either an instance of a WIDGET-CLASS, a
+WIDGET-CLASS itself, or a symbol naming the class.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:CALL-INITIALIZERS"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:CALL-INITIALIZERS">CALL-INITIALIZERS</a></h4>
+                      <span/>
+                      <span>(CLASS)</span>
+                    </code>
+                  </header>
+                  <pre>Calls all the initializers specified on CLASS in their proper sequence.
+
+CLASS can be either an instance of a WIDGET-CLASS, a
+WIDGET-CLASS itself, or a symbol naming the class.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:CAPITALIZE-ON"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:CAPITALIZE-ON">CAPITALIZE-ON</a></h4>
+                      <span/>
+                      <span>(CHARACTER STRING &amp;OPTIONAL (REPLACEMENT CHARACTER) START-CAPITALIZED)</span>
+                    </code>
+                  </header>
+                  <pre/>
                 </article>
               </li><li>
                 <a name="QTOOLS:CL-TYPE-FOR"/>
@@ -330,17 +390,31 @@ a function object or a lambda form to be compiled by COMPILE.</pre>
 Look at the source to see the mappings.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:DESCRIBE-ENVIRONMENT-FORM"/>
+                <a name="QTOOLS:CLEAR-LAYOUT"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:DESCRIBE-ENVIRONMENT-FORM">DESCRIBE-ENVIRONMENT-FORM</a></h4>
+                      <h4><a href="#QTOOLS:CLEAR-LAYOUT">CLEAR-LAYOUT</a></h4>
                       <span/>
-                      <span>(FORM)</span>
+                      <span>(LAYOUT)</span>
                     </code>
                   </header>
-                  <pre>Prints out documentation relating to the environment FORM, if any.</pre>
+                  <pre>Removews all widgets from the layout and returns them as a list.
+It does not do anything with the widgets themselves.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DESCRIBE-COPY-METHOD"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DESCRIBE-COPY-METHOD">DESCRIBE-COPY-METHOD</a></h4>
+                      <span/>
+                      <span>(CLASS)</span>
+                    </code>
+                  </header>
+                  <pre>Prints information about the copy method for the specified class if possible.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:DESCRIBE-FINALIZE-METHOD"/>
@@ -354,19 +428,6 @@ Look at the source to see the mappings.</pre>
                     </code>
                   </header>
                   <pre>Prints information about the finalize method for the given class if possible.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:DESCRIBE-WIDGET-OPTION"/>
-                <article>
-                  <header>
-                    <span>FUNCTION</span>
-                    <code>
-                      <h4><a href="#QTOOLS:DESCRIBE-WIDGET-OPTION">DESCRIBE-WIDGET-OPTION</a></h4>
-                      <span/>
-                      <span>(OPTION)</span>
-                    </code>
-                  </header>
-                  <pre>Prints out documentation relating to the widget class OPTION, if any.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:DETERMINED-TYPE-METHOD-NAME"/>
@@ -435,19 +496,6 @@ Examples:
  (.. foo '(a b)) =&gt; (&quot;foo(a,b)&quot;)
  (.. foo '((a b))) =&gt; (&quot;foo(a)&quot; &quot;foo(b)&quot;)
  (.. foo '((a b) (0 1))) =&gt; (&quot;foo(a,0)&quot; &quot;foo(b,1)&quot;)</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:ENVIRONMENT-FORM"/>
-                <article>
-                  <header>
-                    <span>FUNCTION</span>
-                    <code>
-                      <h4><a href="#QTOOLS:ENVIRONMENT-FORM">ENVIRONMENT-FORM</a></h4>
-                      <span/>
-                      <span>(NAME)</span>
-                    </code>
-                  </header>
-                  <pre>Returns a function to process the form of NAME with, if any..</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:EQT-TYPE-OF"/>
@@ -529,43 +577,17 @@ A compiler macro will try to statically determine types as best as possible,
 so GENERIC-SIGNAL is save to use for static values.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:LIST-ENVIRONMENT-FORMS"/>
+                <a name="QTOOLS:MAKE-CHORD"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:LIST-ENVIRONMENT-FORMS">LIST-ENVIRONMENT-FORMS</a></h4>
+                      <h4><a href="#QTOOLS:MAKE-CHORD">MAKE-CHORD</a></h4>
                       <span/>
-                      <span/>
+                      <span>(CHORD)</span>
                     </code>
                   </header>
-                  <pre>Lists all specially handled forms in a widget-environment.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:LIST-WIDGET-CLASS-OPTIONS"/>
-                <article>
-                  <header>
-                    <span>FUNCTION</span>
-                    <code>
-                      <h4><a href="#QTOOLS:LIST-WIDGET-CLASS-OPTIONS">LIST-WIDGET-CLASS-OPTIONS</a></h4>
-                      <span/>
-                      <span/>
-                    </code>
-                  </header>
-                  <pre>Lists all widget class options.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:LIST-WIDGET-SLOT-OPTIONS"/>
-                <article>
-                  <header>
-                    <span>FUNCTION</span>
-                    <code>
-                      <h4><a href="#QTOOLS:LIST-WIDGET-SLOT-OPTIONS">LIST-WIDGET-SLOT-OPTIONS</a></h4>
-                      <span/>
-                      <span/>
-                    </code>
-                  </header>
-                  <pre>Lists all widget slot options.</pre>
+                  <pre>Transforms CHORD into a keychord string, if possible.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:MAKE-GC-FINALIZED"/>
@@ -594,32 +616,32 @@ so GENERIC-SIGNAL is save to use for static values.</pre>
                   <pre>Deletes the object if possible.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:PROCESS-WIDGET-CLASS-OPTION"/>
+                <a name="QTOOLS:MENU-CONTENT-TYPE"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:PROCESS-WIDGET-CLASS-OPTION">PROCESS-WIDGET-CLASS-OPTION</a></h4>
+                      <h4><a href="#QTOOLS:MENU-CONTENT-TYPE">MENU-CONTENT-TYPE</a></h4>
                       <span/>
-                      <span>(CLASS OPTION BODIES)</span>
+                      <span>(NAME)</span>
                     </code>
                   </header>
-                  <pre>Processes the passed class OPTION for CLASS and returns
-a new list of plists of options to use in its stead.</pre>
+                  <pre>Returns the function to process a menu content type NAME, if any.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:PROCESS-WIDGET-SLOT-OPTION"/>
+                <a name="QTOOLS:METHOD-DECLARATION"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:PROCESS-WIDGET-SLOT-OPTION">PROCESS-WIDGET-SLOT-OPTION</a></h4>
+                      <h4><a href="#QTOOLS:METHOD-DECLARATION">METHOD-DECLARATION</a></h4>
                       <span/>
-                      <span>(CLASS OPTION BODIES)</span>
+                      <span>(NAME)</span>
                     </code>
                   </header>
-                  <pre>Processes the passed slot OPTION for CLASS and returns
-a new list of plists of options to use in its stead.</pre>
+                  <pre>Returns a function to process the method declaration NAME, if one exists.
+
+See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:QOBJECT-ALIVE-P"/>
@@ -665,17 +687,30 @@ Look at the source to see the mappings.</pre>
 Look at the source to see the mappings.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:REMOVE-ENVIRONMENT-FORM"/>
+                <a name="QTOOLS:REMOVE-MENU-CONTENT-TYPE"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:REMOVE-ENVIRONMENT-FORM">REMOVE-ENVIRONMENT-FORM</a></h4>
+                      <h4><a href="#QTOOLS:REMOVE-MENU-CONTENT-TYPE">REMOVE-MENU-CONTENT-TYPE</a></h4>
                       <span/>
                       <span>(NAME)</span>
                     </code>
                   </header>
-                  <pre>Removes the environment-form processor named by NAME.</pre>
+                  <pre>Removes the menu content type NAME.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:REMOVE-METHOD-DECLARATION"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:REMOVE-METHOD-DECLARATION">REMOVE-METHOD-DECLARATION</a></h4>
+                      <span/>
+                      <span>(NAME)</span>
+                    </code>
+                  </header>
+                  <pre>Remove the method declaration processor function of NAME.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:REMOVE-WIDGET-CLASS-OPTION"/>
@@ -685,10 +720,55 @@ Look at the source to see the mappings.</pre>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-WIDGET-CLASS-OPTION">REMOVE-WIDGET-CLASS-OPTION</a></h4>
                       <span/>
-                      <span>(OPTION)</span>
+                      <span>(CLASS OPTION IDENTIFIER &amp;KEY (KEY #'FIRST) (TEST #'EQUAL))</span>
                     </code>
                   </header>
-                  <pre>Removes the class OPTION evaluator.</pre>
+                  <pre>Removes a CLASS OPTION value.
+
+The value is identified and distinguished within the OPTION list
+by TEST on KEY. If the first item in the sub-list is EQUAL to IDENTIFIER,
+it is removed. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
+
+See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
+See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:SET-WIDGET-CLASS-OPTION"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">SET-WIDGET-CLASS-OPTION</a></h4>
+                      <span/>
+                      <span>(CLASS OPTION VALUE &amp;KEY (KEY #'FIRST) (TEST #'EQUAL))</span>
+                    </code>
+                  </header>
+                  <pre>Sets a CLASS OPTION VALUE.
+
+The value is identified and distinguished within the OPTION list
+by TEST on KEY. First, all lists within OPTION that identify as 
+VALUE are removed, then VALUE is added to the front of the OPTION 
+list of the class. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
+
+See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
+See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS">SOFTLY-REDEFINE-WIDGET-CLASS</a></h4>
+                      <span/>
+                      <span>(CLASS)</span>
+                    </code>
+                  </header>
+                  <pre>Cause a soft redefinition of the given CLASS.
+
+This will in effect cause a call to REINITIALIZE-INSTANCE with the proper
+class options added from WIDGET-CLASS-DIRECT-OPTIONS, followed by a
+FINALIZE-INHERITANCE call on the class.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:SPECIFIED-TYPE-METHOD-NAME"/>
@@ -759,30 +839,55 @@ If it is a symbol, either QT-TYPE-FOR for THING is
 returned, or the STRING-DOWNCASE of THING.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:WIDGET-CLASS-OPTION"/>
+                <a name="QTOOLS:WIDGET-ACTIONS"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:WIDGET-CLASS-OPTION">WIDGET-CLASS-OPTION</a></h4>
+                      <h4><a href="#QTOOLS:WIDGET-ACTIONS">WIDGET-ACTIONS</a></h4>
                       <span/>
-                      <span>(OPTION)</span>
+                      <span>(CLASS)</span>
                     </code>
                   </header>
-                  <pre>Returns the class OPTION evaluator, if any.</pre>
+                  <pre>Returns a list of QAction instances that are active on the given CLASS.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:WIDGET-SLOT-OPTION"/>
+                <a name="QTOOLS:COPY"/>
                 <article>
                   <header>
-                    <span>FUNCTION</span>
+                    <span>GENERIC</span>
                     <code>
-                      <h4><a href="#QTOOLS:WIDGET-SLOT-OPTION">WIDGET-SLOT-OPTION</a></h4>
+                      <h4><a href="#QTOOLS:COPY">COPY</a></h4>
                       <span/>
-                      <span>(OPTION)</span>
+                      <span>(INSTANCE)</span>
                     </code>
                   </header>
-                  <pre>Returns the slot OPTION evaluator, fi any.</pre>
+                  <pre>Generates a copy of the object.
+
+The way objects are copied varies, but usually it can be assumed that the
+copy is made in a way such that data immediately associated with the object
+is copied (such as pixel data in an image), but data only implicitly
+referenced (such as the paint device of a painter) is not.
+
+Use DESCRIBE-COPY-METHOD for information on a specific copying mechanism.
+
+Uses COPY-QOBJECT-USING-CLASS and determines the class by QT::QOBJECT-CLASS.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:COPY-USING-CLASS"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:COPY-USING-CLASS">COPY-USING-CLASS</a></h4>
+                      <span/>
+                      <span>(QCLASS INSTANCE)</span>
+                    </code>
+                  </header>
+                  <pre>Creates a copy of the given instance by using methods
+appropriate for the given qclass.
+
+See COPY</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:FINALIZE"/>
@@ -851,6 +956,80 @@ See FINALIZE</pre>
                   <pre/>
                 </article>
               </li><li>
+                <a name="QTOOLS:VALUE"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:VALUE">VALUE</a></h4>
+                      <span/>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>Returns the VALUE of object. This usually translates to (#_value object) unless overriden.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-DIRECT-OPTIONS"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-DIRECT-OPTIONS">WIDGET-CLASS-DIRECT-OPTIONS</a></h4>
+                      <span/>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>Contains all the options passed to RE/INITIALIZE-INSTANCE when
+the class is re/initialized directly through a DEFCLASS form.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS">WIDGET-CLASS-EXTERN-OPTIONS</a></h4>
+                      <span/>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>Contains all the options that are added to the class definition
+through external forms and thus need to be included and kept separate
+from options directly specified in the class definition.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-FINALIZERS"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-FINALIZERS">WIDGET-CLASS-FINALIZERS</a></h4>
+                      <span/>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>A sorted list of functions to be called upon finalization.
+This list is overwritten completely whenever the class is re/initialized.
+
+See QTOOLS:CALL-FINALIZERS</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-INITIALIZERS"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-INITIALIZERS">WIDGET-CLASS-INITIALIZERS</a></h4>
+                      <span/>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>A sorted list of functions to be called upon initialization.
+This list is overwritten completely whenever the class is re/initialized.
+
+See QTOOLS:CALL-INITIALIZERS</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:CONNECT!"/>
                 <article>
                   <header>
@@ -867,30 +1046,28 @@ followed by Qt argument types. The effective method name is computed as per
 SPECIFIED-TYPE-METHOD-NAME.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:DEFINE-ENVIRONMENT-FORM"/>
+                <a name="QTOOLS:DEFINE-COPY-METHOD"/>
                 <article>
                   <header>
                     <span>MACRO</span>
                     <code>
-                      <h4><a href="#QTOOLS:DEFINE-ENVIRONMENT-FORM">DEFINE-ENVIRONMENT-FORM</a></h4>
+                      <h4><a href="#QTOOLS:DEFINE-COPY-METHOD">DEFINE-COPY-METHOD</a></h4>
                       <span/>
-                      <span>(NAME STRUCTURE &amp;BODY BODY)</span>
+                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
                     </code>
                   </header>
-                  <pre>Define processing for an environment form of NAME with a body of STRUCTURE.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:DEFINE-ENVIRONMENT-FORM-CLASS-OPTION"/>
-                <article>
-                  <header>
-                    <span>MACRO</span>
-                    <code>
-                      <h4><a href="#QTOOLS:DEFINE-ENVIRONMENT-FORM-CLASS-OPTION">DEFINE-ENVIRONMENT-FORM-CLASS-OPTION</a></h4>
-                      <span/>
-                      <span>(NAME OPTION)</span>
-                    </code>
-                  </header>
-                  <pre>Shorthand macro to translate forms of NAME to widget class OPTION.</pre>
+                  <pre>Defines a method to copy an object of CLASS.
+CLASS can be either a common-lisp class type or a Qt class name.
+
+Qt class names will take precedence, meaning that if CLASS resolves
+to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
+is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
+is defined with the CLASS directly as specializer for the instance.
+
+In cases where you need to define a method on a same-named CL class,
+directly use DEFMETHOD on COPY-QOBJECT.
+
+See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:DEFINE-FINALIZABLE"/>
@@ -933,6 +1110,156 @@ directly use DEFMETHOD on FINALIZE.
 See FINALIZE, FINALIZE-USING-CLASS</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:DEFINE-FINALIZER"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-FINALIZER">DEFINE-FINALIZER</a></h4>
+                      <span/>
+                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Defines a new finalizer of METHOD-NAME on WIDGET-CLASS.
+
+Finalizers are functions that are run immediately after the widget has been
+FINALIZED, but before the main FINALIZE method kicks in. This means that the
+widget will still be allocated at the time. Finalizers are executed in order 
+of highest PRIORITY first. 
+
+This is translated to a method definition specialised (and bound) on WIDGET-CLASS
+with a FINALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
+
+See QTOOLS:DEFMETHOD
+See QTOOLS:WITH-SLOTS-BOUND
+See QTOOLS:FINALIZE</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-INITIALIZER"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-INITIALIZER">DEFINE-INITIALIZER</a></h4>
+                      <span/>
+                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Defines a new initializer of METHOD-NAME on WIDGET-CLASS.
+
+Initializers are functions that are run immediately after the widget has been
+allocated by QT:NEW, but before any INITIALIZE-INSTANCE:AFTER methods are
+executed. They are executed in order of highest PRIORITY first. 
+
+This is translated to a method definition specialised (and bound) on WIDGET-CLASS
+with a INITIALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
+
+See QTOOLS:DEFMETHOD
+See QTOOLS:WITH-SLOTS-BOUND</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-MENU"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-MENU">DEFINE-MENU</a></h4>
+                      <span/>
+                      <span>((WIDGET-CLASS NAME) &amp;BODY CONTENTS)</span>
+                    </code>
+                  </header>
+                  <pre>Defines a menu on WIDGET-CLASS with NAME and CONTENTS.
+
+By default the following content types are available:
+  A :MENU form is followed by a menu text string and a
+  body of content forms.
+
+  A :SEPARATOR simply adds a separator at its point to
+  the parent and takes no further arguments.
+
+  An :ITEM form is followed by an identifier, which may
+  be a symbol, string, or list. In the case of a symbol,
+  the item is taken from the according slot on the widget.
+  In the case of a string the string serves as the text
+  for the item. For a list, the first serves as the text
+  and the second as an input acceptable to MAKE-CHORD.
+  The body of the item form can be arbitrary lisp forms
+  to be executed when the item is triggered.
+
+See QTOOLS:MAKE-CHORD.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-MENU-CONTENT-TYPE"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">DEFINE-MENU-CONTENT-TYPE</a></h4>
+                      <span/>
+                      <span>(TYPE (PARENT &amp;REST ARGS) &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Defines a new menu content type processor NAME.
+
+See (SETF QTOOLS:MENU-CONTENT-TYPE).</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-METHOD-DECLARATION"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">DEFINE-METHOD-DECLARATION</a></h4>
+                      <span/>
+                      <span>(NAME ARGS &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Define a new method declaration function of NAME.
+
+See (SETF QTOOLS:METHOD-DECLARATION).</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-OVERRIDE"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-OVERRIDE">DEFINE-OVERRIDE</a></h4>
+                      <span/>
+                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (OVERRIDE METHOD-NAME)) ARGS &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Define a new OVERRIDE on WIDGET-CLASS with ARGS.
+
+This is translated to a method definition with METHOD-NAME that specialises
+ (and binds) on WIDGET-CLASS, with ARGS appended to the list, and an OVERRIDE
+declaration in the body. Additionally, the body is wrapped in a WITH-SLOTS-BOUND
+to allow for convenient slot access.
+
+See QTOOLS:DEFMETHOD
+See QTOOLS:WITH-SLOTS-BOUND
+See CommonQt/override</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-SIGNAL"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-SIGNAL">DEFINE-SIGNAL</a></h4>
+                      <span/>
+                      <span>((WIDGET-CLASS SIGNAL) ARGS &amp;BODY OPTIONS)</span>
+                    </code>
+                  </header>
+                  <pre>Define a new SIGNAL on WIDGET-CLASS with ARGS.
+
+This evaluates to a simple SET-WIDGET-CLASS-OPTION that adds a new :SIGNAL
+definition to the WIDGET-CLASS. The signal signature is generated using
+SPECIFIED-TYPE-METHOD-NAME.
+
+See CommonQt/signals</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:DEFINE-SIGNAL-METHOD"/>
                 <article>
                   <header>
@@ -957,6 +1284,52 @@ ECL-TYPE-FOR to a type to use in the method specializers. The signal
 method to call is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:DEFINE-SLOT"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-SLOT">DEFINE-SLOT</a></h4>
+                      <span/>
+                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (SLOT METHOD-NAME)) ARGS &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Define a new SLOT on WIDGET-CLASS with ARGS.
+
+ARGS is a list of arguments, where each item is a list of two values,
+the first being the symbol used to bind the value within the function
+body, and the second being a type specifier usable for the slot definition.
+
+In effect this translates to a method definition with METHOD-NAME that
+specialises (and binds) on WIDGET-CLASS, with additional required arguments
+ARGS, and a SLOT declaration. Additionally, the body is wrapped in a
+WITH-SLOTS-BOUND to allow for convenient slot access.
+
+See QTOOLS:DEFMETHOD
+See QTOOLS:WITH-SLOTS-BOUND
+See CommonQt/slots</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:DEFINE-SUBWIDGET"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DEFINE-SUBWIDGET">DEFINE-SUBWIDGET</a></h4>
+                      <span/>
+                      <span>((WIDGET-CLASS NAME) INITFORM &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Defines a new sub-widget of NAME on WIDGET-CLASS.
+
+What this means is that a finalized slot of NAME is added to WIDGET-CLASS
+as well as an initializer function for the slot. The slot for the sub-widget 
+is set to the value returned by the INITFORM, after which BODY is run. BODY
+is wrapped in a WITH-SLOTS-BOUND form, so all slots are conveniently available.
+
+See QTOOLS:DEFINE-INITIALIZER</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:DEFINE-WIDGET"/>
                 <article>
                   <header>
@@ -968,56 +1341,39 @@ method to call is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                     </code>
                   </header>
                   <pre>Shorthand over DEFCLASS.
-Adds WIDGET as direct-superclass and WIDGET-CLASS as metaclass.
-Sets qt-class as the qt-superclass (after resolving it through
-FIND-QT-CLASS-NAME).
+
+Adds WIDGET as direct-superclass if it does not appear as a
+superclass to the specified direct-superclasses. Sets 
+WIDGET-CLASS as metaclass and qt-class as the qt-superclass 
+after resolving it through FIND-QT-CLASS-NAME.
 
 All options are fused as per FUSE-ALISTS. You may therefore use
 the same form multiple times.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:DEFINE-WIDGET-CLASS-OPTION"/>
+                <a name="QTOOLS:DEFMETHOD"/>
                 <article>
                   <header>
                     <span>MACRO</span>
                     <code>
-                      <h4><a href="#QTOOLS:DEFINE-WIDGET-CLASS-OPTION">DEFINE-WIDGET-CLASS-OPTION</a></h4>
+                      <h4><a href="#QTOOLS:DEFMETHOD">DEFMETHOD</a></h4>
                       <span/>
-                      <span>(OPTION (CLASS &amp;REST BODY-LAMBDA) &amp;BODY FORMS)</span>
+                      <span>(&amp;WHOLE WHOLE NAME &amp;REST ARGS)</span>
                     </code>
                   </header>
-                  <pre>Defines a new widget class OPTION.
+                  <pre>Defines a new method.
 
-OPTION      --- The name of the option (keyword).
-CLASS       --- The current class being initialized.
-BODY-LAMBDA --- A lambda-list to destructure the option's body with.
+This is identical to CL:DEFMETHOD with one exception:
+The only difference is that declarations are scanned and
+potentially specially processed. If a declaration is
+recognised through METHOD-DECLARATION, it is taken out of
+the method definition. The declaration processor function
+then may or may not cause side-effects or spit out
+additional forms to be output alongside the CL:DEFMETHOD
+form.
 
-This should return a plist of options to use in place of the parsed option.
-
-Class-options are evaluated before the Qt-class options are taken into effect,
-but after the class' slots have been initialized. You should not change the
-class' slot definition with class options. Use a slot-option for that instead.
-
-See DEFINE-WIDGET-SLOT-OPTION.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:DEFINE-WIDGET-SLOT-OPTION"/>
-                <article>
-                  <header>
-                    <span>MACRO</span>
-                    <code>
-                      <h4><a href="#QTOOLS:DEFINE-WIDGET-SLOT-OPTION">DEFINE-WIDGET-SLOT-OPTION</a></h4>
-                      <span/>
-                      <span>(OPTION (CLASS &amp;REST BODY-LAMBDA) &amp;BODY FORMS)</span>
-                    </code>
-                  </header>
-                  <pre>Same as DEFINE-WIDGET-CLASS-OPTION.
-The only difference is that slot options are evaluated before class options
-and should be the only ones to add new slot definitions to the options.
-When slot options are evaluated, none of the class' slots are ready and
-it is unspecified if any part of the class (even its name) is set at all.
-
-See DEFINE-WIDGET-CLASS-OPTION.</pre>
+See CL:DEFMETHOD.
+See QTOOLS:METHOD-DECLARATION.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:QTENUMCASE"/>
@@ -1110,32 +1466,17 @@ automatically ensured to be GC-ed and FINALIZEd once the body exits.</pre>
 Class is resolved as per ENSURE-CLASS.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:WITH-WIDGET-ENVIRONMENT"/>
-                <article>
-                  <header>
-                    <span>MACRO</span>
-                    <code>
-                      <h4><a href="#QTOOLS:WITH-WIDGET-ENVIRONMENT">WITH-WIDGET-ENVIRONMENT</a></h4>
-                      <span/>
-                      <span>(&amp;BODY FORMS)</span>
-                    </code>
-                  </header>
-                  <pre>Compile the inner forms in an environment that allows a more lispy definition style.
-The main purpose of this macro is to avoid having to press all of your information into
-the class definition form.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:*LAYOUT-INIT-PRIORITY*"/>
+                <a name="QTOOLS:*METHOD*"/>
                 <article>
                   <header>
                     <span>SPECIAL</span>
                     <code>
-                      <h4><a href="#QTOOLS:*LAYOUT-INIT-PRIORITY*">*LAYOUT-INIT-PRIORITY*</a></h4>
+                      <h4><a href="#QTOOLS:*METHOD*">*METHOD*</a></h4>
                       <span/>
                       <span/>
                     </code>
                   </header>
-                  <pre/>
+                  <pre>Contains the whole DEFMETHOD form that is currently being processed.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:*QT-CLASS-MAP*"/>
@@ -1164,30 +1505,17 @@ the class definition form.</pre>
                   <pre>A vector of all Qt4.8 class names as strings.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:*SLOT-INIT-PRIORITY*"/>
+                <a name="QTOOLS:*WIDGET*"/>
                 <article>
                   <header>
                     <span>SPECIAL</span>
                     <code>
-                      <h4><a href="#QTOOLS:*SLOT-INIT-PRIORITY*">*SLOT-INIT-PRIORITY*</a></h4>
+                      <h4><a href="#QTOOLS:*WIDGET*">*WIDGET*</a></h4>
                       <span/>
                       <span/>
                     </code>
                   </header>
-                  <pre/>
-                </article>
-              </li><li>
-                <a name="QTOOLS:*WIDGET-INIT-PRIORITY*"/>
-                <article>
-                  <header>
-                    <span>SPECIAL</span>
-                    <code>
-                      <h4><a href="#QTOOLS:*WIDGET-INIT-PRIORITY*">*WIDGET-INIT-PRIORITY*</a></h4>
-                      <span/>
-                      <span/>
-                    </code>
-                  </header>
-                  <pre/>
+                  <pre>Contains the current widget class instance while the menu is being built.</pre>
                 </article>
               </li></ul>
           </li></ul>

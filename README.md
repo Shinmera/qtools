@@ -53,26 +53,49 @@ CommonQt's default class adds options that are necessary for proper Qt integrati
     (define-widget my-widget (QWidget)
       ())
 
-As you can see, it doesn't require string-escaping the Qt class name, as it can leverage `find-qt-class-name`. Further, it adds more class options: `:defsignals`, `:defslots`, `:defoverrides`, `:subwidget`, `:layout` and `:initializer`. You can get a detailed description of what each of them do with `describe-widget-option`. For example, the `:subwidget` option allows you to more easily define widgets within your main class:
+As you can see, it doesn't require string-escaping the Qt class name, as it can leverage `find-qt-class-name`. Aside form this minor convenience in definition shortage, a widget class keeps track of a few more things for you, which allow changing of class options outside of the definition form itself. This is useful precisely because it allows us to use a much more lispy approach to widget definition that would ordinarily be possible. With widgets you have access to `define-signal`, `define-slot`, `define-override`, `define-initializer`, `define-finalizer`, `define-subwidget`, and `define-menu` that Qtools provides out of the box:
 
-    (define-widget my-widget (QWidget)
-      ()
-      (:subwidget 
-        (button (#_new QPushButton "Hi!")
-          (#_setFlat button T))))
+    (define-signal (my-widget chant) (string))
 
-Subwidgets are added to the class as a slot of the same name and are automatically finalized. All the special options that accept function bodies wrap them in `with-class-slots`, which means you'll always have easy access to your class properties by simply using their slot name.
+    (define-slot (my-widget hear) ((thing string))
+      (format T "I heard: ~s" thing))
 
-### The Widget Environment
-Since using class options is awkward for bigger functions, there's another macro: `with-widget-environment`. This allows you to 'outsource' the widget options into forms of their own, which then automatically get repackaged into the class definition. The above example thus becomes:
+    (define-slot (my-widget chant) ()
+      (signal! my-widget chant ("MORE CODE" string)))
 
-    (with-widget-environment
-      (define-widget my-widget (QWidget) ())
+    (define-subwidget (my-widget chant-button) (#_new QPushButton "Chant!")
+      (connect! chant-button (released) my-widget (chant)))
+    
+### The `defmethod`
+Qtools provides its own version of `defmethod`. Now, I understand and agree that usually it is a bad idea to alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard `defmethod` (in fact, it will emit such a form) and only gives special treatment to `declare` forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for `slot`, `override`, `initializer`, and `finalizer` are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.
 
-      (define-subwidget button (#_new QPushButton "Hi!")
-        (#_setFlat button T)))
+    (defmethod paint ((widget foo) paint-event)
+      (declare (override paint-event))
+      ...)
 
-The same works for all the other class options, with a similar `define-` form alias. You may however use any other form you normally would as well, it will be evaluated just as if it were put at the toplevel.
+In order to be able to use this effectively and painlessly, you should probably `:use` the extra package `cl+qt` instead of `cl` in your package. This package exports `cl`, `qt`, and `qtools` with the proper shadowing in place to use Qtools' `defmethod`.
+
+### Menu Definition
+As mentioned above, Qtools also offers a `define-menu` macro which allows you to write menus in an extremely compact format:
+
+    (define-menu (my-widget File)
+      (:item ("Open..." (ctrl o))
+        (open-file))
+      (:menu recent-files)
+      (:separator)
+      (:item ("Save" (ctrl s))
+        (save-file))
+      (:item ("Save As..." (ctrl alt s))
+        (save-file NIL))
+      (:menu "Export"
+        (:item "PNG" (save-file NIL "png")))
+      (:separator)
+      (:item ("Quit" (ctrl q))
+        (#_close widget)))
+
+In the case of items and menus, if the first argument is a symbol, it picks the object from the according slot on the widget. Otherwise it expects a string to use as text, or in the case of an item a string and a mnemonic. For items the body can be arbitrary lisp forms to be executed when the item is triggered. Menus can also be nested to arbitrary depth. All items that are created in a menu are also automatically stored in a list of QAction objects. You can retrieve this list for any class using `widget-actions`.
+
+A frequent task is allowing the user to redefine the keyboard shortcuts of menu items. Since Qtools' `define-menu` keeps track of all its items, it is easy to inspect them and change their mnemonics. However, there's also the `keychord-editor` widget class, which should offer you a simple but effective dialog to change keyboard shortcuts.
 
 ### Readtable
 CommonQt provides a necessary readtable to add a convenient way to write foreign calls. Qtools provides its own named-readtable (`:qtools`) that inherits from this readtable, but adds some minor tweaks.
@@ -82,38 +105,6 @@ Currently, the reader macros `#<` to call `unbox` and `#>` to call `make-gc-fina
 ## Extending Qtools
 The Widget class options and the widget environment can be extended by the user. If you find yourself repeating certain actions or definitions, you may want to define shortcuts using these.
 
-### Widget Options
-Widget option expansion happens in two stages in order to account for the complications that arise with class initialisation. If your option needs to modify or add class slot options, you will have to use `define-widget-slot-option`. For expanding to qt-class options or other parts, rely on `define-widget-class-option`. When an option is evaluated it is done in the following manner:
-
-    (defclass .. (:foo (..) (..)) (:bar ..)) => (:foo ((..) (..)) :bar (..)) => (call-slot-option :foo (..)) (call-slot-option :foo (..))...
-
-Meaning the class options first get turned into a plist as per the way defclass works. Each 'body' of an option then gets individually passed to an option expander. Each call of an expander then returns a plist to use in place of the original (the plists get merged as per `fuse-plists`). This allows your option to expand to multiple different options without having to be aware of or risking disturbing other options.
-
-For example, defining an option that takes a name and adds that as a slot would be something like the following:
-
-    (define-widget-slot-option class-slot (class name)
-      `(:direct-slots ((:name ,name :readers () :writers () :initargs ()))))
-
-When writing slot expanders you need to be aware of the following complication: The class has not been initialised at the point the expander is evaluated, which means that none of the class' slots will be available and even the class' name might be undefined. You should really only use slot expanders to add slots and for everything else a class expander should be used. At that point the class should be properly initialised with its slots (as per `shared-initialize`).
-
-### Environment Forms
-Environment forms can be added with `define-environment-form`. As the primary value you should return a form to put in place of the original form (just like a macro would). The secondary value, if provided, should be a list of defclass options to pack into the `define-widget` form. For example you could do something like this:
-
-    (define-environment-form docstring (string)
-      (values NIL `((:documentation ,string))))
-
-Which would then turn
-
-    (with-widget-environment
-      (define-widget foo () ()) 
-      (docstring "foo"))
-
-into
-
-    (progn (define-widget foo () () (:documentation "foo")))
-
-You can read more about what an environment form might do by using `describe-environment-form`.
-
 ### Copying and Finalizing
 In order to account for your own objects and operations you can extend the `copy` and `finalize` functions by using `define-copy-method` and `define-finalize-method` or `defmethod` directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using `copy/finalize-using-class`) if possible, making it all look a bit cleaner.
 
@@ -122,6 +113,17 @@ In order to account for your own objects and operations you can extend the `copy
       (#_copy instance (#_rect instance)))
 
 Since copying and finalizing are operations associated with a certain amount of ambiguity, it is advisable to always write documentation strings for your `copy`/`finalize` methods. That way users can get a better idea of what will happen by reading about it using `describe-copy-method` and `describe-finalize-method` respectively.
+
+### Adding `defmethod` declarations
+Using `define-method-declaration` you can add your own processing to method declarations. Your function should extract the necessary information from its declaration arguments and the `*method*` form. Each method declaration processing function should return a single form (like a macro) to be put before the resulting `defmethod`. The existing declaration processors are really short:
+
+    (define-method-declaration override (&optional name)
+      (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
+        (let ((slot (qtools:to-method-name (or name method))))
+          `(set-widget-class-option ',(second (first lambda)) :override '(,slot ,name)))))
+
+### Extending the menu definition
+The menu definition form allows for arbitrary content types, so you may add new ones yourself by using `define-menu-content-type`. This function will be called during the initialisation sequence of the widget, with the widget instance bound to `*widget*`. If your menu option requires modification of the class instance of some sort, you can take advantage of `set-widget-class-option` and `softly-redefine-widget-class`. In case the option should be able to contain sub-forms like a `:menu` does, you can process further forms by using `build-menu-content`.
 
 ## Debugging Qtools
 Since Qtools does a bunch of contrived things, you might want to check what exactly is done if something doesn't go according to plan. I'm not excluding the possibility of bugs being around that mess your code up. In order to check this, you will want to load [verbose](http://shinmera.github.io/verbose/) before loading Qtools and set the logging level to trace: `(setf (v:repl-level) :trace)`. Qtools will emit log messages when you compile `define-widget` forms that contain the generated options. It will also log all objects that get passed to `finalize` and `copy`. Hopefully the log output will help you in discovering what's going on behind the scenes.
