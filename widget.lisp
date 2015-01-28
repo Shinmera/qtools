@@ -84,25 +84,27 @@ such as INITIALIZE-INSTANCE, REINITIALIZE-INSTANCE, and SOFTLY-REDEFINE-WIDGET-C
 it concerns itself with proper option merging and filtering before passing it on to the CommonQt
 and CLOS methods that process them."
   (declare (ignore initializers finalizers))
-  ;; Append extra options
-  (when (slot-boundp class 'extern-options)
-    (loop for (name value) on (widget-class-extern-options class) by #'cddr
-          do (setf (getf options name) (append (getf options name) value))))
-  (let ((initializers (getf options :initializers))
-        (finalizers (getf options :finalizers)))
-    ;; Delegate
-    (remf options :initializers)
-    (remf options :finalizers)
-    (remf options :save-direct-options)
-    (apply next-method class options)
-    ;; Now that the class is ready, process init/finalizers
-    (flet ((sort-clean (list)
-             (mapcar #'third (stable-sort (copy-list list) #'> :key #'second))))
-      (setf (widget-class-initializers class) (sort-clean initializers))
-      (setf (widget-class-finalizers class) (sort-clean finalizers)))
-    ;; Save directly specified options
-    (when save-direct-options
-      (setf (widget-class-direct-options class) options))))
+  (let ((original-options (copy-list options)))
+    ;; Append extra options
+    (when (slot-boundp class 'extern-options)
+      (loop for (name value) on (widget-class-extern-options class) by #'cddr
+            do (setf (getf options name) (append (getf options name) value))))
+    (let ((initializers (getf options :initializers))
+          (finalizers (getf options :finalizers)))
+      ;; Delegate
+      (remf options :initializers)
+      (remf options :finalizers)
+      (remf options :save-direct-options)
+      (apply next-method class options)
+      ;; Now that the class is ready, process init/finalizers
+      (flet ((sort-clean (list)
+               (mapcar #'third (stable-sort (copy-list list) #'> :key #'second))))
+        (setf (widget-class-initializers class) (sort-clean initializers))
+        (setf (widget-class-finalizers class) (sort-clean finalizers)))
+      ;; Save directly specified options
+      (when save-direct-options
+        (setf (widget-class-direct-options class)
+              original-options)))))
 
 (defmethod initialize-instance :around ((class widget-class) &rest options)
   (apply #'setup-widget-class class #'call-next-method options))
@@ -123,28 +125,28 @@ FINALIZE-INHERITANCE call on the class."
     (c2mop:finalize-inheritance class)
     class))
 
-(defun set-widget-class-option (class option value)
+(defun set-widget-class-option (class option value &key (key #'first) (test #'equal))
   "Sets a CLASS OPTION VALUE.
 
 The value is identified and distinguished within the OPTION list
-by EQUAL. First, all lists within OPTION that identify as VALUE
-are removed, then VALUE is added to the front of the OPTION list
-of the class. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
+by TEST on KEY. First, all lists within OPTION that identify as 
+VALUE are removed, then VALUE is added to the front of the OPTION 
+list of the class. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
 
 See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
 See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
-  (let* ((identifier (car value))
+  (let* ((identifier (funcall key value))
          (class (ensure-class class))
          (idents (getf (widget-class-extern-options class) option)))
     (setf (getf (widget-class-extern-options class) option)
-          (cons value (remove identifier idents :key #'first :test #'equal)))
+          (cons value (remove identifier idents :key key :test test)))
     (softly-redefine-widget-class class)))
 
-(defun remove-widget-class-option (class option identifier)
+(defun remove-widget-class-option (class option identifier &key (key #'first) (test #'equal))
   "Removes a CLASS OPTION value.
 
 The value is identified and distinguished within the OPTION list
-by EQUAL. If the first item in the sub-list is EQUAL to IDENTIFIER,
+by TEST on KEY. If the first item in the sub-list is EQUAL to IDENTIFIER,
 it is removed. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
 
 See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
@@ -152,7 +154,7 @@ See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
   (let ((class (ensure-class class)))
     (setf (getf (widget-class-extern-options class) option)
           (remove identifier (getf (widget-class-extern-options class) option)
-                  :key #'first :test #'equal))
+                  :key key :test test))
     (softly-redefine-widget-class class)))
 
 (defmacro define-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
