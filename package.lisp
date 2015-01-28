@@ -120,3 +120,11 @@
 ;; hack to make defmethod shadowing convenient
 (setf (macro-function 'qtools:defmethod)
       (macro-function 'cl:defmethod))
+
+(defpackage #:cl+qt
+  (:nicknames #:org.shirakumo.qtools+common-lisp)
+  (:use #:cl #:qt #:qtools)
+  (:shadowing-import-from #:cl #:defmethod))
+
+(do-symbols (symbol '#:cl+qt)
+  (export symbol '#:cl+qt))
