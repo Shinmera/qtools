@@ -23,9 +23,8 @@
                (:file "copying")
                (:file "signal")
                (:file "widget")
-               (:file "widget-options")
-               (:file "widget-menu")
-               (:file "environment")
+               (:file "widget-defmethod")
+               (:file "widget-convenience")
                (:file "keychord-editor")
                (:file "readtable"))
   :depends-on (:qt
