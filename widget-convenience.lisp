@@ -38,7 +38,7 @@
   (let ((initfunc (intern (format NIL "%INITIALIZE-~a-SUBWIDGET-~a" widget-class name) *package*)))
     `(progn
        (eval-when (:compile-toplevel :load-toplevel :execute)
-         (set-widget-class-option ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL))
+         (set-widget-class-option ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL :finalized T))
          (set-widget-class-option ',widget-class :initializers '(,name 10 ,initfunc)))
        (defun ,initfunc (,widget-class)
          (setf (slot-value ,widget-class ',name) ,initform)
