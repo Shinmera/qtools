@@ -95,6 +95,7 @@ and CLOS methods that process them."
       (remf options :initializers)
       (remf options :finalizers)
       (remf options :save-direct-options)
+      #+:verbose (v:debug :qtools.widget "~s Delegating class options: ~s" class options)
       (apply next-method class options)
       ;; Now that the class is ready, process init/finalizers
       (flet ((sort-clean (list)
@@ -119,6 +120,7 @@ This will in effect cause a call to REINITIALIZE-INSTANCE with the proper
 class options added from WIDGET-CLASS-DIRECT-OPTIONS, followed by a
 FINALIZE-INHERITANCE call on the class."
   (let ((class (ensure-class class)))
+    #+:verbose (v:debug :qtools.widget "Softly redefining widget class ~s" class)
     ;; Press new options into the class definition
     (apply #'reinitialize-instance class :save-direct-options NIL (copy-list (widget-class-direct-options class)))
     ;; CommonQt performs computations on finalisation
