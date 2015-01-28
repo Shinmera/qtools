@@ -11,19 +11,59 @@
   ((direct-options :initform () :accessor widget-class-direct-options)
    (extern-options :initform () :accessor widget-class-extern-options)
    (initializers :initform () :accessor widget-class-initializers)
-   (finalizers :initform () :accessor widget-class-finalizers)))
+   (finalizers :initform () :accessor widget-class-finalizers))
+  (:documentation "Metaclass for widgets storing necessary information.
+
+The metadata stored in this is mostly responsible for two things:
+ 1) Providing access to a sequence of mutually independent
+    initializers and finalizers for convenient setup and cleanup.
+ 2) Allowing after-the-fact out-of-form changes to the class
+    definition, which is necessary to have for a distributed
+    definition form syntax as provided by WIDGET-CONVENIENCE macros.
+In order to modify the metadata, please look at SET/REMOVE-WIDGET-CLASS-OPTION."))
+
+(setf (documentation 'widget-class-direct-options 'function)
+      "Contains all the options passed to RE/INITIALIZE-INSTANCE when
+the class is re/initialized directly through a DEFCLASS form.")
+(setf (documentation 'widget-class-extern-options 'function)
+      "Contains all the options that are added to the class definition
+through external forms and thus need to be included and kept separate
+from options directly specified in the class definition.")
+(setf (documentation 'widget-class-initializers 'function)
+      "A sorted list of functions to be called upon initialization.
+This list is overwritten completely whenever the class is re/initialized.
+
+See QTOOLS:CALL-INITIALIZERS")
+(setf (documentation 'widget-class-finalizers 'function)
+      "A sorted list of functions to be called upon finalization.
+This list is overwritten completely whenever the class is re/initialized.
+
+See QTOOLS:CALL-FINALIZERS")
 
 (defclass widget (finalizable)
   ()
   (:metaclass widget-class)
-  (:qt-superclass "QObject"))
+  (:qt-superclass "QObject")
+  (:documentation "Common superclass for all widgets in order to allow for
+general initialization and cleanup forms that are standardised across all
+widgets. 
+
+See QTOOLS:DEFINE-WIDGET."))
 
 (defun call-initializers (class)
+  "Calls all the initializers specified on CLASS in their proper sequence.
+
+CLASS can be either an instance of a WIDGET-CLASS, a
+WIDGET-CLASS itself, or a symbol naming the class."
   (mapc #'(lambda (function) (funcall function class))
         (widget-class-initializers (ensure-class class)))
   class)
 
 (defun call-finalizers (class)
+  "Calls all the finalizers specified on CLASS in their proper sequence.
+
+CLASS can be either an instance of a WIDGET-CLASS, a
+WIDGET-CLASS itself, or a symbol naming the class."
   (mapc #'(lambda (function) (funcall function class))
         (widget-class-finalizers (ensure-class class)))
   class)
@@ -39,6 +79,10 @@
   (call-finalizers widget))
 
 (defun setup-widget-class (class next-method &rest options &key initializers finalizers (save-direct-options T) &allow-other-keys)
+  "This function should not be called directly, but is instead invoked by the appropriate functions
+such as INITIALIZE-INSTANCE, REINITIALIZE-INSTANCE, and SOFTLY-REDEFINE-WIDGET-CLASS. In brief,
+it concerns itself with proper option merging and filtering before passing it on to the CommonQt
+and CLOS methods that process them."
   (declare (ignore initializers finalizers))
   ;; Append extra options
   (when (slot-boundp class 'extern-options)
@@ -67,13 +111,28 @@
   (apply #'setup-widget-class class #'call-next-method options))
 
 (defun softly-redefine-widget-class (class)
+  "Cause a soft redefinition of the given CLASS.
+
+This will in effect cause a call to REINITIALIZE-INSTANCE with the proper
+class options added from WIDGET-CLASS-DIRECT-OPTIONS, followed by a
+FINALIZE-INHERITANCE call on the class."
   (let ((class (ensure-class class)))
     ;; Press new options into the class definition
     (apply #'reinitialize-instance class :save-direct-options NIL (copy-list (widget-class-direct-options class)))
     ;; CommonQt performs computations on finalisation
-    (c2mop:finalize-inheritance class)))
+    (c2mop:finalize-inheritance class)
+    class))
 
 (defun set-widget-class-option (class option value)
+  "Sets a CLASS OPTION VALUE.
+
+The value is identified and distinguished within the OPTION list
+by EQUAL. First, all lists within OPTION that identify as VALUE
+are removed, then VALUE is added to the front of the OPTION list
+of the class. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
+
+See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
+See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
   (let* ((identifier (car value))
          (class (ensure-class class))
          (idents (getf (widget-class-extern-options class) option)))
@@ -82,6 +141,14 @@
     (softly-redefine-widget-class class)))
 
 (defun remove-widget-class-option (class option identifier)
+  "Removes a CLASS OPTION value.
+
+The value is identified and distinguished within the OPTION list
+by EQUAL. If the first item in the sub-list is EQUAL to IDENTIFIER,
+it is removed. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
+
+See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
+See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
   (let ((class (ensure-class class)))
     (setf (getf (widget-class-extern-options class) option)
           (remove identifier (getf (widget-class-extern-options class) option)
@@ -90,6 +157,7 @@
 
 (defmacro define-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
   "Shorthand over DEFCLASS.
+
 Adds WIDGET as direct-superclass if it does not appear as a
 superclass to the specified direct-superclasses. Sets 
 WIDGET-CLASS as metaclass and qt-class as the qt-superclass 
