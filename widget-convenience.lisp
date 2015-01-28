@@ -103,7 +103,7 @@ See QTOOLS:DEFINE-INITIALIZER"
   (let ((initfunc (intern (format NIL "%INITIALIZE-~a-SUBWIDGET-~a" widget-class name) *package*)))
     `(progn
        (eval-when (:compile-toplevel :load-toplevel :execute)
-         (set-widget-class-option ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL :finalized T)))
+         (set-widget-class-option ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL :finalized T) :key #'second))
        (define-initializer (,widget-class ,initfunc 10)
          (setf (slot-value ,widget-class ',name) ,initform)
          ,@body))))
