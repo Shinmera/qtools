@@ -10,12 +10,14 @@
 (defmacro define-slot ((widget-class method-name &optional (slot method-name)) args &body body)
   `(defmethod ,method-name ((,widget-class ,widget-class) ,@(mapcar #'first args))
      (declare (slot ,slot ,(mapcar #'second args)))
-     ,@body))
+     (qtools:with-slots-bound (,widget-class ,widget-class)
+       ,@body)))
 
 (defmacro define-override ((widget-class method-name &optional (override method-name)) args &body body)
-  `(defmethod ,method-name ((,widget-class ,widget-class) ,args)
+  `(defmethod ,method-name ((,widget-class ,widget-class) ,@args)
      (declare (override ,override))
-     ,@body))
+     (qtools:with-slots-bound (,widget-class ,widget-class)
+       ,@body)))
 
 (defmacro define-initializer ((widget-class method-name &optional (priority 0)) &body body)
   `(defmethod ,method-name ((,widget-class ,widget-class))
