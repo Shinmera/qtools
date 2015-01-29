@@ -7,6 +7,13 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
+(defun %make-slots-bound-proper (widget-class body)
+  (form-fiddle:with-destructured-lambda-form (:docstring doc :declarations declarations :forms forms) `(noop () ,@body)
+    `(,@declarations
+      ,@(when doc `(,doc))
+      (qtools:with-slots-bound (,widget-class ,widget-class)
+        ,@forms))))
+
 (defmacro define-slot ((widget-class method-name &optional (slot method-name)) args &body body)
   "Define a new SLOT on WIDGET-CLASS with ARGS.
 
@@ -24,8 +31,7 @@ See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots"
   `(defmethod ,method-name ((,widget-class ,widget-class) ,@(mapcar #'first args))
      (declare (slot ,slot ,(mapcar #'second args)))
-     (qtools:with-slots-bound (,widget-class ,widget-class)
-       ,@body)))
+     ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-override ((widget-class method-name &optional (override method-name)) args &body body)
   "Define a new OVERRIDE on WIDGET-CLASS with ARGS.
@@ -40,8 +46,7 @@ See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/override"
   `(defmethod ,method-name ((,widget-class ,widget-class) ,@args)
      (declare (override ,override))
-     (qtools:with-slots-bound (,widget-class ,widget-class)
-       ,@body)))
+     ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-initializer ((widget-class method-name &optional (priority 0)) &body body)
   "Defines a new initializer of METHOD-NAME on WIDGET-CLASS.
@@ -57,8 +62,7 @@ See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND"
   `(defmethod ,method-name ((,widget-class ,widget-class))
      (declare (initializer ,priority))
-     (qtools:with-slots-bound (,widget-class ,widget-class)
-       ,@body)))
+     ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-finalizer ((widget-class method-name &optional (priority 0)) &body body)
   "Defines a new finalizer of METHOD-NAME on WIDGET-CLASS.
@@ -76,8 +80,7 @@ See QTOOLS:WITH-SLOTS-BOUND
 See QTOOLS:FINALIZE"
   `(defmethod ,method-name ((,widget-class ,widget-class))
      (declare (finalizer ,priority))
-     (qtools:with-slots-bound (,widget-class ,widget-class)
-       ,@body)))
+     ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-signal ((widget-class signal) args &body options)
   "Define a new SIGNAL on WIDGET-CLASS with ARGS.
