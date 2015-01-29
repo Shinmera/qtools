@@ -11,7 +11,10 @@
 (defvar *method-declarations* (make-hash-table :test 'eql))
 
 (setf (documentation '*method* 'variable)
-      "Contains the whole DEFMETHOD form that is currently being processed.")
+      "Contains the whole DEFMETHOD form that is currently being processed.
+If you modify the contents of this variable, the changes will be reflected
+in the outputted method definition form. However, no declaration that is
+processed by method-declarations will ever appear in the output.")
 
 (defun method-declaration (name)
   "Returns a function to process the method declaration NAME, if one exists.
@@ -55,39 +58,59 @@ form.
 See CL:DEFMETHOD.
 See QTOOLS:METHOD-DECLARATION."
   (declare (ignore name args))
-  (destructuring-bind (function name qualifiers lambda-list docstring declarations forms) (form-fiddle:split-lambda-form whole)
-    (declare (ignore function))
-    (let ((declaration-forms)
-          (unknown-declarations)
-          (*method* whole))
-      (loop for declaration in declarations
-            for (name . args) = (second declaration)
-            for declaration-function = (method-declaration name)
-            do (if declaration-function
-                   (push (apply declaration-function args) declaration-forms)
-                   (push declaration unknown-declarations)))
-      `(progn
-         (eval-when (:compile-toplevel :load-toplevel :execute)
-           ,@declaration-forms)
-         (cl:defmethod ,name ,@qualifiers ,lambda-list
-           ,@(when docstring (list docstring))
-           ,@unknown-declarations
-           ,@forms)))))
+  (let ((*method* (copy-list whole))
+        (declaration-forms)
+        (known-declarations))
+    ;; Process declarations
+    (loop for declaration in (form-fiddle:lambda-declarations *method*)
+          for (name . args) = (second declaration)
+          for declaration-function = (method-declaration name)
+          do (when declaration-function
+               (push (apply declaration-function args) declaration-forms)
+               (push declaration known-declarations)))
+    ;; Remove the known declarations from the method body
+    (loop for declaration in known-declarations
+          do (setf *method* (delete declaration *method*)))
+    ;; Change symbol
+    (setf (first *method*) 'cl:defmethod)
+    `(progn
+       (eval-when (:compile-toplevel :load-toplevel :execute)
+         ,@declaration-forms)
+       ,*method*)))
+
+(defmacro with-widget-class ((variable &optional (method '*method*)) &body body)
+  `(let ((,variable (second (first (form-fiddle:lambda-lambda-list ,method)))))
+     (assert (not (null ,variable)) () "Method must have a primary specializer.")
+     (assert (not (listp ,variable)) () "Primary specializer cannot be an EQL-specializer.")
+     (locally
+         ,@body)))
 
 (define-method-declaration slot (name args)
-  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
-    (let ((slot (qtools:specified-type-method-name name args)))
-      `(set-widget-class-option ',(second (first lambda)) :slots '(,slot ,method)))))
+  (form-fiddle:with-destructured-lambda-form (:name method :declarations declarations) *method*
+    (let ((slot (qtools:specified-type-method-name name args))
+          (connectors (remove 'connected declarations :test-not #'eql :key #'caadr)))
+      (with-widget-class (widget-class)
+        (dolist (connector connectors)
+          (setf *method* (delete connector *method*)))
+        `(progn
+           (set-widget-class-option ',widget-class :slots '(,slot ,method))
+           ,@(when connectors
+               `((define-initializer (,widget-class slot-connectors-init)
+                   ,@(loop for connector in connectors
+                           for (source source-args) = (rest (second connector))
+                           collect `(connect! ,source ,source-args ,widget-class (,name ,@args)))))))))))
 
 (define-method-declaration override (&optional name)
-  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
-    (let ((slot (qtools:to-method-name (or name method))))
-      `(set-widget-class-option ',(second (first lambda)) :override '(,slot ,name)))))
+  (let ((slot (qtools:to-method-name (or name (form-fiddle:lambda-name *method*)))))
+    (with-widget-class (widget-class)
+      `(set-widget-class-option ',widget-class :override '(,slot ,name)))))
 
 (define-method-declaration initializer (priority)
-  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
-    `(set-widget-class-option ',(second (first lambda)) :initializers '(,method ,priority ,method))))
+  (let ((method (form-fiddle:lambda-name *method*)))
+    (with-widget-class (widget-class)
+      `(set-widget-class-option ',widget-class :initializers '(,method ,priority ,method)))))
 
 (define-method-declaration finalizer (priority)
-  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
-    `(set-widget-class-option ',(second (first lambda)) :finalizers '(,method ,priority ,method))))
+  (let ((method (form-fiddle:lambda-name *method*)))
+    (with-widget-class (widget-class)
+      `(set-widget-class-option ',widget-class :finalizers '(,method ,priority ,method)))))
