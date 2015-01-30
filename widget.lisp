@@ -10,6 +10,8 @@
 (defclass widget-class (finalizable-class qt-class)
   ((direct-options :initform () :accessor widget-class-direct-options)
    (extern-options :initform () :accessor widget-class-extern-options)
+   (direct-initializers :initform () :accessor widget-class-direct-initializers)
+   (direct-finalizers :initform () :accessor widget-class-direct-finalizers)
    (initializers :initform () :accessor widget-class-initializers)
    (finalizers :initform () :accessor widget-class-finalizers))
   (:documentation "Metaclass for widgets storing necessary information.
@@ -55,7 +57,7 @@ See QTOOLS:DEFINE-WIDGET."))
 
 CLASS can be either an instance of a WIDGET-CLASS, a
 WIDGET-CLASS itself, or a symbol naming the class."
-  (mapc #'(lambda (function) (funcall function class))
+  (mapc #'(lambda (function) (funcall (third function) class))
         (widget-class-initializers (ensure-class class)))
   class)
 
@@ -64,7 +66,7 @@ WIDGET-CLASS itself, or a symbol naming the class."
 
 CLASS can be either an instance of a WIDGET-CLASS, a
 WIDGET-CLASS itself, or a symbol naming the class."
-  (mapc #'(lambda (function) (funcall function class))
+  (mapc #'(lambda (function) (funcall (third function) class))
         (widget-class-finalizers (ensure-class class)))
   class)
 
@@ -98,10 +100,8 @@ and CLOS methods that process them."
       #+:verbose (v:debug :qtools.widget "~s Delegating class options: ~s" class options)
       (apply next-method class options)
       ;; Now that the class is ready, process init/finalizers
-      (flet ((sort-clean (list)
-               (mapcar #'third (stable-sort (copy-list list) #'> :key #'second))))
-        (setf (widget-class-initializers class) (sort-clean initializers))
-        (setf (widget-class-finalizers class) (sort-clean finalizers)))
+      (setf (widget-class-direct-initializers class) (copy-list initializers))
+      (setf (widget-class-direct-finalizers class) (copy-list finalizers))
       ;; Save directly specified options
       (when save-direct-options
         (setf (widget-class-direct-options class)
@@ -112,6 +112,29 @@ and CLOS methods that process them."
 
 (defmethod reinitialize-instance :around ((class widget-class) &rest options)
   (apply #'setup-widget-class class #'call-next-method options))
+
+(defun set-effective-option (class slot direct-values &key (direct-superclasses (c2mop:class-direct-superclasses class)))
+  (let ((values (copy-list direct-values)))
+    (dolist (superclass direct-superclasses)
+      (when (c2mop:subclassp superclass 'widget)
+        (dolist (value (slot-value superclass slot))
+          (pushnew value values :key #'third))))
+    (setf (slot-value class slot)
+          (sort values #'> :key #'second))))
+
+(defun cascade-option-changes (class)
+  (set-effective-option class 'initializers (widget-class-direct-initializers class))
+  (set-effective-option class 'finalizers (widget-class-direct-finalizers class))
+  (loop for sub-class in (c2mop:class-direct-subclasses class)
+        when (and (c2mop:subclassp sub-class 'widget-class)
+                  (c2mop:class-finalized-p sub-class))
+        do (cascade-option-changes sub-class)))
+
+(defmethod c2mop:finalize-inheritance :after ((class widget-class))
+  (dolist (super (c2mop:class-direct-superclasses class))
+    (unless (c2mop:class-finalized-p super)
+      (c2mop:finalize-inheritance super)))
+  (cascade-option-changes class))
 
 (defun softly-redefine-widget-class (class)
   "Cause a soft redefinition of the given CLASS.
