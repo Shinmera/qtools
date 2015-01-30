@@ -19,7 +19,8 @@
 
 ARGS is a list of arguments, where each item is a list of two values,
 the first being the symbol used to bind the value within the function
-body, and the second being a type specifier usable for the slot definition.
+body, and the second being a type specifier usable for the slot definition
+and, if possible, as a specializer in the method.
 
 In effect this translates to a method definition with METHOD-NAME that
 specialises (and binds) on WIDGET-CLASS, with additional required arguments
@@ -29,7 +30,11 @@ WITH-SLOTS-BOUND to allow for convenient slot access.
 See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots"
-  `(defmethod ,method-name ((,widget-class ,widget-class) ,@(mapcar #'first args))
+  `(defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
+                                                                  for type = (or (cl-type-for (second arg))
+                                                                                 (warn "Unable to determine CL-type of ~s for argument ~s, falling back to T."
+                                                                                       (second arg) (first arg)))
+                                                                  collect `(,(first arg) ,(or type T))))
      (declare (slot ,slot ,(mapcar #'second args)))
      ,@(%make-slots-bound-proper widget-class body)))
 
