@@ -11,7 +11,8 @@
   (:export
    #:*qt-class-vector*
    #:*qt-class-map*
-   #:find-qt-class-name)
+   #:find-qt-class-name
+   #:eqt-class-name)
   ;; copying.lisp
   (:export
    #:copy-using-class

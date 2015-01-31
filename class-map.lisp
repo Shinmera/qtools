@@ -834,3 +834,13 @@ symbols and 'lisp-ified' names to Qt class names. Hyphens are stripped from the 
 
 See *QT-CLASS-MAP*"
   (gethash (cl-ppcre:regex-replace-all "-" (string designator) "") *qt-class-map*))
+
+(defun eqt-class-name (designator)
+  "Returns the string designating an equivalent Qt class, if possible.
+If the designator is a string, it is returned immediately without further check.
+If it is a symbol, it is resolved through FIND-QT-CLASS-NAME, and if no name can
+be found through that, an error is signalled."
+  (etypecase designator
+    (string designator)
+    (symbol (or (find-qt-class-name designator)
+                (error "No corresponding Qt class found for ~s." designator)))))
