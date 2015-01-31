@@ -10,8 +10,8 @@
 (defclass widget-class (finalizable-class qt-class)
   ((direct-options :initform () :accessor widget-class-direct-options)
    (extern-options :initform () :accessor widget-class-extern-options)
-   (direct-initializers :initform () :accessor widget-class-direct-initializers)
-   (direct-finalizers :initform () :accessor widget-class-direct-finalizers)
+   (direct-initializers :initform () :initarg :initializers :accessor widget-class-direct-initializers)
+   (direct-finalizers :initform () :initarg :finalizers :accessor widget-class-direct-finalizers)
    (initializers :initform () :accessor widget-class-initializers)
    (finalizers :initform () :accessor widget-class-finalizers))
   (:documentation "Metaclass for widgets storing necessary information.
@@ -94,14 +94,9 @@ and CLOS methods that process them."
     (let ((initializers (getf options :initializers))
           (finalizers (getf options :finalizers)))
       ;; Delegate
-      (remf options :initializers)
-      (remf options :finalizers)
       (remf options :save-direct-options)
       #+:verbose (v:debug :qtools.widget "~s Delegating class options: ~s" class options)
       (apply next-method class options)
-      ;; Now that the class is ready, process init/finalizers
-      (setf (widget-class-direct-initializers class) (copy-list initializers))
-      (setf (widget-class-direct-finalizers class) (copy-list finalizers))
       ;; Save directly specified options
       (when save-direct-options
         (setf (widget-class-direct-options class)
