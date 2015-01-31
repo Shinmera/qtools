@@ -104,6 +104,7 @@
    #:define-method-declaration
    #:defmethod
    #:slot
+   #:connected
    #:override
    #:initializer
    #:finalizer)
