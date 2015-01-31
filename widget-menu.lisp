@@ -87,7 +87,7 @@ See (SETF QTOOLS:MENU-CONTENT-TYPE)."
     (#_addAction parent item)
     (push item (widget-actions *widget*))
     (when body
-      (let ((slot (format NIL "m_~aActionSlot()" (remove-if #'(lambda (c) (find c "abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")) (#_text item)))))
+      (let ((slot (format NIL "m_~aActionSlot()" (remove-if-not #'(lambda (c) (find c "abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")) (#_text item)))))
         (set-widget-class-option *widget* :slots `(,slot
                                                    (lambda (widget)
                                                      (with-slots-bound (widget ,(class-name (class-of *widget*)))
