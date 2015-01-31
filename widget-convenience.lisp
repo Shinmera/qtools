@@ -30,19 +30,13 @@ WITH-SLOTS-BOUND to allow for convenient slot access.
 See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots"
-  (flet ((parse-arg (arg)
-           (assert (listp arg) () "Expected argument as a list of form (var qt-type &optional cl-type), but only got ~s" arg)
-           (destructuring-bind (name qt-type &optional cl-type) arg
-             (list name (or cl-type
-                            (cl-type-for (second arg))
-                            (warn "Unable to determine CL-type of ~s for argument ~s, falling back to T."
-                                  qt-type name)
-                            T)
-                   (to-type-name qt-type)))))
-    (let ((args (mapcar #'parse-arg args)))
-      `(defmethod ,method-name ((,widget-class ,widget-class) ,@(mapcar #'butlast args))
-         (declare (slot ,slot ,(mapcar #'third args)))
-         ,@(%make-slots-bound-proper widget-class body)))))
+  `(defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
+                                                                  for type = (or (cl-type-for (second arg))
+                                                                                 (warn "Unable to determine CL-type of ~s for argument ~s, falling back to T."
+                                                                                       (second arg) (first arg)))
+                                                                  collect `(,(first arg) ,(or type T))))
+     (declare (slot ,slot ,(mapcar #'second args)))
+     ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-override ((widget-class method-name &optional (override method-name)) args &body body)
   "Define a new OVERRIDE on WIDGET-CLASS with ARGS.
