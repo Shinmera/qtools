@@ -101,9 +101,10 @@ See QTOOLS:METHOD-DECLARATION."
                            collect `(connect! ,source ,source-args ,widget-class (,name ,@args)))))))))))
 
 (define-method-declaration override (&optional name)
-  (let ((slot (qtools:to-method-name (or name (form-fiddle:lambda-name *method*)))))
+  (let* ((lambda-name (form-fiddle:lambda-name *method*))
+         (slot (qtools:to-method-name (or name lambda-name))))
     (with-widget-class (widget-class)
-      `(set-widget-class-option ',widget-class :override '(,slot ,name)))))
+      `(set-widget-class-option ',widget-class :override '(,slot ,lambda-name)))))
 
 (define-method-declaration initializer (priority)
   (let ((method (form-fiddle:lambda-name *method*)))
