@@ -128,4 +128,4 @@
   (:shadowing-import-from #:cl #:defmethod))
 
 (do-symbols (symbol '#:cl+qt)
-  (export symbol '#:cl+qt))
+  (export (list symbol) '#:cl+qt))
