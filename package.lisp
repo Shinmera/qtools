@@ -4,6 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
+(in-package #:cl-user)
 (defpackage #:qtools
   (:use #:cl #:qt)
   (:nicknames #:org.shirakumo.qtools)
@@ -96,12 +97,14 @@
    #:define-subwidget)
   ;; widget-defmethod.lisp
   (:shadow
+   #:defun
    #:defmethod)
   (:export
-   #:*method*
-   #:method-declaration
-   #:remove-method-declaration
-   #:define-method-declaration
+   #:*function*
+   #:function-declaration
+   #:remove-function-declaration
+   #:define-function-declaration
+   #:defun
    #:defmethod
    #:slot
    #:override
@@ -120,12 +123,14 @@
 
 ;; hack to make defmethod shadowing convenient
 (setf (macro-function 'qtools:defmethod)
-      (macro-function 'cl:defmethod))
+      (macro-function 'cl:defmethod)
+      (macro-function 'qtools:defun)
+      (macro-function 'cl:defun))
 
 (defpackage #:cl+qt
   (:nicknames #:org.shirakumo.qtools+common-lisp)
   (:use #:cl #:qt #:qtools)
-  (:shadowing-import-from #:cl #:defmethod))
+  (:shadowing-import-from #:cl #:defmethod #:defun))
 
 (do-symbols (symbol '#:cl+qt)
   ;;; OH BOY!
