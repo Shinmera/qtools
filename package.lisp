@@ -133,7 +133,4 @@
   (:shadowing-import-from #:cl #:defmethod #:defun))
 
 (do-symbols (symbol '#:cl+qt)
-  ;;; OH BOY!
-  ;; We need to wrap it in a list because otherwise
-  ;; the NIL symbol is interpreted as the empty list.
-  (export (list symbol) '#:cl+qt))
+  (export symbol '#:cl+qt))
