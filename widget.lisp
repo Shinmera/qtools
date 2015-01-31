@@ -190,12 +190,14 @@ the same form multiple times."
   (when (loop for super in direct-superclasses
               never (c2mop:subclassp (find-class super) (find-class 'widget)))
     (push 'widget direct-superclasses))
+  (pushnew `(:metaclass widget-class) options
+           :test #'(lambda (a b) (eql (car a) (car b))))
+  (pushnew `(:qt-superclass ,(eqt-class-name qt-class)) options
+           :test #'(lambda (a b) (eql (car a) (car b))))
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (defclass ,name ,direct-superclasses
        ,direct-slots
-       (:metaclass widget-class)
-       (:qt-superclass ,(find-qt-class-name qt-class))
-       ,@(fuse-alists options))))
+       ,@options)))
 
 (indent:define-indentation define-widget
     (4 (&whole 6 &rest)
