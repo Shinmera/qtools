@@ -14,7 +14,7 @@
       (qtools:with-slots-bound (,widget-class ,widget-class)
         ,@forms))))
 
-(defmacro define-slot ((widget-class method-name &optional (slot method-name)) args &body body)
+(defmacro define-slot ((widget-class slot &optional method-name) args &body body)
   "Define a new SLOT on WIDGET-CLASS with ARGS.
 
 ARGS is a list of arguments, where each item is a list of two values,
@@ -30,6 +30,7 @@ WITH-SLOTS-BOUND to allow for convenient slot access.
 See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots"
+  (setf method-name (or method-name (intern (format NIL "%~a-SLOT-~a" widget-class slot) *package*)))
   `(defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
                                                                   for type = (or (cl-type-for (second arg))
                                                                                  (warn "Unable to determine CL-type of ~s for argument ~s, falling back to T."
@@ -38,7 +39,7 @@ See CommonQt/slots"
      (declare (slot ,slot ,(mapcar #'second args)))
      ,@(%make-slots-bound-proper widget-class body)))
 
-(defmacro define-override ((widget-class method-name &optional (override method-name)) args &body body)
+(defmacro define-override ((widget-class override &optional method-name) args &body body)
   "Define a new OVERRIDE on WIDGET-CLASS with ARGS.
 
 This is translated to a method definition with METHOD-NAME that specialises
@@ -49,6 +50,7 @@ to allow for convenient slot access.
 See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/override"
+  (setf method-name (or method-name (intern (format NIL "%~a-OVERRIDE-~a" widget-class override) *package*)))
   `(defmethod ,method-name ((,widget-class ,widget-class) ,@args)
      (declare (override ,override))
      ,@(%make-slots-bound-proper widget-class body)))
@@ -108,7 +110,7 @@ is set to the value returned by the INITFORM, after which BODY is run. BODY
 is wrapped in a WITH-SLOTS-BOUND form, so all slots are conveniently available.
 
 See QTOOLS:DEFINE-INITIALIZER"
-  (let ((initfunc (intern (format NIL "%INITIALIZE-~a-SUBWIDGET-~a" widget-class name) *package*)))
+  (let ((initfunc (intern (format NIL "%~a-SUBWIDGET-~a-INITIALIZER" widget-class name) *package*)))
     `(progn
        (eval-when (:compile-toplevel :load-toplevel :execute)
          (set-widget-class-option ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL :finalized T) :key #'second))
