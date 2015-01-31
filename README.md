@@ -67,7 +67,7 @@ As you can see, it doesn't require string-escaping the Qt class name, as it can 
       (connect! chant-button (released) my-widget (chant)))
     
 ### The `defmethod`
-Qtools provides its own version of `defmethod`. Now, I understand and agree that usually it is a bad idea to alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard `defmethod` (in fact, it will emit such a form) and only gives special treatment to `declare` forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for `slot`, `override`, `initializer`, and `finalizer` are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.
+Qtools provides its own version of `defmethod`. Now, I understand and agree that usually it is a bad idea to provide alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard `defmethod` (in fact, it will emit such a form) and only gives special treatment to select `declare` forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for `slot`, `override`, `initializer`, and `finalizer` are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.
 
     (defmethod paint ((widget foo) paint-event)
       (declare (override paint-event))
@@ -117,9 +117,9 @@ Since copying and finalizing are operations associated with a certain amount of 
 Using `define-method-declaration` you can add your own processing to method declarations. Your function should extract the necessary information from its declaration arguments and the `*method*` form. Each method declaration processing function should return a single form (like a macro) to be put before the resulting `defmethod`. The existing declaration processors are really short:
 
     (define-method-declaration override (&optional name)
-      (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
-        (let ((slot (qtools:to-method-name (or name method))))
-          `(set-widget-class-option ',(second (first lambda)) :override '(,slot ,name)))))
+      (let ((slot (qtools:to-method-name (or name (form-fiddle:lambda-name *method*)))))
+        (with-widget-class (widget-class)
+          `(set-widget-class-option ',widget-class :override '(,slot ,name)))))
 
 ### Extending the menu definition
 The menu definition form allows for arbitrary content types, so you may add new ones yourself by using `define-menu-content-type`. This function will be called during the initialisation sequence of the widget, with the widget instance bound to `*widget*`. If your menu option requires modification of the class instance of some sort, you can take advantage of `set-widget-class-option` and `softly-redefine-widget-class`. In case the option should be able to contain sub-forms like a `:menu` does, you can process further forms by using `build-menu-content`.

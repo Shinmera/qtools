@@ -107,7 +107,7 @@
 
 <h3>The <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code></h3>
 
-<p>Qtools provides its own version of <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>. Now, I understand and agree that usually it is a bad idea to alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> (in fact, it will emit such a form) and only gives special treatment to <code><a href="http://l1sp.org/cl/declare">declare</a></code> forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for <code><a href="#QTOOLS:SLOT">slot</a></code>, <code><a href="#QTOOLS:OVERRIDE">override</a></code>, <code><a href="#QTOOLS:INITIALIZER">initializer</a></code>, and <code><a href="#QTOOLS:FINALIZER">finalizer</a></code> are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.</p>
+<p>Qtools provides its own version of <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>. Now, I understand and agree that usually it is a bad idea to provide alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> (in fact, it will emit such a form) and only gives special treatment to select <code><a href="http://l1sp.org/cl/declare">declare</a></code> forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for <code><a href="#QTOOLS:SLOT">slot</a></code>, <code><a href="#QTOOLS:OVERRIDE">override</a></code>, <code><a href="#QTOOLS:INITIALIZER">initializer</a></code>, and <code><a href="#QTOOLS:FINALIZER">finalizer</a></code> are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.</p>
 
 <pre><code>(<a href="#QTOOLS:DEFMETHOD">defmethod</a> paint ((widget foo) paint-event)
   (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="#QTOOLS:OVERRIDE">override</a> paint-event))
@@ -164,9 +164,9 @@
 <p>Using <code><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a></code> you can add your own processing to method declarations. Your function should extract the necessary information from its declaration arguments and the <code><a href="#QTOOLS:*METHOD*">*method*</a></code> form. Each method declaration processing function should return a single form (like a macro) to be put before the resulting <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>. The existing declaration processors are really short:</p>
 
 <pre><code>(<a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a> override (&amp;optional name)
-  (form-fiddle:with-destructured-lambda-form (:name method :lambda-list lambda) *method*
-    (<a href="http://l1sp.org/cl/let">let</a> ((slot (<a href="#QTOOLS:TO-METHOD-NAME">qtools:to-method-name</a> (<a href="http://l1sp.org/cl/or">or</a> name method))))
-      `(<a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a> ',(<a href="http://l1sp.org/cl/second">second</a> (<a href="http://l1sp.org/cl/first">first</a> lambda)) :override '(,slot ,name)))))
+  (<a href="http://l1sp.org/cl/let">let</a> ((slot (<a href="#QTOOLS:TO-METHOD-NAME">qtools:to-method-name</a> (<a href="http://l1sp.org/cl/or">or</a> name (form-fiddle:lambda-name *method*)))))
+    (with-widget-class (<a href="#QTOOLS:WIDGET-CLASS">widget-class</a>)
+      `(<a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a> ',widget-class :override '(,slot ,name)))))
 </code></pre>
 
 <h3>Extending the menu definition</h3>
@@ -494,6 +494,22 @@ Examples:
  (.. foo '(a b)) =&gt; (&quot;foo(a,b)&quot;)
  (.. foo '((a b))) =&gt; (&quot;foo(a)&quot; &quot;foo(b)&quot;)
  (.. foo '((a b) (0 1))) =&gt; (&quot;foo(a,0)&quot; &quot;foo(b,1)&quot;)</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:EQT-CLASS-NAME"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:EQT-CLASS-NAME">EQT-CLASS-NAME</a></h4>
+                      <span/>
+                      <span>(DESIGNATOR)</span>
+                    </code>
+                  </header>
+                  <pre>Returns the string designating an equivalent Qt class, if possible.
+If the designator is a string, it is returned immediately without further check.
+If it is a symbol, it is resolved through FIND-QT-CLASS-NAME, and if no name can
+be found through that, an error is signalled.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:EQT-TYPE-OF"/>
@@ -941,6 +957,19 @@ See FINALIZE</pre>
                   <pre/>
                 </article>
               </li><li>
+                <a name="QTOOLS:SLOT"/>
+                <article>
+                  <header>
+                    <span>GENERIC</span>
+                    <code>
+                      <h4><a href="#QTOOLS:SLOT">SLOT</a></h4>
+                      <span/>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre/>
+                </article>
+              </li><li>
                 <a name="QTOOLS:UNBOX"/>
                 <article>
                   <header>
@@ -1224,7 +1253,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-OVERRIDE">DEFINE-OVERRIDE</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (OVERRIDE METHOD-NAME)) ARGS &amp;BODY BODY)</span>
+                      <span>((WIDGET-CLASS OVERRIDE &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Define a new OVERRIDE on WIDGET-CLASS with ARGS.
@@ -1289,14 +1318,15 @@ method to call is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SLOT">DEFINE-SLOT</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (SLOT METHOD-NAME)) ARGS &amp;BODY BODY)</span>
+                      <span>((WIDGET-CLASS SLOT &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Define a new SLOT on WIDGET-CLASS with ARGS.
 
 ARGS is a list of arguments, where each item is a list of two values,
 the first being the symbol used to bind the value within the function
-body, and the second being a type specifier usable for the slot definition.
+body, and the second being a type specifier usable for the slot definition
+and, if possible, as a specializer in the method.
 
 In effect this translates to a method definition with METHOD-NAME that
 specialises (and binds) on WIDGET-CLASS, with additional required arguments
@@ -1474,7 +1504,10 @@ Class is resolved as per ENSURE-CLASS.</pre>
                       <span/>
                     </code>
                   </header>
-                  <pre>Contains the whole DEFMETHOD form that is currently being processed.</pre>
+                  <pre>Contains the whole DEFMETHOD form that is currently being processed.
+If you modify the contents of this variable, the changes will be reflected
+in the outputted method definition form. However, no declaration that is
+processed by method-declarations will ever appear in the output.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:*QT-CLASS-MAP*"/>
