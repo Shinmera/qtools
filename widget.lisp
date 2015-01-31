@@ -115,7 +115,7 @@ and CLOS methods that process them."
         (dolist (value (slot-value superclass slot))
           (pushnew value values :key #'third))))
     (setf (slot-value class slot)
-          (sort values #'> :key #'second))))
+          (stable-sort values #'> :key #'second))))
 
 (defun cascade-option-changes (class)
   (set-effective-option class 'initializers (widget-class-direct-initializers class))
@@ -149,17 +149,24 @@ FINALIZE-INHERITANCE call on the class."
   "Sets a CLASS OPTION VALUE.
 
 The value is identified and distinguished within the OPTION list
-by TEST on KEY. First, all lists within OPTION that identify as 
-VALUE are removed, then VALUE is added to the front of the OPTION 
-list of the class. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
+by TEST on KEY. If a matching list can be found, it is replaced
+at the same position. Otherwise it is appended to the end of the
+list. The order here is important to preserve load-order.
 
 See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
 See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
   (let* ((identifier (funcall key value))
          (class (ensure-class class))
          (idents (getf (widget-class-extern-options class) option)))
-    (setf (getf (widget-class-extern-options class) option)
-          (cons value (remove identifier idents :key key :test test)))
+    (cond ((not idents)
+           (setf (getf (widget-class-extern-options class) option)
+                 (list value)))
+          ((find identifier idents :key key :test test)
+           (setf (nth (position identifier idents :key key :test test) idents)
+                 value))
+          (T
+           (setf (cdr (last idents))
+                 (list value))))
     (softly-redefine-widget-class class)))
 
 (defun remove-widget-class-option (class option identifier &key (key #'first) (test #'equal))
