@@ -64,36 +64,45 @@ See (SETF QTOOLS:MENU-CONTENT-TYPE)."
     (string chord)))
 
 (define-menu-content-type :menu (parent identifier &rest contents)
-  (let ((menu (etypecase identifier
-                (symbol (slot-value *widget* identifier))
-                (string (#_new QMenu identifier parent)))))
-    (#_addMenu parent menu)
+  (let ((menu (gensym "MENU"))
+        (initforms)
+        (side-forms))
     (loop for (type . content) in contents
-          do (build-menu-content menu type content))
-    menu))
+          do (multiple-value-bind (initform side-form) (build-menu-content menu type content)
+               (when initform (push initform initforms))
+               (when side-form (push side-form side-forms))))
+    (values
+     `(let ((,menu ,(etypecase identifier
+                      (symbol `(slot-value *widget* ',identifier))
+                      (string `(#_new QMenu ,identifier ,parent)))))
+        (#_addMenu ,parent ,menu)
+        ,@(nreverse initforms))
+     (when side-forms
+       `(progn ,@(nreverse side-forms))))))
 
 (define-menu-content-type :separator (parent)
-  (#_addSeparator parent)
-  NIL)
+  `(#_addSeparator ,parent))
 
 (define-menu-content-type :item (parent identifier &rest body)
-  (let ((item (etypecase identifier
-                (symbol (slot-value *widget* identifier))
-                (string (#_new QAction identifier parent))
-                (list (destructuring-bind (identifier keychord) identifier
-                        (let ((item (#_new QAction identifier parent)))
-                          (#_setShortcut item (#_new QKeySequence (make-chord keychord)))
-                          item))))))
-    (#_addAction parent item)
-    (push item (widget-actions *widget*))
-    (when body
-      (let ((slot (format NIL "m_~aActionSlot()" (remove-if-not #'(lambda (c) (find c "abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")) (#_text item)))))
-        (set-widget-class-option *widget* :slots `(,slot
-                                                   (lambda (widget)
-                                                     (with-slots-bound (widget ,(class-name (class-of *widget*)))
-                                                       ,@body))))
-        (connect item "triggered()" *widget* slot)))
-    item))
+  (let ((slot (format NIL "m_~aActionSlot()" (remove-if-not #'(lambda (c) (find c "abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+                                                            (princ-to-string identifier))))
+        (item (gensym "ITEM")))
+    (values
+     `(let ((,item ,(etypecase identifier
+                      (symbol `(slot-value *widget* ',identifier))
+                      (string `(#_new QAction ,identifier ,parent))
+                      (list `(#_new QAction ,(first identifier) ,parent)))))
+        ,@(when (listp identifier)
+            `((#_setShortcut ,item (#_new QKeySequence ,(make-chord (second identifier))))))
+        (#_addAction ,parent ,item)
+        (push ,item (widget-actions *widget*))
+        ,@(when body
+            `((connect ,item "triggered()" *widget* ,slot))))
+     (when body
+       `(set-widget-class-option ',*widget* :slots '(,slot
+                                                    (lambda (,*widget*)
+                                                      (with-slots-bound (,*widget* ,*widget*)
+                                                        ,@body))))))))
 
 (defmacro define-menu ((widget-class name) &body contents)
   "Defines a menu on WIDGET-CLASS with NAME and CONTENTS.
@@ -115,8 +124,14 @@ By default the following content types are available:
   to be executed when the item is triggered.
 
 See QTOOLS:MAKE-CHORD."
-  (let ((initfunc (intern (format NIL "%BUILD-~a-MENU-~a" widget-class name) *package*)))
-    `(define-initializer (,widget-class ,initfunc 9)
-       (let ((*widget* ,widget-class))
-         (setf (widget-actions *widget*) ())
-         (build-menu-content (#_menuBar ,widget-class) :menu '(,(capitalize-on #\- name #\Space T) ,@contents))))))
+  (let ((initfunc (intern (format NIL "%BUILD-~a-MENU-~a" widget-class name) *package*))
+        (menu (gensym "MENU-BAR"))
+        (*widget* widget-class))
+    (multiple-value-bind (initform side-form) (build-menu-content menu :menu `(,(capitalize-on #\- name #\Space T) ,@contents))
+      `(eval-when (:compile-toplevel :load-toplevel :execute)
+         ,side-form
+         (define-initializer (,widget-class ,initfunc 9)
+           (let* ((*widget* ,widget-class)
+                  (,menu (#_menuBar *widget*)))
+             (setf (widget-actions *widget*) ())
+             ,initform))))))
