@@ -171,7 +171,7 @@
 
 <h3>Extending the menu definition</h3>
 
-<p>The menu definition form allows for arbitrary content types, so you may add new ones yourself by using <code><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">define-menu-content-type</a></code>. This function will be called during the initialisation sequence of the widget, with the widget instance bound to <code><a href="#QTOOLS:*WIDGET*">*widget*</a></code>. If your menu option requires modification of the class instance of some sort, you can take advantage of <code><a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a></code> and <code><a href="#QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS">softly-redefine-widget-class</a></code>. In case the option should be able to contain sub-forms like a <code>:menu</code> does, you can process further forms by using <code><a href="#QTOOLS:BUILD-MENU-CONTENT">build-menu-content</a></code>.</p>
+<p>The menu definition form allows for arbitrary content types, so you may add new ones yourself by using <code><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">define-menu-content-type</a></code>. Each content type definition can return two values: an initform and a side-form. The initform will be put into the initialization function for the menu and thus evaluated when the widget is created. The side-form is put alongside the initializer definition and thus evaluated during compilation. If your menu type needs to modify the widget class in some way, that should be done through the side-forms. If it needs to connect signals, add items, or perform similar actions that involve Qt, that should go into the initform. You can call the expansion of other component types using <code><a href="#QTOOLS:BUILD-MENU-CONTENT">build-menu-content</a></code>. During the time your content-type function is run, <code><a href="#QTOOLS:*WIDGET*">*widget*</a></code> is bound to the class-name of the widget and during initialization it is bound to the actual widget instance.</p>
 
 <h2>Debugging Qtools</h2>
 
@@ -760,9 +760,9 @@ See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS.</pre>
                   <pre>Sets a CLASS OPTION VALUE.
 
 The value is identified and distinguished within the OPTION list
-by TEST on KEY. First, all lists within OPTION that identify as 
-VALUE are removed, then VALUE is added to the front of the OPTION 
-list of the class. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
+by TEST on KEY. If a matching list can be found, it is replaced
+at the same position. Otherwise it is appended to the end of the
+list. The order here is important to preserve load-order.
 
 See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
 See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS.</pre>
@@ -950,19 +950,6 @@ See FINALIZE</pre>
                     <span>GENERIC</span>
                     <code>
                       <h4><a href="#QTOOLS:FINALIZED">FINALIZED</a></h4>
-                      <span/>
-                      <span>(OBJECT)</span>
-                    </code>
-                  </header>
-                  <pre/>
-                </article>
-              </li><li>
-                <a name="QTOOLS:SLOT"/>
-                <article>
-                  <header>
-                    <span>GENERIC</span>
-                    <code>
-                      <h4><a href="#QTOOLS:SLOT">SLOT</a></h4>
                       <span/>
                       <span>(OBJECT)</span>
                     </code>
@@ -1546,7 +1533,8 @@ processed by method-declarations will ever appear in the output.</pre>
                       <span/>
                     </code>
                   </header>
-                  <pre>Contains the current widget class instance while the menu is being built.</pre>
+                  <pre>Bound to the class-name of the widget during component expansion and
+bound to the class instance during initialization.</pre>
                 </article>
               </li></ul>
           </li></ul>

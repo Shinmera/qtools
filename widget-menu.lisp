@@ -12,7 +12,8 @@
 (defvar *widget-actions* (make-hash-table :test 'eql))
 
 (setf (documentation '*widget* 'variable)
-      "Contains the current widget class instance while the menu is being built.")
+      "Bound to the class-name of the widget during component expansion and
+bound to the class instance during initialization.")
 
 (defun widget-actions (class)
   "Returns a list of QAction instances that are active on the given CLASS."
@@ -31,8 +32,11 @@
   "Sets the FUNCTION to process menu contents of type NAME.
 
 The function should accept in the very least one argument, which
-is the current parent. The other arguments can be used to decompose
-the remainder of the content form."
+is the symbol of the current parent. The other arguments can be 
+used to decompose the remainder of the content form. Expected are
+two return values, the first being a form to call during
+initialization and the second being a form to be run alongside
+the initializer definition."
   (setf (gethash name *menu-content-types*) function))
 
 (defun remove-menu-content-type (name)
