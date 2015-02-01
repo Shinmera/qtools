@@ -69,6 +69,8 @@ See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND"
   `(defmethod ,method-name ((,widget-class ,widget-class))
      (declare (initializer ,priority))
+     (when (next-method-p)
+       (call-next-method))
      ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-finalizer ((widget-class method-name &optional (priority 0)) &body body)
@@ -87,7 +89,9 @@ See QTOOLS:WITH-SLOTS-BOUND
 See QTOOLS:FINALIZE"
   `(defmethod ,method-name ((,widget-class ,widget-class))
      (declare (finalizer ,priority))
-     ,@(%make-slots-bound-proper widget-class body)))
+     ,@(%make-slots-bound-proper widget-class body)
+     (when (next-method-p)
+       (call-next-method))))
 
 (defmacro define-signal ((widget-class signal) args &body options)
   "Define a new SIGNAL on WIDGET-CLASS with ARGS.
