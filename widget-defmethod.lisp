@@ -88,14 +88,15 @@ See QTOOLS:METHOD-DECLARATION."
 (define-method-declaration slot (name args)
   (form-fiddle:with-destructured-lambda-form (:name method :declarations declarations) *method*
     (let ((slot (qtools:specified-type-method-name name args))
-          (connectors (remove 'connected declarations :test-not #'eql :key #'caadr)))
+          (connectors (remove 'connected declarations :test-not #'eql :key #'caadr))
+          (connectors-initializer (intern (format NIL "%~a-CONNECTORS" name))))
       (with-widget-class (widget-class)
         (dolist (connector connectors)
           (setf *method* (delete connector *method*)))
         `(progn
            (set-widget-class-option ',widget-class :slots '(,slot ,method))
            ,@(when connectors
-               `((define-initializer (,widget-class slot-connectors-init)
+               `((define-initializer (,widget-class ,connectors-initializer)
                    ,@(loop for connector in connectors
                            for (source source-args) = (rest (second connector))
                            collect `(connect! ,source ,source-args ,widget-class (,name ,@args)))))))))))
