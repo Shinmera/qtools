@@ -49,7 +49,7 @@
                                  `((qt:enum= ,key ,comp) ,@form)))))))
 
 (defun clear-layout (layout)
-  "Removews all widgets from the layout and returns them as a list.
+  "Removes all widgets from the layout and returns them as a list.
 It does not do anything with the widgets themselves."
   (loop for item = (#_takeAt layout 0)
         until (typep item 'null-qobject)
