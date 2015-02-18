@@ -1,6 +1,6 @@
 #|
  This file is a part of Qtools
- (c) 2014 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
+ (c) 2015 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
@@ -18,73 +18,153 @@
     (ensure-smoke lib)))
 
 (defvar *methods* (make-hash-table :test 'equal))
+(defvar *setters* (make-hash-table :test 'equal))
 (defvar *static-methods* (make-hash-table :test 'equal))
-(defvar *enums* (make-hash-table :test 'equal))
+(defvar *operators* (make-hash-table :test 'equal))
+(defvar *constants* (make-hash-table :test 'equal))
 (defvar *constructors* (make-hash-table :test 'equal))
 (defvar *target-package* *package*)
-(defvar *unset* (make-symbol "!UNSET!"))
+
+(defun clear-method-info ()
+  (setf *methods* (make-hash-table :test 'equal))
+  (setf *setter-methods* (make-hash-table :test 'equal))
+  (setf *static-methods* (make-hash-table :test 'equal))
+  (setf *operators* (make-hash-table :test 'equal))
+  (setf *constants* (make-hash-table :test 'equal))
+  (setf *constructors* (make-hash-table :test 'equal))
+  T)
 
 (defun target-symbol (format-string &rest format-args)
   (let ((name (apply #'format NIL format-string format-args)))
     (or (find-symbol name *target-package*)
         (intern name *target-package*))))
 
+(defmacro with-output-to-target-symbol ((stream) &body body)
+  `(intern
+    (with-output-to-string (,stream)
+      ,@body)
+    *target-package*))
+
 (defun write-qclass-name (qclass stream)
-  (loop for char across (qclass-name qclass)
+  (loop for char across (etypecase qclass
+                          (integer (qclass-name qclass))
+                          (string qclass))
         do (write-char (char-upcase char) stream)))
 
 (defun write-qmethod-name (qmethod stream)
-  (loop with prev-cap = NIL
-        for char across (qmethod-name qmethod)
+  (loop with prev-cap = T
+        for char across (etypecase qmethod
+                          (integer (qmethod-name qmethod))
+                          (string qmethod))
         do (cond ((find char "~#$?"))
                  ((find char "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
                   (unless prev-cap
                     (write-char #\- stream))
                   (setf prev-cap T)
                   (write-char char stream))
+                 ((char= char #\_)
+                  (write-char #\- stream))
                  (T (setf prev-cap NIL)
                     (write-char (char-upcase char) stream)))))
 
 (defun cl-constructor-name (method)
-  (with-output-to-string (stream)
+  (with-output-to-target-symbol (stream)
     (write-string "MAKE-" stream)
     (write-qclass-name (qt::qmethod-class method) stream)))
 
 (defun cl-constant-name (method)
-  (with-output-to-string (stream)
+  (with-output-to-target-symbol (stream)
     (write-char #\+ stream)
     (write-qclass-name (qt::qmethod-class method) stream)
     (write-qmethod-name method stream)
     (write-char #\+ stream)))
 
 (defun cl-variable-name (method)
-  (with-output-to-string (stream)
+  (with-output-to-target-symbol (stream)
     (write-char #\* stream)
     (write-qclass-name (qt::qmethod-class method) stream)
     (write-qmethod-name method stream)
     (write-char #\* stream)))
 
+(defun cl-operator-name (method)
+  (let ((op (subseq (qmethod-name method) 8)))
+    (macrolet ((-> (&rest clauses)
+                 `(cond ,@(loop for clause in clauses
+                                collect (if (stringp (first clause))
+                                            `((string= op ,(first clause))
+                                              (target-symbol ,(second clause)))
+                                            `(,@clause))))))
+      (-> ("==" "=")
+          ("!=" "/=")
+          (">" ">")
+          (">=" ">=")
+          ("<" "<")
+          ("<=" "<=")
+          ("!" "NOT")
+          ("*" "*")
+          ("+" "+")
+          ("-" "-")
+          ("%" "MOD")
+          ("~" "LOGNOT")
+          ("&" "LOGAND")
+          ("|" "LOGIOR")
+          ("^" "LOGXOR")
+          (">>" "ASH-")
+          ("<<" "ASH")
+          ("&&" "AND")
+          ("||" "OR")
+          ("[]" "AREF")
+          ("()" "FUNCALL")
+          ("=" "SET")
+          ("+=" "INCF")
+          ("-=" "DECF")
+          (T NIL)))))
+
+(defun cl-setter-name (method)
+  `(setf ,(with-output-to-target-symbol (stream)
+            (write-qmethod-name (subseq (qmethod-name method) 3) stream))))
+
 (defun cl-static-method-name (method)
-  (with-output-to-string (stream)
+  (with-output-to-target-symbol (stream)
     (write-qclass-name (qt::qmethod-class method) stream)
     (write-qmethod-name method stream)))
 
 (defun cl-method-name (method)
-  (with-output-to-string (stream)
+  (with-output-to-target-symbol (stream)
     (write-qmethod-name method stream)))
 
+(defun string-starts-with-p (start string &key (offset 0))
+  (and (< (length start) (+ offset (length string)))
+       (string= start string :start2 offset :end2 (+ offset (length start)))))
+
+(defun qmethod-setter-p (method)
+  (let ((name (qmethod-name method)))
+    (and (string-starts-with-p "set" name)
+         (upper-case-p (char name 3)))))
+
+(defun qmethod-operator-p (method)
+  (let ((name (qmethod-name method)))
+    (string-starts-with-p "operator" name)))
+
+(defun qmethod-cast-operator-p (method)
+  (let ((name (qmethod-name method)))
+    (string-starts-with-p "operator " name)))
+
 (defun clean-method-name (method)
-  (string-trim "~#$?" (etypecase method
-                        (integer (qmethod-name method))
-                        (string method))))
+  (string-trim "#$?" (etypecase method
+                       (integer (qmethod-name method))
+                       (string method))))
 
 (defun place-for-method (method)
-  (cond ((qt::qmethod-enum-p method) *enums*)
+  (cond ((qt::qmethod-enum-p method) *constants*)
         ((or (qt::qmethod-ctor-p method)
              (qt::qmethod-copyctor-p method)) *constructors*)
         ((qt::qmethod-dtor-p method) NIL)
         ((qt::qmethod-internal-p method) NIL)
         ((qt::qmethod-static-p method) *static-methods*)
+        ;; ((qmethod-setter-p method) *setter-methods*)
+        ((qmethod-cast-operator-p method) NIL)
+        ((qmethod-operator-p method) *operators*)
         (T *methods*)))
 
 (defun process-method (method)
@@ -93,6 +173,7 @@
     (when place (push method (gethash name place)))))
 
 (defun process-all-methods ()
+  (clear-method-info)
   (qt::map-methods #'process-method))
 
 (defun %method-see (stream method &rest rest)
@@ -136,9 +217,14 @@
      (declaim (inline ,name))
      (defun ,name ,lambda-list ,@body)))
 
+(defmacro define-extern-macro (name lambda-list &body body)
+  `(progn
+     (export ',name ,(package-name (symbol-package name)))
+     (defmacro ,name ,lambda-list ,@body)))
+
 (defun compile-method (methods)
   (let ((method (clean-method-name (first methods)))
-        (name (target-symbol (cl-method-name (first methods))))
+        (name (cl-method-name (first methods)))
         (whole (target-symbol "%WHOLE"))
         (instance (target-symbol "%INSTANCE")))
     (with-args (reqargs optargs optargs-p) methods
@@ -158,9 +244,19 @@
                  (declare (ignore ,@reqargs ,@optargs))
                  `(optimized-call T ,,instance ,,method ,(cddr ,whole)))))))))
 
+(defun compile-setter (methods)
+  (let ((method (clean-method-name (first methods)))
+        (name (cl-setter-name (first methods)))
+        (whole (target-symbol "%WHOLE"))
+        (instance (target-symbol "%INSTANCE")))
+    ;;; FIXME:
+    ;; I don't actually know how the hell to do this right yet.
+    (with-args (reqargs optargs optargs-p) methods
+      NIL)))
+
 (defun compile-static-method (class methods)
   (let ((method (clean-method-name (qmethod-name (first methods))))
-        (name (target-symbol (cl-static-method-name (first methods))))
+        (name (cl-static-method-name (first methods)))
         (class-name (qclass-name class))
         (whole (target-symbol "%WHOLE")))
     (with-args (reqargs optargs optargs-p) methods
@@ -180,16 +276,47 @@
                  (declare (ignore ,@reqargs ,@optargs))
                  `(optimized-call T ,,class-name ,,method ,(cdr ,whole)))))))))
 
-(defun map-compile-static-methods (function methods)
-  (let ((bundle (make-hash-table :test 'eq)))
-    (dolist (method methods)
-      (push method (gethash (qt::qmethod-class method) bundle)))
-    (loop for class being the hash-keys of bundle
-          for methods being the hash-values of bundle
-          do (funcall function (compile-static-method class methods)))))
+(defun compile-operator (methods)
+  (let ((name (cl-operator-name (first methods)))
+        (method (clean-method-name (qmethod-name (first methods))))
+        (rest (target-symbol "%REST"))
+        (instance (target-symbol "%INSTANCE"))
+        (operand (target-symbol "%OPERAND"))
+        (value (target-symbol "%VALUE")))
+    (cond ((not name)
+           NIL)
+          ;; Special case 0 args
+          ((string= method "operator!")
+           `(define-extern-inline-fun ,name (,instance)
+              ,(generate-method-docstring methods)
+              (optimized-call T ,instance ,method)))
+          ;; Special case n args
+          ((string= method "operator()")
+           `(progn
+              (define-extern-inline-fun ,name (,instance &rest ,rest)
+                ,(generate-method-docstring methods)
+                (apply #'interpret-call ,instance ,method ,rest))
+              (define-compiler-macro ,name (,instance &rest ,rest)
+                (declare (ignore ,rest))
+                `(optimized-call T ,,instance ,,method ,@,rest))))
+          ;; Special case setters
+          ((string= method "operator=")
+           `(define-extern-macro ,name (,instance ,value)
+              ,(generate-method-docstring methods)
+              `(setf ,,instance (optimized-call T ,,instance ,,method ,,value))))
+          ((or (string= method "operator+=")
+               (string= method "operator-="))
+           `(define-extern-macro ,name (,instance &optional (,value 1))
+              ,(generate-method-docstring methods)
+              `(setf ,,instance (optimized-call T ,,instance ,,method ,,value))))
+          ;; Default case 1 arg
+          (T
+           `(define-extern-inline-fun ,name (,instance ,operand)
+              ,(generate-method-docstring methods)
+              (optimized-call T ,instance ,method ,operand))))))
 
 (defun compile-constructor (methods)
-  (let ((name (target-symbol (cl-constructor-name (first methods))))
+  (let ((name (cl-constructor-name (first methods)))
         (class (qclass-name (qt::qmethod-class (first methods))))
         (whole (target-symbol "%WHOLE")))
     (with-args (reqargs optargs optargs-p) methods
@@ -224,46 +351,66 @@
        ,@(when documentation
            `((setf (documentation ',name 'variable) ,documentation))))))
 
+(defun compile-constant (method)
+  (let ((constant (cl-constant-name method)))
+    `(define-qt-constant ,constant
+         (,(qclass-name (qt::qmethod-class method))
+          ,(qmethod-name method))
+         ,(generate-constant-docstring method))))
+
+;;;;;
+;; Mappers
+
+(defun map-compile-static-methods (function methods)
+  (let ((bundle (make-hash-table :test 'eq)))
+    (dolist (method methods)
+      (push method (gethash (qt::qmethod-class method) bundle)))
+    (loop for class being the hash-keys of bundle
+          for methods being the hash-values of bundle
+          do (funcall function (compile-static-method class methods)))))
+
 (defun map-compile-constants (function methods)
   (loop for method in methods
-        for class = (qclass-name (qt::qmethod-class method))
-        for constant = (target-symbol (cl-constant-name method))
-        do (funcall
-            function
-            `(define-qt-constant ,constant
-                 (,(qclass-name (qt::qmethod-class method))
-                  ,(qmethod-name method))
-               ,(generate-constant-docstring method)))))
+        do (funcall function (compile-constant method))))
 
-(defun map-compile-all-methods (function &optional (table *methods*))
-  (maphash (lambda (name methods)
-             (declare (ignore name))
-             (funcall function (compile-method methods)))
-           table))
+(macrolet ((define-all-mapper (name compile-function method-table)
+             (let ((function (gensym "FUNCTION"))
+                   (table (gensym "TABLE"))
+                   (c (gensym "NAME"))
+                   (methods (gensym "METHODS")))
+               `(defun ,name (,function &optional (,table ,method-table))
+                  (maphash (lambda (,c ,methods)
+                             (declare (ignore ,c))
+                             (funcall ,function (,compile-function ,methods)))
+                           ,table)))))
+  (define-all-mapper map-compile-all-methods compile-method *methods*)
+  (define-all-mapper map-compile-all-setters compile-setter *setters*)
+  (define-all-mapper map-compile-all-operators compile-operator *operators*)
+  (define-all-mapper map-compile-all-constructors compile-constructor *constructors*))
 
-(defun map-compile-all-static-methods (function &optional (table *static-methods*))
-  (maphash (lambda (name methods)
-             (declare (ignore name))
-             (map-compile-static-methods function methods))
-           table))
-
-(defun map-compile-all-constructors (function &optional (table *constructors*))
-  (maphash (lambda (name methods)
-             (declare (ignore name))
-             (funcall function (compile-constructor methods)))
-           table))
-
-(defun map-compile-all-constants (function &optional (table *enums*))
-  (maphash (lambda (name methods)
-             (declare (ignore name))
-             (map-compile-constants function methods))
-           table))
+(macrolet ((define-all-mapper (name compile-function method-table)
+             (let ((function (gensym "FUNCTION"))
+                   (table (gensym "TABLE"))
+                   (c (gensym "NAME"))
+                   (methods (gensym "METHODS")))
+               `(defun ,name (,function &optional (,table ,method-table))
+                  (maphash (lambda (,c ,methods)
+                             (declare (ignore ,c))
+                             (,compile-function ,function ,methods))
+                           ,table)))))
+  (define-all-mapper map-compile-all-static-methods map-compile-static-methods *static-methods*)
+  (define-all-mapper map-compile-all-constants map-compile-constants *constants*))
 
 (defun map-compile-everything (function)
   (map-compile-all-methods function)
+  (map-compile-all-setters function)
   (map-compile-all-static-methods function)
+  (map-compile-all-operators function)
   (map-compile-all-constructors function)
   (map-compile-all-constants function))
+
+;;;;;
+;; Listers
 
 (macrolet ((define-list-for-mapper (name mapper)
              (let ((table (gensym "TABLE"))
@@ -279,6 +426,8 @@
                     ,list)))))
   (define-list-for-mapper list-compile-all-methods map-compile-all-methods)
   (define-list-for-mapper list-compile-all-static-methods map-compile-all-static-methods)
+  (define-list-for-mapper list-compile-all-operators map-compile-all-operators)
+  (define-list-for-mapper list-compile-all-setters map-compile-all-setters)
   (define-list-for-mapper list-compile-all-constructors map-compile-all-constructors)
   (define-list-for-mapper list-compile-all-constants map-compile-all-constants))
 
@@ -287,6 +436,9 @@
     (map-compile-everything (lambda (form) (push form list)))
     list))
 
+;;;;;
+;; Writers
+
 (defun write-forms (mapper stream)
   (let ((i 0))
     (funcall mapper
@@ -294,11 +446,12 @@
                (incf i)
                (when (= 0 (mod i 1000))
                  (format T "~&; On ~dth form..." i))
-               (dolist (form (if (eql (car form) 'progn)
-                                 (cdr form)
-                                 (list form)))
-                 (print form stream))
-               (format stream "~%")))
+               (when form
+                 (dolist (form (if (eql (car form) 'progn)
+                                   (cdr form)
+                                   (list form)))
+                   (print form stream))
+                 (format stream "~%"))))
     (format T "~&; ~d forms processed." i)))
 
 (defun write-section (section mapper stream)
@@ -310,7 +463,9 @@
 (defun write-all-sections (stream)
   (format T "~&;;; Writing all sections")
   (write-section "Methods" #'map-compile-all-methods stream)
+  (write-section "Setters" #'map-compile-all-setters stream)
   (write-section "Static Methods" #'map-compile-all-static-methods stream)
+  (write-section "Operators" #'map-compile-all-operators stream)
   (write-section "Constructors" #'map-compile-all-constructors stream)
   (write-section "Constants" #'map-compile-all-constants stream))
 
@@ -327,8 +482,7 @@
       (print `(eval-when (:compile-toplevel :load-toplevel :execute)
                 (unless (find-package ,(package-name package))
                   (make-package ,(package-name package)))) stream)
-      (funcall body-processor stream))))
+      (funcall body-processor stream)
+      pathname)))
 
 ;; FIXME: Duplicate definitions
-;; FIXME: Standard operators (* / + -)
-;; FIXME: Setters
