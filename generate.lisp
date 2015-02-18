@@ -6,6 +6,16 @@
 
 (in-package #:org.shirakumo.qtools)
 
+;;;;;
+;; Meta Processing
+
+(defvar *methods* (make-hash-table :test 'equal))
+(defvar *setters* (make-hash-table :test 'equal))
+(defvar *static-methods* (make-hash-table :test 'equal))
+(defvar *operators* (make-hash-table :test 'equal))
+(defvar *constants* (make-hash-table :test 'equal))
+(defvar *constructors* (make-hash-table :test 'equal))
+(defvar *target-package* *package*)
 (defvar *smoke-libs* '(:qt3support :qtcore :qtdbus
                        :qtdeclarative :qtgui :qthelp
                        :qtmultimedia :qtnetwork
@@ -17,14 +27,6 @@
   (dolist (lib libs)
     (ensure-smoke lib)))
 
-(defvar *methods* (make-hash-table :test 'equal))
-(defvar *setters* (make-hash-table :test 'equal))
-(defvar *static-methods* (make-hash-table :test 'equal))
-(defvar *operators* (make-hash-table :test 'equal))
-(defvar *constants* (make-hash-table :test 'equal))
-(defvar *constructors* (make-hash-table :test 'equal))
-(defvar *target-package* *package*)
-
 (defun clear-method-info ()
   (setf *methods* (make-hash-table :test 'equal))
   (setf *setter-methods* (make-hash-table :test 'equal))
@@ -33,6 +35,52 @@
   (setf *constants* (make-hash-table :test 'equal))
   (setf *constructors* (make-hash-table :test 'equal))
   T)
+
+(defun string-starts-with-p (start string &key (offset 0))
+  (and (< (length start) (+ offset (length string)))
+       (string= start string :start2 offset :end2 (+ offset (length start)))))
+
+(defun qmethod-setter-p (method)
+  (let ((name (qmethod-name method)))
+    (and (string-starts-with-p "set" name)
+         (upper-case-p (char name 3)))))
+
+(defun qmethod-operator-p (method)
+  (let ((name (qmethod-name method)))
+    (string-starts-with-p "operator" name)))
+
+(defun qmethod-cast-operator-p (method)
+  (let ((name (qmethod-name method)))
+    (string-starts-with-p "operator " name)))
+
+(defun clean-method-name (method)
+  (string-trim "#$?" (etypecase method
+                       (integer (qmethod-name method))
+                       (string method))))
+
+(defun place-for-method (method)
+  (cond ((qt::qmethod-enum-p method) *constants*)
+        ((or (qt::qmethod-ctor-p method)
+             (qt::qmethod-copyctor-p method)) *constructors*)
+        ((qt::qmethod-dtor-p method) NIL)
+        ((qt::qmethod-internal-p method) NIL)
+        ((qt::qmethod-static-p method) *static-methods*)
+        ;; ((qmethod-setter-p method) *setter-methods*)
+        ((qmethod-cast-operator-p method) NIL)
+        ((qmethod-operator-p method) *operators*)
+        (T *methods*)))
+
+(defun process-method (method)
+  (let ((name (clean-method-name method))
+        (place (place-for-method method)))
+    (when place (push method (gethash name place)))))
+
+(defun process-all-methods ()
+  (clear-method-info)
+  (qt::map-methods #'process-method))
+
+;;;;;
+;; Name Generation
 
 (defun target-symbol (format-string &rest format-args)
   (let ((name (apply #'format NIL format-string format-args)))
@@ -133,49 +181,6 @@
   (with-output-to-target-symbol (stream)
     (write-qmethod-name method stream)))
 
-(defun string-starts-with-p (start string &key (offset 0))
-  (and (< (length start) (+ offset (length string)))
-       (string= start string :start2 offset :end2 (+ offset (length start)))))
-
-(defun qmethod-setter-p (method)
-  (let ((name (qmethod-name method)))
-    (and (string-starts-with-p "set" name)
-         (upper-case-p (char name 3)))))
-
-(defun qmethod-operator-p (method)
-  (let ((name (qmethod-name method)))
-    (string-starts-with-p "operator" name)))
-
-(defun qmethod-cast-operator-p (method)
-  (let ((name (qmethod-name method)))
-    (string-starts-with-p "operator " name)))
-
-(defun clean-method-name (method)
-  (string-trim "#$?" (etypecase method
-                       (integer (qmethod-name method))
-                       (string method))))
-
-(defun place-for-method (method)
-  (cond ((qt::qmethod-enum-p method) *constants*)
-        ((or (qt::qmethod-ctor-p method)
-             (qt::qmethod-copyctor-p method)) *constructors*)
-        ((qt::qmethod-dtor-p method) NIL)
-        ((qt::qmethod-internal-p method) NIL)
-        ((qt::qmethod-static-p method) *static-methods*)
-        ;; ((qmethod-setter-p method) *setter-methods*)
-        ((qmethod-cast-operator-p method) NIL)
-        ((qmethod-operator-p method) *operators*)
-        (T *methods*)))
-
-(defun process-method (method)
-  (let ((name (clean-method-name method))
-        (place (place-for-method method)))
-    (when place (push method (gethash name place)))))
-
-(defun process-all-methods ()
-  (clear-method-info)
-  (qt::map-methods #'process-method))
-
 (defun %method-see (stream method &rest rest)
   (declare (ignore rest))
   (format stream "~a::~a(~{~a~^, ~})"
@@ -194,6 +199,9 @@
   (format NIL "Constant for Qt enum ~a::~a"
           (qclass-name (qt::qmethod-class method))
           (clean-method-name method)))
+
+;;;;;
+;; Compilers
 
 (defmacro with-args ((required optional optional-p) methods &body body)
   (let ((argnums (gensym "ARGNUMS"))
