@@ -9,12 +9,6 @@
 ;;;;;
 ;; Meta Processing
 
-(defvar *methods* (make-hash-table :test 'equal))
-(defvar *setters* (make-hash-table :test 'equal))
-(defvar *static-methods* (make-hash-table :test 'equal))
-(defvar *operators* (make-hash-table :test 'equal))
-(defvar *constants* (make-hash-table :test 'equal))
-(defvar *constructors* (make-hash-table :test 'equal))
 (defvar *target-package* *package*)
 (defvar *smoke-modules* '(:qt3support :qtcore :qtdbus
                           :qtdeclarative :qtgui :qthelp
@@ -22,6 +16,13 @@
                           :qtopengl :qtscript :qtsql
                           :qtsvg :qttest :qtuitools
                           :qtwebkit :qtxml :qtxmlpatterns))
+(defvar *generator-target* (asdf:system-relative-pathname :qtools "q+.lisp"))
+(defvar *methods* (make-hash-table :test 'equal))
+(defvar *setters* (make-hash-table :test 'equal))
+(defvar *static-methods* (make-hash-table :test 'equal))
+(defvar *operators* (make-hash-table :test 'equal))
+(defvar *constants* (make-hash-table :test 'equal))
+(defvar *constructors* (make-hash-table :test 'equal))
 
 (defun load-all-smoke-modules (&optional (mods *smoke-modules*))
   (dolist (mod mods)
@@ -494,7 +495,7 @@
 (defun write-section (section mapper stream)
   (format T "~&;; Processing ~a" section)
   (format stream "~&~%;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
-  (format stream "~&;;;; ~a~%" section)
+  (format stream "~&;;; ~a~%" section)
   (write-forms mapper stream))
 
 (defun write-all-sections (stream)
@@ -524,5 +525,11 @@
                   (make-package ,(package-name package)))) stream)
       (funcall body-processor stream)
       pathname)))
+
+(defun q+-compile-and-load (&key modules (file *generator-target*))
+  (when modules
+    (qt::reload)
+    (load-all-smoke-modules modules))
+  (load (compile-file (write-everything-to-file file) :print NIL) :print NIL))
 
 ;; FIXME: Setters
