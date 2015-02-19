@@ -27,7 +27,8 @@
                (:file "widget-convenience")
                (:file "widget-menu")
                (:file "keychord-editor")
-               (:file "readtable"))
+               (:file "readtable")
+               (:file "generate"))
   :depends-on (:qt
                :trivial-garbage
                :closer-mop
