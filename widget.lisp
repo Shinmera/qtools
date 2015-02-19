@@ -75,7 +75,8 @@ WIDGET-CLASS itself, or a symbol naming the class."
     (call-next-method))
   ;; FIXME: Some constructors require arguments.
   (new widget)
-  (call-initializers widget))
+  (call-initializers widget)
+  widget)
 
 (defmethod finalize :before ((widget widget))
   (call-finalizers widget))
@@ -91,16 +92,15 @@ and CLOS methods that process them."
     (when (slot-boundp class 'extern-options)
       (loop for (name value) on (widget-class-extern-options class) by #'cddr
             do (setf (getf options name) (append (getf options name) value))))
-    (let ((initializers (getf options :initializers))
-          (finalizers (getf options :finalizers)))
-      ;; Delegate
-      (remf options :save-direct-options)
-      #+:verbose (v:debug :qtools.widget "~s Delegating class options: ~s" class options)
-      (apply next-method class options)
-      ;; Save directly specified options
-      (when save-direct-options
-        (setf (widget-class-direct-options class)
-              original-options)))))
+    ;; Delegate
+    (remf options :save-direct-options)
+    #+:verbose (v:debug :qtools.widget "~s Delegating class options: ~s" class options)
+    (apply next-method class options)
+    ;; Save directly specified options
+    (when save-direct-options
+      (setf (widget-class-direct-options class)
+            original-options)))
+  class)
 
 (defmethod initialize-instance :around ((class widget-class) &rest options)
   (apply #'setup-widget-class class #'call-next-method options))
