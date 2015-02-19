@@ -72,13 +72,13 @@
         ((qt::qmethod-dtor-p method) NIL)
         ((qt::qmethod-internal-p method) NIL)
         ((qmethod-cast-operator-p method) NIL)
-        ;; ((qmethod-globalspace-p method) NIL)
         ((qt::qmethod-enum-p method) *constants*)
         ((or (qt::qmethod-ctor-p method)
              (qt::qmethod-copyctor-p method)) *constructors*)
         ((qmethod-operator-p method) *operators*)
-        ((qt::qmethod-static-p method) *static-methods*)
+        ;; some setters are static too...
         ;; ((qmethod-setter-p method) *setters*)
+        ((qt::qmethod-static-p method) *static-methods*)
         (T *methods*)))
 
 (defun process-method (method)
