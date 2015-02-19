@@ -16,20 +16,20 @@
 (defvar *constants* (make-hash-table :test 'equal))
 (defvar *constructors* (make-hash-table :test 'equal))
 (defvar *target-package* *package*)
-(defvar *smoke-libs* '(:qt3support :qtcore :qtdbus
-                       :qtdeclarative :qtgui :qthelp
-                       :qtmultimedia :qtnetwork
-                       :qtopengl :qtscript :qtsql
-                       :qtsvg :qttest :qtuitools
-                       :qtwebkit :qtxml :qtxmlpatterns))
+(defvar *smoke-modules* '(:qt3support :qtcore :qtdbus
+                          :qtdeclarative :qtgui :qthelp
+                          :qtmultimedia :qtnetwork
+                          :qtopengl :qtscript :qtsql
+                          :qtsvg :qttest :qtuitools
+                          :qtwebkit :qtxml :qtxmlpatterns))
 
-(defun load-all-smoke-libs (&optional (libs *smoke-libs*))
-  (dolist (lib libs)
-    (ensure-smoke lib)))
+(defun load-all-smoke-modules (&optional (mods *smoke-modules*))
+  (dolist (mod mods)
+    (ensure-smoke mod)))
 
 (defun clear-method-info ()
   (setf *methods* (make-hash-table :test 'equal))
-  (setf *setter-methods* (make-hash-table :test 'equal))
+  (setf *setters* (make-hash-table :test 'equal))
   (setf *static-methods* (make-hash-table :test 'equal))
   (setf *operators* (make-hash-table :test 'equal))
   (setf *constants* (make-hash-table :test 'equal))
@@ -53,21 +53,31 @@
   (let ((name (qmethod-name method)))
     (string-starts-with-p "operator " name)))
 
+(defun qmethod-bogus-p (method)
+  (let ((name (qmethod-name method)))
+    (string-starts-with-p "_" name)))
+
+(defun qmethod-globalspace-p (method)
+  (= (qt::qmethod-class method)
+     (find-qclass "QGlobalSpace")))
+
 (defun clean-method-name (method)
   (string-trim "#$?" (etypecase method
                        (integer (qmethod-name method))
                        (string method))))
 
 (defun place-for-method (method)
-  (cond ((qt::qmethod-enum-p method) *constants*)
-        ((or (qt::qmethod-ctor-p method)
-             (qt::qmethod-copyctor-p method)) *constructors*)
+  (cond ((qmethod-bogus-p method) NIL)
         ((qt::qmethod-dtor-p method) NIL)
         ((qt::qmethod-internal-p method) NIL)
-        ((qt::qmethod-static-p method) *static-methods*)
-        ;; ((qmethod-setter-p method) *setter-methods*)
         ((qmethod-cast-operator-p method) NIL)
+        ;; ((qmethod-globalspace-p method) NIL)
+        ((qt::qmethod-enum-p method) *constants*)
+        ((or (qt::qmethod-ctor-p method)
+             (qt::qmethod-copyctor-p method)) *constructors*)
         ((qmethod-operator-p method) *operators*)
+        ((qt::qmethod-static-p method) *static-methods*)
+        ;; ((qmethod-setter-p method) *setters*)
         (T *methods*)))
 
 (defun process-method (method)
@@ -101,17 +111,15 @@
 
 (defun write-qmethod-name (qmethod stream)
   (loop with prev-cap = T
-        for char across (etypecase qmethod
-                          (integer (qmethod-name qmethod))
-                          (string qmethod))
-        do (cond ((find char "~#$?"))
-                 ((find char "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        for char across (clean-method-name
+                         (etypecase qmethod
+                           (integer (qmethod-name qmethod))
+                           (string qmethod)))
+        do (cond ((find char "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
                   (unless prev-cap
                     (write-char #\- stream))
                   (setf prev-cap T)
                   (write-char char stream))
-                 ((char= char #\_)
-                  (write-char #\- stream))
                  (T (setf prev-cap NIL)
                     (write-char (char-upcase char) stream)))))
 
@@ -124,6 +132,7 @@
   (with-output-to-target-symbol (stream)
     (write-char #\+ stream)
     (write-qclass-name (qt::qmethod-class method) stream)
+    (write-char #\- stream)
     (write-qmethod-name method stream)
     (write-char #\+ stream)))
 
@@ -131,6 +140,7 @@
   (with-output-to-target-symbol (stream)
     (write-char #\* stream)
     (write-qclass-name (qt::qmethod-class method) stream)
+    (write-char #\- stream)
     (write-qmethod-name method stream)
     (write-char #\* stream)))
 
@@ -166,6 +176,13 @@
           ("=" "SET")
           ("+=" "INCF")
           ("-=" "DECF")
+          ;; This means we ignore a bunch of operators,
+          ;; mostly the setting equivalent of the math
+          ;; ops. However, they don't seem particularly
+          ;; often useful and wouldn't directly translate
+          ;; to a CL equivalent, so I'd rather skip them
+          ;; entirely than try to come up with sensible
+          ;; names.
           (T NIL)))))
 
 (defun cl-setter-name (method)
@@ -175,6 +192,7 @@
 (defun cl-static-method-name (method)
   (with-output-to-target-symbol (stream)
     (write-qclass-name (qt::qmethod-class method) stream)
+    (write-char #\- stream)
     (write-qmethod-name method stream)))
 
 (defun cl-method-name (method)
@@ -262,10 +280,9 @@
     (with-args (reqargs optargs optargs-p) methods
       NIL)))
 
-(defun compile-static-method (class methods)
+(defun compile-static-method (class-name methods)
   (let ((method (clean-method-name (qmethod-name (first methods))))
         (name (cl-static-method-name (first methods)))
-        (class-name (qclass-name class))
         (whole (target-symbol "%WHOLE")))
     (with-args (reqargs optargs optargs-p) methods
       `(progn
@@ -284,6 +301,15 @@
                  (declare (ignore ,@reqargs ,@optargs))
                  `(optimized-call T ,,class-name ,,method ,(cdr ,whole)))))))))
 
+(defun emit-operator-call (methods instance &rest args)
+  (let ((method (qmethod-name (first methods))))
+    `(if (or ,@(loop for method in methods
+                     for class = (qt::qmethod-class method)
+                     unless (= class (find-qclass "QGlobalSpace"))
+                     collect `(qt:qtypep ,instance ,class)))
+         (optimized-call T ,instance ,method ,@args)
+         (optimized-call T "QGlobalSpace" ,method ,instance ,@args))))
+
 (defun compile-operator (methods)
   (let ((name (cl-operator-name (first methods)))
         (method (clean-method-name (qmethod-name (first methods))))
@@ -297,31 +323,31 @@
           ((string= method "operator!")
            `(define-extern-inline-fun ,name (,instance)
               ,(generate-method-docstring methods)
-              (optimized-call T ,instance ,method)))
+              ,(emit-operator-call methods instance)))
           ;; Special case n args
+          ;; Not bothering with QGlobalSpace here since it has no () op.
           ((string= method "operator()")
            `(progn
               (define-extern-inline-fun ,name (,instance &rest ,rest)
                 ,(generate-method-docstring methods)
                 (apply #'interpret-call ,instance ,method ,rest))
               (define-compiler-macro ,name (,instance &rest ,rest)
-                (declare (ignore ,rest))
                 `(optimized-call T ,,instance ,,method ,@,rest))))
           ;; Special case setters
           ((string= method "operator=")
            `(define-extern-macro ,name (,instance ,value)
               ,(generate-method-docstring methods)
-              `(setf ,,instance (optimized-call T ,,instance ,,method ,,value))))
+              `(setf ,,instance ,,(emit-operator-call methods instance value))))
           ((or (string= method "operator+=")
                (string= method "operator-="))
            `(define-extern-macro ,name (,instance &optional (,value 1))
               ,(generate-method-docstring methods)
-              `(setf ,,instance (optimized-call T ,,instance ,,method ,,value))))
+              `(setf ,,instance ,,(emit-operator-call methods instance value))))
           ;; Default case 1 arg
           (T
            `(define-extern-inline-fun ,name (,instance ,operand)
               ,(generate-method-docstring methods)
-              (optimized-call T ,instance ,method ,operand))))))
+              ,(emit-operator-call methods instance operand))))))
 
 (defun compile-constructor (methods)
   (let ((name (cl-constructor-name (first methods)))
@@ -370,9 +396,12 @@
 ;; Mappers
 
 (defun map-compile-static-methods (function methods)
-  (let ((bundle (make-hash-table :test 'eq)))
+  (let ((bundle (make-hash-table :test 'equal)))
     (dolist (method methods)
-      (push method (gethash (qt::qmethod-class method) bundle)))
+      ;; For some reason there are cases where the same class has multiple
+      ;; instances? QGlobalSpace seems to be the only offender so far,
+      ;; but in order to avoid this kludge altogether we simply use the name.
+      (push method (gethash (qclass-name (qt::qmethod-class method)) bundle)))
     (loop for class being the hash-keys of bundle
           for methods being the hash-values of bundle
           do (funcall function (compile-static-method class methods)))))
@@ -484,8 +513,11 @@
          (*target-package* package)
          (*package* (find-package '#:cl-user)))
     (with-open-file (stream pathname :direction :output :if-exists if-exists)
-      (format stream ";;;;; Automatically generated file to map Qt methods and enums to CL functions and constants.~%")
-      (format stream ";;;;; See QTOOLS:WRITE-EVERYTHING-TO-FILE~%")
+      (format stream "~&;;;;; Automatically generated file to map Qt methods and enums to CL functions and constants.")
+      (format stream "~&;;;;; See QTOOLS:WRITE-EVERYTHING-TO-FILE")
+      (format stream "~&;;;;")
+      (format stream "~&;;;; Active smoke modules: ~{~a~^ ~}" (remove-if-not #'(lambda (a) (qt::named-module-number (string-downcase a)))
+                                                                             *smoke-modules*))
       (print `(in-package #:cl-user) stream)
       (print `(eval-when (:compile-toplevel :load-toplevel :execute)
                 (unless (find-package ,(package-name package))
@@ -493,4 +525,4 @@
       (funcall body-processor stream)
       pathname)))
 
-;; FIXME: Duplicate definitions
+;; FIXME: Setters
