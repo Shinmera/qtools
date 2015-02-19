@@ -28,6 +28,10 @@
   (dolist (mod mods)
     (ensure-smoke mod)))
 
+(defun loaded-smoke-modules ()
+  (remove-if-not #'(lambda (a) (qt::named-module-number (string-downcase a)))
+                 *smoke-modules*))
+
 (defun clear-method-info ()
   (setf *methods* (make-hash-table :test 'equal))
   (setf *setters* (make-hash-table :test 'equal))
@@ -269,7 +273,7 @@
          ,@(when optargs
              `((define-compiler-macro ,name (&whole ,whole ,instance ,@reqargs ,@(when optargs `(&optional ,@optargs)))
                  (declare (ignore ,@reqargs ,@optargs))
-                 `(optimized-call T ,,instance ,,method ,(cddr ,whole)))))))))
+                 `(optimized-call T ,,instance ,,method ,@(cddr ,whole)))))))))
 
 (defun compile-setter (methods)
   (let ((method (clean-method-name (first methods)))
@@ -300,16 +304,21 @@
          ,@(when optargs
              `((define-compiler-macro ,name (&whole ,whole ,@reqargs ,@(when optargs `(&optional ,@optargs)))
                  (declare (ignore ,@reqargs ,@optargs))
-                 `(optimized-call T ,,class-name ,,method ,(cdr ,whole)))))))))
+                 `(optimized-call T ,,class-name ,,method ,@(cdr ,whole)))))))))
 
 (defun emit-operator-call (methods instance &rest args)
-  (let ((method (qmethod-name (first methods))))
-    `(if (or ,@(loop for method in methods
-                     for class = (qt::qmethod-class method)
-                     unless (= class (find-qclass "QGlobalSpace"))
-                     collect `(qt:qtypep ,instance ,class)))
-         (optimized-call T ,instance ,method ,@args)
-         (optimized-call T "QGlobalSpace" ,method ,instance ,@args))))
+  (let ((method (qmethod-name (first methods)))
+        (instance-class (target-symbol "%INSTANCE-CLASS"))
+        (methods (remove-if (lambda (method) (string= (qclass-name (qt::qmethod-class method)) "QGlobalSpace"))
+                            methods)))
+    (if methods
+        `(let ((,instance-class (qt::qobject-class ,instance)))
+           (if (or ,@(loop for method in methods
+                           for class = (qt::qmethod-class method)
+                           collect `(qt:qsubclassp ,instance-class (load-time-value (find-qclass ,(qclass-name class))))))
+               (optimized-call T ,instance ,method ,@args)
+               (optimized-call T "QGlobalSpace" ,method ,instance ,@args)))
+        `(optimized-call T "QGlobalSpace" ,method ,instance ,@args))))
 
 (defun compile-operator (methods)
   (let ((name (cl-operator-name (first methods)))
@@ -369,7 +378,7 @@
          ,@(when optargs
              `((define-compiler-macro ,name (&whole ,whole ,@reqargs ,@(when optargs `(&optional ,@optargs)))
                  (declare (ignore ,@reqargs ,@optargs))
-                 `(optimized-new ,,class ,(cdr ,whole)))))))))
+                 `(optimized-new ,,class ,@(cdr ,whole)))))))))
 
 (defmacro define-qt-constant (name (class method) &optional documentation)
   (let ((memovar (target-symbol "*MEMO-~a*" name)))
@@ -511,16 +520,21 @@
   (let* ((package (cond ((typep package 'package))
                         ((find-package package) (find-package package))
                         (T (make-package package))))
+         (modules (loaded-smoke-modules))
          (*target-package* package)
          (*package* (find-package '#:cl-user)))
     (with-open-file (stream pathname :direction :output :if-exists if-exists)
+      (format T "~&;;;; Writing to file ~a" pathname)
       (format stream "~&;;;;; Automatically generated file to map Qt methods and enums to CL functions and constants.")
       (format stream "~&;;;;; See QTOOLS:WRITE-EVERYTHING-TO-FILE")
       (format stream "~&;;;;")
-      (format stream "~&;;;; Active smoke modules: ~{~a~^ ~}" (remove-if-not #'(lambda (a) (qt::named-module-number (string-downcase a)))
-                                                                             *smoke-modules*))
+      (format stream "~&;;;; Active smoke modules: ~{~a~^ ~}" modules)
       (print `(in-package #:cl-user) stream)
       (print `(eval-when (:compile-toplevel :load-toplevel :execute)
+                (unless (find-package "QTOOLS")
+                  (error "Qtools needs to be loaded first!"))
+                (dolist (module ',modules)
+                  (qt:ensure-smoke module))
                 (unless (find-package ,(package-name package))
                   (make-package ,(package-name package)))) stream)
       (funcall body-processor stream)
