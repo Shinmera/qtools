@@ -7,8 +7,11 @@
 (in-package #:org.shirakumo.qtools)
 
 (defun ensure-q+-method (symbol)
-  (funcall
-   (compile NIL `(lambda () ,(compile-wrapper symbol))))
+  (handler-bind ((style-warning #'muffle-warning))
+    (unless (eql (nth-value 1 (find-symbol (symbol-name symbol) "Q+"))
+                 :external)
+      (funcall
+       (compile NIL `(lambda () ,(compile-wrapper symbol))))))
   NIL)
 
 (defmacro with-q+-method-call (symbol &rest args)
@@ -74,8 +77,10 @@
     (if (q+-symbol-p stream)
         (let* ((name (q+-symbol-name (read-name stream)))
                (symbol (let ((*package* (find-package :q+)))
-                         (read-from-string name))))
-          `(with-q+-method-call ,symbol ,@(read-list-until #\) stream)))
+                         (read-from-string name)))
+               (contents (read-list-until #\) stream)))
+          (read-char stream) ;consume closing ).
+          `(with-q+-method-call ,symbol ,@contents))
         (funcall *standard-paren-reader* stream char)))
 
   (set-macro-character #\( #'read-paren NIL (named-readtables:find-readtable :qtools)))

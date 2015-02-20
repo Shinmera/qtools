@@ -212,6 +212,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILERS
 
+(defun %method-see (stream method &rest rest)
+  (declare (ignore rest))
+  (format stream "~a::~a(~{~a~^, ~})"
+          (qclass-name (qt::qmethod-class method))
+          (qmethod-name method)
+          (mapcar #'qt::qtype-name (qt::list-qmethod-argument-types method))))
+
+(defun generate-method-docstring (methods)
+  (format NIL "Call to Qt method ~a
+
+~{See ~/org.shirakumo.qtools::%method-see/~^~%~}"
+          (clean-method-name (first methods))
+          (sort (copy-list methods) #'< :key #'qt::qmethod-argument-number)))
+
+(defun generate-constant-docstring (method)
+  (format NIL "Constant for Qt enum ~a::~a"
+          (qclass-name (qt::qmethod-class method))
+          (clean-method-name method)))
+
 (defmacro with-args ((required optional optional-p) methods &body body)
   (let ((argnums (gensym "ARGNUMS"))
         (maxargs (gensym "MAXARGS"))
