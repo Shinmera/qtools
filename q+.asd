@@ -12,7 +12,7 @@
 
 (defun load-for-wrapper (c)
   (etypecase (smoke-module c)
-    (string (qt:ensure-smoke (smoke-module c)))
+    ((or symbol string) (qtools::load-all-smoke-modules (list (smoke-module c))))
     (list (qtools::load-all-smoke-modules (smoke-module c))))
   T)
 
