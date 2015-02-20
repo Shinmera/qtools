@@ -10,15 +10,19 @@
 (defclass smoke-wrapper (cl-source-file)
   ((smoke-module :accessor smoke-module :initarg :module :initform (error "MODULE required."))))
 
+(defun load-for-wrapper (c)
+  (etypecase (smoke-module c)
+    (string (qt:ensure-smoke (smoke-module c)))
+    (list (qtools::load-all-smoke-modules (smoke-module c))))
+  T)
+
 (defmethod perform ((op prepare-op) (c smoke-wrapper))
   ;; There's, apparently, no way to catch whether :force was passed
   ;; to the current operation, so we'll have to resort to only
   ;; regenerating if the file does not yet exist.
   (unless (uiop:file-exists-p (component-pathname c))
     (qt::reload)
-    (etypecase (smoke-module c)
-      (string (qt:ensure-smoke (smoke-module c)))
-      (list (qtools::load-all-smoke-modules (smoke-module c))))
+    (load-for-wrapper c)
     (qtools::process-all-methods)
     (qtools::write-everything-to-file (component-pathname c))))
 
@@ -34,11 +38,11 @@
 (defclass smoke-module-system (system)
   ((smoke-module :accessor smoke-module :initarg :module :initform NIL)))
 
+(defmethod perform ((op compile-op) (c smoke-module-system))
+  (load-for-wrapper c))
+
 (defmethod perform ((op load-op) (c smoke-module-system))
-  (etypecase (smoke-module c)
-    (string (qt:ensure-smoke (smoke-module c)))
-    (list (qtools::load-all-smoke-modules (smoke-module c))))
-  T)
+  (load-for-wrapper c))
 
 (defmacro define-smoke-module-system (name module)
   `(defsystem ,name
