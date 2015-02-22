@@ -28,7 +28,8 @@
                (:file "widget-menu")
                (:file "keychord-editor")
                (:file "readtable")
-               (:file "generate"))
+               (:file "generate2")
+               (:file "dynamic"))
   :depends-on (:qt
                :trivial-garbage
                :closer-mop
