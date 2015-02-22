@@ -8,10 +8,11 @@
 
 (defun ensure-q+-method (symbol)
   (handler-bind ((style-warning #'muffle-warning))
-    (unless (eql (nth-value 1 (find-symbol (symbol-name symbol) "Q+"))
-                 :external)
-      (funcall
-       (compile NIL `(lambda () ,(compile-wrapper symbol))))))
+    (let ((symbol (find-symbol (symbol-name symbol) "Q+")))
+      (unless (and symbol (fboundp symbol))
+        (ensure-methods-processed)
+        (funcall
+         (compile NIL `(lambda () ,(compile-wrapper symbol)))))))
   NIL)
 
 (defmacro with-q+-method-call (symbol &rest args)
