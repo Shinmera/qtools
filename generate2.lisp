@@ -13,7 +13,8 @@
                           :qtmultimedia :qtnetwork
                           :qtopengl :qtscript :qtsql
                           :qtsvg :qttest :qtuitools
-                          :qtwebkit :qtxml :qtxmlpatterns))
+                          :qtwebkit :qtxml :qtxmlpatterns
+                          :phonon :qimageblitz :sci))
 (defvar *operator-map*
   (let ((table (make-hash-table :test 'equalp)))
     (loop for (op . name) in '(("==" . "=") ("!=" . "/=")
@@ -33,6 +34,7 @@
     table))
 (defvar *generator-target* (asdf:system-relative-pathname :qtools "q+.lisp"))
 (defvar *qmethods* (make-hash-table :test 'equal))
+(defvar *generated-modules* ())
 
 (defun load-all-smoke-modules (&optional (mods *smoke-modules*))
   (dolist (mod mods)
@@ -91,10 +93,17 @@
     *target-package*))
 
 (defun write-qclass-name (qclass stream)
-  (loop for char across (etypecase qclass
+  (loop with prev-colon = NIL
+        for char across (etypecase qclass
                           (integer (qclass-name qclass))
                           (string qclass))
-        do (write-char (char-upcase char) stream)))
+        do (cond ((and prev-colon (char= char #\:))
+                  (write-char #\- stream))
+                 ((char= char #\:)
+                  (setf prev-colon T))
+                 (T
+                  (setf prev-colon NIL)
+                  (write-char (char-upcase char) stream)))))
 
 (defun write-qmethod-name (qmethod stream)
   (loop with prev-cap = T
@@ -181,7 +190,12 @@
 
 (defun process-all-methods ()
   (clear-method-info)
+  (setf *generated-modules* (loaded-smoke-modules))
   (qt::map-methods #'process-method))
+
+(defun ensure-methods-processed ()
+  (unless (equal (loaded-smoke-modules) *generated-modules*)
+    (process-all-methods)))
 
 (defun ensure-methods (method)
   (or (etypecase method
