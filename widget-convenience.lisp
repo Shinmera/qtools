@@ -31,7 +31,7 @@ See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots"
   (setf method-name (or method-name (intern (format NIL "%~a-SLOT-~a" widget-class slot) *package*)))
-  `(defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
+  `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
                                                                   for type = (or (cl-type-for (second arg))
                                                                                  (warn "Unable to determine CL-type of ~s for argument ~s, falling back to T."
                                                                                        (second arg) (first arg)))
@@ -51,7 +51,7 @@ See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/override"
   (setf method-name (or method-name (intern (format NIL "%~a-OVERRIDE-~a" widget-class override) *package*)))
-  `(defmethod ,method-name ((,widget-class ,widget-class) ,@args)
+  `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class) ,@args)
      (declare (override ,override))
      ,@(%make-slots-bound-proper widget-class body)))
 
@@ -67,7 +67,7 @@ with a INITIALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
 
 See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND"
-  `(defmethod ,method-name ((,widget-class ,widget-class))
+  `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class))
      (declare (initializer ,priority))
      (when (next-method-p)
        (call-next-method))
@@ -87,7 +87,7 @@ with a FINALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
 See QTOOLS:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See QTOOLS:FINALIZE"
-  `(defmethod ,method-name ((,widget-class ,widget-class))
+  `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class))
      (declare (finalizer ,priority))
      ,@(%make-slots-bound-proper widget-class body)
      (when (next-method-p)

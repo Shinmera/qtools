@@ -45,7 +45,7 @@
                         (list value))))
     `(q+ ,(to-readtable-case (format NIL "SET-~a" (string name))) ,@name-args ,@value-args)))
 
-(defmacro setf (&rest args)
+(defmacro cl+qt:setf (&rest args)
   (assert (evenp (length args))
           () "Must supply balanced pairs of places and values.")
   `(progn
@@ -57,7 +57,7 @@
                               *target-package*)))
              collect (process-q+-setter place value)
              else
-             collect `(setf ,place ,value))))
+             collect `(cl:setf ,place ,value))))
 
 ;;;;;
 ;; Reader

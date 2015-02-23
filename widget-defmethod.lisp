@@ -43,7 +43,7 @@ See (SETF QTOOLS:METHOD-DECLARATION)."
   `(setf (method-declaration ',name)
          #'(lambda ,args ,@body)))
 
-(defmacro defmethod (&whole whole name &rest args)
+(defmacro cl+qt:defmethod (&whole whole name &rest args)
   "Defines a new method.
 
 This is identical to CL:DEFMETHOD with one exception:
