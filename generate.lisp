@@ -392,23 +392,23 @@
                  `(optimized-new ,,class ,@(cdr ,whole)))))))))
 
 (defmacro define-qt-constant (name (class method) &optional documentation)
-  (let ((memovar (target-symbol "*MEMO-~a*" name)))
-    `(progn
-       (export ',name ,(package-name (symbol-package name)))
-       (defvar ,memovar)
-       (defun ,memovar ()
-         (cond ((boundp ',memovar) ,memovar)
-               ((find-qclass ,class)
-                (setf ,memovar (optimized-call T ,class ,method)))
-               (T (error ,(format NIL "Cannot fetch enum value ~a::~a. Does the class exist?"
-                                  class method)))))
-       (define-symbol-macro ,name (,memovar))
-       ,@(when documentation
-           `((setf (documentation ',name 'variable) ,documentation))))))
+  `(progn
+     (export ',name ,(package-name (symbol-package name)))
+     (defvar ,name)
+     (defun ,name ()
+       (cond ((boundp ',name) ,name)
+             ((find-qclass ,class)
+              (setf ,name (enum-value (optimized-call T ,class ,method))))
+             (T (error ,(format NIL "Cannot fetch enum value ~a::~a. Does the class exist?"
+                                class method)))))
+     ,@(when documentation
+         `((setf (documentation ',name 'variable) ,documentation)))))
 
-(defun compile-constant (method)
-  (let ((constant (cl-constant-name method)))
-    `(define-qt-constant ,constant
-         (,(qclass-name (qt::qmethod-class method))
-          ,(qmethod-name method))
-         ,(generate-constant-docstring method))))
+(defun compile-constant (methods)
+  `(progn
+     ,@(loop for method in methods
+             for constant = (cl-constant-name method)
+             collect `(define-qt-constant ,constant
+                          (,(qclass-name (qt::qmethod-class method))
+                           ,(qmethod-name method))
+                          ,(generate-constant-docstring method)))))
