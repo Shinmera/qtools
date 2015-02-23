@@ -1,78 +1,36 @@
+#|
+ This file is a part of Qtools
+ (c) 2015 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
+ Author: Nicolas Hafner <shinmera@tymoon.eu>
+|#
+
 (in-package #:cl-user)
-(defpackage #:org.shirakumo.qtools.q+.asd
-  (:use #:cl #:asdf))
-(in-package #:org.shirakumo.qtools.q+.asd)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (asdf:load-system :qtools))
-
-;; Wrapper systems
-(defclass smoke-wrapper (cl-source-file)
-  ((smoke-module :accessor smoke-module :initarg :module :initform (error "MODULE required."))))
-
-(defun load-for-wrapper (c)
-  (etypecase (smoke-module c)
-    ((or symbol string) (qtools::load-all-smoke-modules (list (smoke-module c))))
-    (list (qtools::load-all-smoke-modules (smoke-module c))))
-  T)
-
-(defmethod perform ((op prepare-op) (c smoke-wrapper))
-  ;; There's, apparently, no way to catch whether :force was passed
-  ;; to the current operation, so we'll have to resort to only
-  ;; regenerating if the file does not yet exist.
-  (unless (uiop:file-exists-p (component-pathname c))
-    (qt::reload)
-    (load-for-wrapper c)
-    (qtools::process-all-methods)
-    (qtools::write-everything-to-file (component-pathname c))))
-
-(defmacro define-q+-system (name &optional (module name) dependencies)
-  (let ((name (string-downcase name)))
-    `(defsystem ,(make-symbol (format NIL "Q+-~:@(~a~)" name))
-       :source-file ,(merge-pathnames "q+.asd" (system-source-file :qtools))
-       :components ((:module "q+"
-                     :components ((:smoke-wrapper ,name :module ,module))))
-       :depends-on (:qtools ,@dependencies))))
-
-;; Smoke module systems
-(defclass smoke-module-system (system)
-  ((smoke-module :accessor smoke-module :initarg :module :initform NIL)))
-
-(defmethod perform ((op compile-op) (c smoke-module-system))
-  (load-for-wrapper c))
-
-(defmethod perform ((op load-op) (c smoke-module-system))
-  (load-for-wrapper c))
-
-(defmacro define-smoke-module-system (name module)
-  `(defsystem ,name
-     :class :smoke-module-system
-     :module ,module))
-
-(macrolet ((define-all-smoke-module-systems ()
-             `(progn ,@(loop for module in qtools::*smoke-modules*
-                             collect `(define-smoke-module-system ,module ,module)))))
-  (define-all-smoke-module-systems))
-
-;; General Q+ system
-(defclass dynamic-smoke-wrapper (cl-source-file)
+(defclass dynamic-smoke-wrapper (asdf:cl-source-file)
   ())
 
-(defmethod perform ((op prepare-op) (c dynamic-smoke-wrapper))
-  (let ((module-buffer (merge-pathnames "q+modules.lisp-expr" (component-pathname c))))
-    (unless (and (uiop:file-exists-p (component-pathname c))
-                 (equal (qtools::loaded-smoke-modules)
-                        (with-open-file (stream module-buffer :if-does-not-exist NIL)
-                          (when stream (read stream)))))
-      (qtools::process-all-methods)
-      (qtools::write-everything-to-file (component-pathname c))
-      (with-open-file (stream module-buffer :direction :output :if-exists :supersede)
-        (print (qtools::loaded-smoke-modules) stream)))))
+(defmethod asdf:perform ((op asdf:prepare-op) (c dynamic-smoke-wrapper))
+  (flet ((qtools (name &rest args)
+           (apply (find-symbol (string name) :qtools) args)))
+    (let ((module-buffer (merge-pathnames "q+modules.lisp-expr" (asdf:component-pathname c))))
+      (unless (and (uiop:file-exists-p (asdf:component-pathname c))
+                   (equal (qtools 'loaded-smoke-modules)
+                          (with-open-file (stream module-buffer :if-does-not-exist NIL)
+                            (when stream (read stream)))))
+        (qtools 'ensure-methods-processed)
+        (qtools 'write-everything-to-file (asdf:component-pathname c))
+        (with-open-file (stream module-buffer :direction :output :if-exists :supersede)
+          (print (qtools 'loaded-smoke-modules) stream))))))
 
-(macrolet ((def ()
-             `(defsystem #:q+
-                :source-file ,(merge-pathnames "q+.asd" (system-source-file :qtools))
-                :components ((:module "q+"
-                              :components ((:dynamic-smoke-wrapper "q+"))))
-                :depends-on (:qtools))))
-  (def))
+(defsystem #:q+
+  :name "q+"
+  :version "0.2.1"
+  :license "Artistic"
+  :author "Nicolas Hafner <shinmera@tymoon.eu>"
+  :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
+  :description "Precompiles all Q+ method wrappers for currently active smoke modules."
+  :homepage "https://github.com/Shinmera/qtools"
+  :serial T
+  :components ((:module "q+"
+                :components ((:dynamic-smoke-wrapper "q+"))))
+  :depends-on (:qtools))
