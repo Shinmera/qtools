@@ -395,9 +395,8 @@
 
 (defmacro define-qt-constant (name (class method) &optional documentation)
   `(progn
-     (export ',name ,(package-name (symbol-package name)))
      (defvar ,name)
-     (defun ,name ()
+     (define-extern-inline-fun ,name ()
        (cond ((boundp ',name) ,name)
              ((find-qclass ,class)
               (setf ,name (enum-value (optimized-call T ,class ,method))))
