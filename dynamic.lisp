@@ -21,9 +21,12 @@
   (handler-bind ((style-warning #'muffle-warning))
     (ensure-methods-processed)
     (let ((symbol (find-symbol (string function) *target-package*)))
-      (unless (and symbol (fboundp symbol))
-        (funcall
-         (compile NIL `(lambda () ,(compile-wrapper symbol)))))
+      (cond ((not symbol)
+             (error "No methods named ~s found." function))
+            ((fboundp symbol))
+            (T
+             (funcall
+              (compile NIL `(lambda () ,(compile-wrapper symbol))))))
       symbol)))
 
 (defmacro q+ (function &rest args)
