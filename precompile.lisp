@@ -58,8 +58,6 @@
 ;;;;;
 ;; ASDF components
 
-;;; Smoke module systems
-
 (defun load-for-wrapper (c)
   (etypecase (smoke-module c)
     ((or symbol string) (load-all-smoke-modules (list (smoke-module c))))
