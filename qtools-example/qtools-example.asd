@@ -16,4 +16,5 @@
   :serial T
   :components ((:file "example"))
   :depends-on (:qtools :qtcore :qtgui
-               :cl-ppcre))
+               :cl-ppcre
+               :trivial-gray-streams))
