@@ -6,23 +6,35 @@
 
 (in-package #:org.shirakumo.qtools)
 
-;;;;;
-;; Meta Processing
-
-(defvar *target-package* *package*)
+(defvar *target-package* (or (find-package "Q+")
+                             (make-package "Q+")))
 (defvar *smoke-modules* '(:qt3support :qtcore :qtdbus
                           :qtdeclarative :qtgui :qthelp
                           :qtmultimedia :qtnetwork
                           :qtopengl :qtscript :qtsql
                           :qtsvg :qttest :qtuitools
-                          :qtwebkit :qtxml :qtxmlpatterns))
+                          :qtwebkit :qtxml :qtxmlpatterns
+                          :phonon :qimageblitz :sci))
+(defvar *operator-map*
+  (let ((table (make-hash-table :test 'equalp)))
+    (loop for (op . name) in '(("==" . "=") ("!=" . "/=")
+                               (">" . ">") (">=" . ">=")
+                               ("<" . "<") ("<=" . "<=")
+                               ("!" . "NOT") ("%" . "MOD")
+                               ("*" . "*") ("/" . "/")
+                               ("-" . "-") ("+" . "+")
+                               ("~" . "LOGNOT") ("&" . "LOGAND")
+                               ("|" . "LOGIOR") ("^" . "LOGXOR")
+                               (">>" . "ASH-") ("<<" . "ASH")
+                               ("&&" . "AND") ("||" . "OR")
+                               ("[]" . "AREF") ("() ." . "FUNCALL")
+                               ("+=" . "INCF") ("-=" . "DECF")
+                               ("=" . "SET"))
+          do (setf (gethash (format NIL "operator~a" op) table) name))
+    table))
 (defvar *generator-target* (asdf:system-relative-pathname :qtools "q+.lisp"))
-(defvar *methods* (make-hash-table :test 'equal))
-(defvar *setters* (make-hash-table :test 'equal))
-(defvar *static-methods* (make-hash-table :test 'equal))
-(defvar *operators* (make-hash-table :test 'equal))
-(defvar *constants* (make-hash-table :test 'equal))
-(defvar *constructors* (make-hash-table :test 'equal))
+(defvar *qmethods* (make-hash-table :test 'equal))
+(defvar *generated-modules* ())
 
 (defun load-all-smoke-modules (&optional (mods *smoke-modules*))
   (dolist (mod mods)
@@ -33,12 +45,7 @@
                  *smoke-modules*))
 
 (defun clear-method-info ()
-  (setf *methods* (make-hash-table :test 'equal))
-  (setf *setters* (make-hash-table :test 'equal))
-  (setf *static-methods* (make-hash-table :test 'equal))
-  (setf *operators* (make-hash-table :test 'equal))
-  (setf *constants* (make-hash-table :test 'equal))
-  (setf *constructors* (make-hash-table :test 'equal))
+  (setf *qmethods* (make-hash-table :test 'equal))
   T)
 
 (defun string-starts-with-p (start string &key (offset 0))
@@ -62,6 +69,9 @@
   (let ((name (qmethod-name method)))
     (string-starts-with-p "_" name)))
 
+(defun qmethod-translatable-operator-p (method)
+  (not (null (gethash (qmethod-name method) *operator-map*))))
+
 (defun qmethod-globalspace-p (method)
   (= (qt::qmethod-class method)
      (find-qclass "QGlobalSpace")))
@@ -70,32 +80,6 @@
   (string-trim "#$?" (etypecase method
                        (integer (qmethod-name method))
                        (string method))))
-
-(defun place-for-method (method)
-  (cond ((qmethod-bogus-p method) NIL)
-        ((qt::qmethod-dtor-p method) NIL)
-        ((qt::qmethod-internal-p method) NIL)
-        ((qmethod-cast-operator-p method) NIL)
-        ((qt::qmethod-enum-p method) *constants*)
-        ((or (qt::qmethod-ctor-p method)
-             (qt::qmethod-copyctor-p method)) *constructors*)
-        ((qmethod-operator-p method) *operators*)
-        ;; some setters are static too...
-        ;; ((qmethod-setter-p method) *setters*)
-        ((qt::qmethod-static-p method) *static-methods*)
-        (T *methods*)))
-
-(defun process-method (method)
-  (let ((name (clean-method-name method))
-        (place (place-for-method method)))
-    (when place (push method (gethash name place)))))
-
-(defun process-all-methods ()
-  (clear-method-info)
-  (qt::map-methods #'process-method))
-
-;;;;;
-;; Name Generation
 
 (defun target-symbol (format-string &rest format-args)
   (let ((name (apply #'format NIL format-string format-args)))
@@ -109,10 +93,17 @@
     *target-package*))
 
 (defun write-qclass-name (qclass stream)
-  (loop for char across (etypecase qclass
+  (loop with prev-colon = NIL
+        for char across (etypecase qclass
                           (integer (qclass-name qclass))
                           (string qclass))
-        do (write-char (char-upcase char) stream)))
+        do (cond ((and prev-colon (char= char #\:))
+                  (write-char #\- stream))
+                 ((char= char #\:)
+                  (setf prev-colon T))
+                 (T
+                  (setf prev-colon NIL)
+                  (write-char (char-upcase char) stream)))))
 
 (defun write-qmethod-name (qmethod stream)
   (loop with prev-cap = T
@@ -150,45 +141,10 @@
     (write-char #\* stream)))
 
 (defun cl-operator-name (method)
-  (let ((op (subseq (qmethod-name method) 8)))
-    (macrolet ((-> (&rest clauses)
-                 `(cond ,@(loop for clause in clauses
-                                collect (if (stringp (first clause))
-                                            `((string= op ,(first clause))
-                                              (target-symbol ,(second clause)))
-                                            `(,@clause))))))
-      (-> ("==" "=")
-          ("!=" "/=")
-          (">" ">")
-          (">=" ">=")
-          ("<" "<")
-          ("<=" "<=")
-          ("!" "NOT")
-          ("*" "*")
-          ("+" "+")
-          ("-" "-")
-          ("%" "MOD")
-          ("~" "LOGNOT")
-          ("&" "LOGAND")
-          ("|" "LOGIOR")
-          ("^" "LOGXOR")
-          (">>" "ASH-")
-          ("<<" "ASH")
-          ("&&" "AND")
-          ("||" "OR")
-          ("[]" "AREF")
-          ("()" "FUNCALL")
-          ("=" "SET")
-          ("+=" "INCF")
-          ("-=" "DECF")
-          ;; This means we ignore a bunch of operators,
-          ;; mostly the setting equivalent of the math
-          ;; ops. However, they don't seem particularly
-          ;; often useful and wouldn't directly translate
-          ;; to a CL equivalent, so I'd rather skip them
-          ;; entirely than try to come up with sensible
-          ;; names.
-          (T NIL)))))
+  (let ((name (gethash (qmethod-name method) *operator-map*)))
+    (if name
+        (target-symbol name)
+        (error "Method ~a is not a translatable operator." method))))
 
 (defun cl-setter-name (method)
   `(setf ,(with-output-to-target-symbol (stream)
@@ -203,6 +159,74 @@
 (defun cl-method-name (method)
   (with-output-to-target-symbol (stream)
     (write-qmethod-name method stream)))
+
+(defun method-needed-p (method)
+  (and (not (qmethod-bogus-p method))
+       (not (qt::qmethod-dtor-p method))
+       (not (qt::qmethod-internal-p method))
+       (not (qmethod-cast-operator-p method))
+       (or (not (qmethod-operator-p method))
+           (qmethod-translatable-operator-p method))))
+
+(defun method-symbol (method)
+  (cond
+    ((qt::qmethod-enum-p method)
+     (cl-constant-name method))
+    ((or (qt::qmethod-ctor-p method)
+         (qt::qmethod-copyctor-p method))
+     (cl-constructor-name method))
+    ((qmethod-operator-p method)
+     (cl-operator-name method))
+    ;; ((qmethod-setter-p method)
+    ;;  (cl-setter-name method))
+    ((qt::qmethod-static-p method)
+     (cl-static-method-name method))
+    (T
+     (cl-method-name method))))
+
+(defun process-method (method)
+  (when (method-needed-p method)
+    (push method (gethash (method-symbol method) *qmethods*))))
+
+(defun process-all-methods ()
+  (clear-method-info)
+  (setf *generated-modules* (loaded-smoke-modules))
+  (qt::map-methods #'process-method))
+
+(defun ensure-methods-processed ()
+  (unless (equal (loaded-smoke-modules) *generated-modules*)
+    (process-all-methods)))
+
+(defun ensure-methods (method)
+  (or (etypecase method
+        (symbol (gethash method *qmethods*))
+        (list method)
+        (fixnum method)
+        (string (gethash (find-symbol method *target-package*) *qmethods*)))
+      (error "No methods found for ~s" method)))
+
+(defun compile-wrapper (method)
+  (let* ((methods (ensure-methods method))
+         (method (first methods)))
+    (cond
+      ((qt::qmethod-enum-p method)
+       (compile-constant methods))
+      ((or (qt::qmethod-ctor-p method)
+           (qt::qmethod-copyctor-p method))
+       (compile-constructor methods))
+      ((qmethod-operator-p method)
+       (compile-operator methods))
+      ((qt::qmethod-static-p method)
+       (compile-static-method methods))
+      (T
+       (compile-method methods)))))
+
+(defun map-compile-all (function)
+  (loop for name being the hash-keys of *qmethods*
+        do (funcall function (compile-wrapper name))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; COMPILERS
 
 (defun %method-see (stream method &rest rest)
   (declare (ignore rest))
@@ -222,9 +246,6 @@
   (format NIL "Constant for Qt enum ~a::~a"
           (qclass-name (qt::qmethod-class method))
           (clean-method-name method)))
-
-;;;;;
-;; Compilers
 
 (defmacro with-args ((required optional optional-p) methods &body body)
   (let ((argnums (gensym "ARGNUMS"))
@@ -275,18 +296,9 @@
                  (declare (ignore ,@reqargs ,@optargs))
                  `(optimized-call T ,,instance ,,method ,@(cddr ,whole)))))))))
 
-(defun compile-setter (methods)
-  (let ((method (clean-method-name (first methods)))
-        (name (cl-setter-name (first methods)))
-        (whole (target-symbol "%WHOLE"))
-        (instance (target-symbol "%INSTANCE")))
-    ;;; FIXME:
-    ;; I don't actually know how the hell to do this right yet.
-    (with-args (reqargs optargs optargs-p) methods
-      NIL)))
-
-(defun compile-static-method (class-name methods)
-  (let ((method (clean-method-name (qmethod-name (first methods))))
+(defun compile-static-method (methods)
+  (let ((class-name (qclass-name (qt::qmethod-class (first methods))))
+        (method (clean-method-name (qmethod-name (first methods))))
         (name (cl-static-method-name (first methods)))
         (whole (target-symbol "%WHOLE")))
     (with-args (reqargs optargs optargs-p) methods
@@ -401,149 +413,3 @@
          (,(qclass-name (qt::qmethod-class method))
           ,(qmethod-name method))
          ,(generate-constant-docstring method))))
-
-;;;;;
-;; Mappers
-
-(defun map-compile-static-methods (function methods)
-  (let ((bundle (make-hash-table :test 'equal)))
-    (dolist (method methods)
-      ;; For some reason there are cases where the same class has multiple
-      ;; instances? QGlobalSpace seems to be the only offender so far,
-      ;; but in order to avoid this kludge altogether we simply use the name.
-      (push method (gethash (qclass-name (qt::qmethod-class method)) bundle)))
-    (loop for class being the hash-keys of bundle
-          for methods being the hash-values of bundle
-          do (funcall function (compile-static-method class methods)))))
-
-(defun map-compile-constants (function methods)
-  (loop for method in methods
-        do (funcall function (compile-constant method))))
-
-(macrolet ((define-all-mapper (name compile-function method-table)
-             (let ((function (gensym "FUNCTION"))
-                   (table (gensym "TABLE"))
-                   (c (gensym "NAME"))
-                   (methods (gensym "METHODS")))
-               `(defun ,name (,function &optional (,table ,method-table))
-                  (maphash (lambda (,c ,methods)
-                             (declare (ignore ,c))
-                             (funcall ,function (,compile-function ,methods)))
-                           ,table)))))
-  (define-all-mapper map-compile-all-methods compile-method *methods*)
-  (define-all-mapper map-compile-all-setters compile-setter *setters*)
-  (define-all-mapper map-compile-all-operators compile-operator *operators*)
-  (define-all-mapper map-compile-all-constructors compile-constructor *constructors*))
-
-(macrolet ((define-all-mapper (name compile-function method-table)
-             (let ((function (gensym "FUNCTION"))
-                   (table (gensym "TABLE"))
-                   (c (gensym "NAME"))
-                   (methods (gensym "METHODS")))
-               `(defun ,name (,function &optional (,table ,method-table))
-                  (maphash (lambda (,c ,methods)
-                             (declare (ignore ,c))
-                             (,compile-function ,function ,methods))
-                           ,table)))))
-  (define-all-mapper map-compile-all-static-methods map-compile-static-methods *static-methods*)
-  (define-all-mapper map-compile-all-constants map-compile-constants *constants*))
-
-(defun map-compile-everything (function)
-  (map-compile-all-methods function)
-  (map-compile-all-setters function)
-  (map-compile-all-static-methods function)
-  (map-compile-all-operators function)
-  (map-compile-all-constructors function)
-  (map-compile-all-constants function))
-
-;;;;;
-;; Listers
-
-(macrolet ((define-list-for-mapper (name mapper)
-             (let ((table (gensym "TABLE"))
-                   (t-p (gensym "TABLE-P"))
-                   (list (gensym "LIST"))
-                   (result (gensym "RESULT")))
-               `(defun ,name (&optional (,table NIL ,t-p))
-                  (let ((,list ()))
-                    (apply
-                     #',mapper #'(lambda (,result)
-                                   (push ,result ,list))
-                     (when ,t-p (list ,table)))
-                    ,list)))))
-  (define-list-for-mapper list-compile-all-methods map-compile-all-methods)
-  (define-list-for-mapper list-compile-all-static-methods map-compile-all-static-methods)
-  (define-list-for-mapper list-compile-all-operators map-compile-all-operators)
-  (define-list-for-mapper list-compile-all-setters map-compile-all-setters)
-  (define-list-for-mapper list-compile-all-constructors map-compile-all-constructors)
-  (define-list-for-mapper list-compile-all-constants map-compile-all-constants))
-
-(defun list-compile-everything ()
-  (let ((list ()))
-    (map-compile-everything (lambda (form) (push form list)))
-    list))
-
-;;;;;
-;; Writers
-
-(defun write-forms (mapper stream)
-  (let ((i 0))
-    (funcall mapper
-             (lambda (form)
-               (incf i)
-               (when (= 0 (mod i 1000))
-                 (format T "~&; On ~dth form..." i))
-               (when form
-                 (dolist (form (if (eql (car form) 'progn)
-                                   (cdr form)
-                                   (list form)))
-                   (print form stream))
-                 (format stream "~%"))))
-    (format T "~&; ~d forms processed." i)))
-
-(defun write-section (section mapper stream)
-  (format T "~&;; Processing ~a" section)
-  (format stream "~&~%;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
-  (format stream "~&;;; ~a~%" section)
-  (write-forms mapper stream))
-
-(defun write-all-sections (stream)
-  (format T "~&;;; Writing all sections")
-  (write-section "Methods" #'map-compile-all-methods stream)
-  (write-section "Setters" #'map-compile-all-setters stream)
-  (write-section "Static Methods" #'map-compile-all-static-methods stream)
-  (write-section "Operators" #'map-compile-all-operators stream)
-  (write-section "Constructors" #'map-compile-all-constructors stream)
-  (write-section "Constants" #'map-compile-all-constants stream))
-
-(defun write-everything-to-file (pathname &key (package "Q+") (if-exists :supersede) (body-processor #'write-all-sections))
-  (let* ((package (cond ((typep package 'package))
-                        ((find-package package) (find-package package))
-                        (T (make-package package))))
-         (modules (loaded-smoke-modules))
-         (*target-package* package)
-         (*package* (find-package '#:cl-user)))
-    (with-open-file (stream pathname :direction :output :if-exists if-exists)
-      (format T "~&;;;; Writing to file ~a" pathname)
-      (format stream "~&;;;;; Automatically generated file to map Qt methods and enums to CL functions and constants.")
-      (format stream "~&;;;;; See QTOOLS:WRITE-EVERYTHING-TO-FILE")
-      (format stream "~&;;;;")
-      (format stream "~&;;;; Active smoke modules: ~{~a~^ ~}" modules)
-      (print `(in-package #:cl-user) stream)
-      (print `(eval-when (:compile-toplevel :load-toplevel :execute)
-                (unless (find-package "QTOOLS")
-                  (error "Qtools needs to be loaded first!"))
-                (dolist (module ',modules)
-                  (qt:ensure-smoke module))
-                (unless (find-package ,(package-name package))
-                  (make-package ,(package-name package)))) stream)
-      (funcall body-processor stream)
-      pathname)))
-
-(defun q+-compile-and-load (&key modules (file *generator-target*))
-  (when modules
-    (qt::reload)
-    (load-all-smoke-modules modules))
-  (load (compile-file (write-everything-to-file file) :print NIL) :print NIL))
-
-;; FIXME: Setters
