@@ -1,0 +1,9 @@
+
+(IN-PACKAGE #:CL-USER) 
+(ASDF/PARSE-DEFSYSTEM:DEFSYSTEM #:SCI
+  :DEFSYSTEM-DEPENDS-ON
+  (:QTOOLS)
+  :CLASS
+  "qtools::smoke-module-system"
+  :MODULE
+  "SCI") 

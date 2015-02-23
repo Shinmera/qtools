@@ -1,0 +1,9 @@
+
+(IN-PACKAGE #:CL-USER) 
+(ASDF/PARSE-DEFSYSTEM:DEFSYSTEM #:QTDBUS
+  :DEFSYSTEM-DEPENDS-ON
+  (:QTOOLS)
+  :CLASS
+  "qtools::smoke-module-system"
+  :MODULE
+  "QTDBUS") 

@@ -1,0 +1,9 @@
+
+(IN-PACKAGE #:CL-USER) 
+(ASDF/PARSE-DEFSYSTEM:DEFSYSTEM #:PHONON
+  :DEFSYSTEM-DEPENDS-ON
+  (:QTOOLS)
+  :CLASS
+  "qtools::smoke-module-system"
+  :MODULE
+  "PHONON") 

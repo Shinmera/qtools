@@ -73,12 +73,20 @@
 (defmethod asdf:perform ((op asdf:load-op) (c smoke-module-system))
   (load-for-wrapper c))
 
-(defmacro define-smoke-module-system (name module)
-  `(asdf:defsystem ,name
+(defun compile-smoke-module-system-definition (module)
+  `(asdf:defsystem ,(make-symbol (string-upcase module))
+     :defsystem-depends-on (:qtools)
      :class "qtools::smoke-module-system"
-     :module ,module))
+     :module ,(string-upcase module)))
 
-(macrolet ((define-all-smoke-module-systems ()
-             `(progn ,@(loop for module in *smoke-modules*
-                             collect `(define-smoke-module-system ,module ,module)))))
-  (define-all-smoke-module-systems))
+(defun write-smoke-module-system-file (module)
+  (let ((file (asdf:system-relative-pathname :qtools (format NIL "smoke/~(~a~).asd" module))))
+    (with-open-file (stream file :direction :output :if-exists :supersede)
+      (let ((*package* (find-package :cl-user)))
+        (print '(in-package #:cl-user) stream)
+        (print (compile-smoke-module-system-definition module) stream)))
+    file))
+
+(defun write-all-smoke-module-system-files ()
+  (dolist (module *smoke-modules*)
+    (write-smoke-module-system-file module)))
