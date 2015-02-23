@@ -32,7 +32,6 @@
                                ("=" . "SET"))
           do (setf (gethash (format NIL "operator~a" op) table) name))
     table))
-(defvar *generator-target* (asdf:system-relative-pathname :qtools "q+.lisp"))
 (defvar *qmethods* (make-hash-table :test 'equal))
 (defvar *generated-modules* ())
 

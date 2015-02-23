@@ -48,7 +48,7 @@
       (write-forms stream)
       pathname)))
 
-(defun q+-compile-and-load (&key modules (file *generator-target*))
+(defun q+-compile-and-load (&key modules (file (merge-pathnames "q+.lisp" (uiop:temporary-directory))))
   (when modules
     (qt::reload)
     (load-all-smoke-modules modules))
