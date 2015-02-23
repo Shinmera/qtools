@@ -7,7 +7,7 @@
 (in-package #:org.shirakumo.qtools)
 
 (defvar *target-package* (or (find-package "Q+")
-                             (make-package "Q+")))
+                             (make-package "Q+" :use ())))
 (defvar *smoke-modules* '(:qt3support :qtcore :qtdbus
                           :qtdeclarative :qtgui :qthelp
                           :qtmultimedia :qtnetwork
