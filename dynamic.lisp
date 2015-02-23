@@ -87,28 +87,29 @@
           collect read)))
 
 (defun read-name (stream)
-  (with-output-to-string (output)
-    (loop for char = (peek-char NIL stream T NIL T)
-          do (if (or (char= char #\Space)
-                     (not (graphic-char-p char))
-                     (get-macro-character char))
-                 (loop-finish)
-                 (write-char (read-char stream T NIL T) output)))))
+  (to-readtable-case
+   (with-output-to-string (output)
+     (loop for char = (peek-char NIL stream T NIL T)
+           do (if (or (char= char #\Space)
+                      (not (graphic-char-p char))
+                      (get-macro-character char))
+                  (loop-finish)
+                  (write-char (read-char stream T NIL T) output))))))
 
 (defun q+-symbol-p (stream)
   (let ((buffer ()))
     (prog1
-        (loop for char across "q+:"
+        (loop for char across (to-readtable-case "q+:")
               for read = (read-char stream)
               do (push read buffer)
-              always (char-equal char read))
+              always (string= char (to-readtable-case (string read))))
       (dolist (char buffer)
         (unread-char char stream)))))
 
 (defun q+-symbol-name (string)
-  (cond ((string-starts-with-p "q+::" string)
+  (cond ((string-starts-with-p (to-readtable-case "q+::") string)
          (subseq string (length "q+::")))
-        ((string-starts-with-p "q+:" string)
+        ((string-starts-with-p (to-readtable-case "q+:") string)
          (subseq string (length "q+:")))
         (T (error "~s is not a Q+ symbol string!" string))))
 
@@ -116,7 +117,7 @@
 (progn
   (defun read-paren (stream char)
     (if (q+-symbol-p stream)
-        (let* ((name (to-readtable-case (q+-symbol-name (read-name stream))))
+        (let* ((name (q+-symbol-name (read-name stream)))
                (contents (read-list-until #\) stream)))
           (read-char stream) ;consume closing ).
           `(q+ ,name ,@contents))
