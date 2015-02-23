@@ -19,9 +19,9 @@
 
 (defun ensure-q+-method (function)
   (handler-bind ((style-warning #'muffle-warning))
+    (ensure-methods-processed)
     (let ((symbol (find-symbol (string function) *target-package*)))
       (unless (and symbol (fboundp symbol))
-        (ensure-methods-processed)
         (funcall
          (compile NIL `(lambda () ,(compile-wrapper symbol)))))
       symbol)))
