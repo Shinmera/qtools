@@ -19,6 +19,11 @@
    #:copy
    #:define-copy-method
    #:describe-copy-method)
+  ;; dynamic.lisp
+  (:export
+   #:ensure-q+-method
+   #:q+
+   #:setf)
   ;; finalizable.lisp
   (:export
    #:finalizable-class
@@ -38,6 +43,27 @@
    #:unbox
    #:make-gc-finalized
    #:with-gc-finalized)
+  ;; generate.lisp
+  (:export
+   #:*target-package*
+   #:*smoke-modules*
+   #:*operator-map*
+   #:*qmethods*
+   #:*generated-modules*
+   #:load-all-smoke-modules
+   #:loaded-smoke-modules
+   #:clear-method-info
+   #:method-symbol
+   #:process-method
+   #:process-all-methods
+   #:ensure-methods-processed
+   #:compile-wrapper
+   #:map-compile-all)
+  ;; precompile.lisp
+  (:export
+   #:write-everything-to-file
+   #:q+-compile-and-load
+   #:smoke-module-system)
   ;; keychord-editor.lisp
   (:export
    #:keychord-editor)
@@ -122,11 +148,13 @@
 ;; hack to make defmethod shadowing convenient
 (setf (macro-function 'qtools:defmethod)
       (macro-function 'cl:defmethod))
+(setf (macro-function 'qtools:setf)
+      (macro-function 'cl:setf))
 
 (defpackage #:cl+qt
   (:nicknames #:org.shirakumo.qtools+common-lisp)
   (:use #:cl #:qt #:qtools)
-  (:shadowing-import-from #:cl #:defmethod))
+  (:shadowing-import-from #:cl #:defmethod #:setf))
 
 (do-symbols (symbol '#:cl+qt)
   (export (list symbol) '#:cl+qt))

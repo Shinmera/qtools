@@ -45,7 +45,7 @@
                         (list value))))
     `(q+ ,(to-readtable-case (format NIL "SET-~a" (string name))) ,@name-args ,@value-args)))
 
-(defmacro setf+ (&rest args)
+(defmacro setf (&rest args)
   (assert (evenp (length args))
           () "Must supply balanced pairs of places and values.")
   `(progn
