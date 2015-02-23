@@ -6,20 +6,58 @@
 
 (in-package #:org.shirakumo.qtools)
 
-(defun ensure-q+-method (symbol)
+(defun to-readtable-case (string &optional (readtable *readtable*))
+  (ecase (readtable-case readtable)
+    (:upcase (string-upcase string))
+    (:downcase (string-downcase string))
+    (:preserve string)
+    (:invert (with-output-to-string (stream)
+               (loop for char across string
+                     do (cond ((upper-case-p char) (write-char (char-downcase char) stream))
+                              ((lower-case-p char) (write-char (char-upcase char) stream))
+                              (T (write-char char stream))))))))
+
+(defun ensure-q+-method (function)
   (handler-bind ((style-warning #'muffle-warning))
-    (let ((symbol (find-symbol (symbol-name symbol) "Q+")))
+    (let ((symbol (find-symbol (string function) *target-package*)))
       (unless (and symbol (fboundp symbol))
         (ensure-methods-processed)
         (funcall
-         (compile NIL `(lambda () ,(compile-wrapper symbol)))))))
-  NIL)
+         (compile NIL `(lambda () ,(compile-wrapper symbol)))))
+      symbol)))
 
-(defmacro with-q+-method-call (symbol &rest args)
-  (ensure-q+-method symbol)
+(defmacro q+ (function &rest args)
+  (let ((symbol (ensure-q+-method function)))
+    `(progn
+       (load-time-value (ensure-q+-method ',function))
+       (,symbol ,@args))))
+
+;;;;;
+;; SETF
+
+(defun process-q+-setter (place value)
+  (when (eql (first place) 'q+)
+    (setf place (rest place)))
+  (let ((name (first place))
+        (name-args (rest place))
+        (value-args (if (and (listp value) (eql (first value) 'values))
+                        (rest value)
+                        (list value))))
+    `(q+ ,(to-readtable-case (format NIL "SET-~a" (string name))) ,@name-args ,@value-args)))
+
+(defmacro setf+ (&rest args)
+  (assert (evenp (length args))
+          () "Must supply balanced pairs of places and values.")
   `(progn
-     (load-time-value (ensure-q+-method ',symbol))
-     (,symbol ,@args)))
+     ,@(loop for (place value) on args by #'cddr
+             if (and (listp place)
+                     (or (eql (first place)
+                              'q+)
+                         (eql (symbol-package (first place))
+                              *target-package*)))
+             collect (process-q+-setter place value)
+             else
+             collect `(setf ,place ,value))))
 
 ;;;;;
 ;; Reader
@@ -57,7 +95,6 @@
 (defun q+-symbol-p (stream)
   (let ((buffer ()))
     (prog1
-        ;; FIXME: readtable-case 
         (loop for char across "q+:"
               for read = (read-char stream)
               do (push read buffer)
@@ -76,12 +113,10 @@
 (progn
   (defun read-paren (stream char)
     (if (q+-symbol-p stream)
-        (let* ((name (q+-symbol-name (read-name stream)))
-               (symbol (let ((*package* (find-package :q+)))
-                         (read-from-string name)))
+        (let* ((name (to-readtable-case (q+-symbol-name (read-name stream))))
                (contents (read-list-until #\) stream)))
           (read-char stream) ;consume closing ).
-          `(with-q+-method-call ,symbol ,@contents))
+          `(q+ ,name ,@contents))
         (funcall *standard-paren-reader* stream char)))
 
   (set-macro-character #\( #'read-paren NIL (named-readtables:find-readtable :qtools)))
