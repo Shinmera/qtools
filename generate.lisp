@@ -115,6 +115,9 @@
                     (write-char #\- stream))
                   (setf prev-cap T)
                   (write-char char stream))
+                 ((char= char #\_)
+                  (setf prev-cap T)
+                  (write-char #\- stream))
                  (T (setf prev-cap NIL)
                     (write-char (char-upcase char) stream)))))
 
@@ -125,11 +128,9 @@
 
 (defun cl-constant-name (method)
   (with-output-to-target-symbol (stream)
-    (write-char #\+ stream)
     (write-qclass-name (qt::qmethod-class method) stream)
-    (write-char #\- stream)
-    (write-qmethod-name method stream)
-    (write-char #\+ stream)))
+    (write-char #\. stream)
+    (write-qmethod-name method stream)))
 
 (defun cl-variable-name (method)
   (with-output-to-target-symbol (stream)
@@ -201,7 +202,8 @@
         (symbol (gethash method *qmethods*))
         (list method)
         (fixnum method)
-        (string (gethash (find-symbol method *target-package*) *qmethods*)))
+        (string (ensure-methods (or (find-symbol method *target-package*)
+                                    (error "No methods found with name ~s" method)))))
       (error "No methods found for ~s" method)))
 
 (defun compile-wrapper (method)
