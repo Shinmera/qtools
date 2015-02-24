@@ -19,7 +19,7 @@
   <body>
     <header>
       <h1><img src="qtools-logo.png" alt="qtools"/></h1>
-      <span>0.4.1</span>
+      <span>0.5.1</span>
       <p>A collection of tools to aid in development with CommonQt.</p>
     </header>
     <div id="content">
@@ -105,16 +105,16 @@
   (<a href="#QTOOLS:CONNECT!">connect!</a> chant-button (released) my-widget (chant)))
 </code></pre>
 
-<h3>The <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code></h3>
+<h3>The <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code></h3>
 
-<p>Qtools provides its own version of <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>. Now, I understand and agree that usually it is a bad idea to provide alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> (in fact, it will emit such a form) and only gives special treatment to select <code><a href="http://l1sp.org/cl/declare">declare</a></code> forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for <code><a href="#QTOOLS:SLOT">slot</a></code>, <code><a href="#QTOOLS:OVERRIDE">override</a></code>, <code><a href="#QTOOLS:INITIALIZER">initializer</a></code>, and <code><a href="#QTOOLS:FINALIZER">finalizer</a></code> are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.</p>
+<p>Qtools provides its own version of <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code>. Now, I understand and agree that usually it is a bad idea to provide alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> (in fact, it will emit such a form) and only gives special treatment to select <code><a href="http://l1sp.org/cl/declare">declare</a></code> forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for <code><a href="#QTOOLS:SLOT">slot</a></code>, <code><a href="#QTOOLS:OVERRIDE">override</a></code>, <code><a href="#QTOOLS:INITIALIZER">initializer</a></code>, and <code><a href="#QTOOLS:FINALIZER">finalizer</a></code> are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.</p>
 
-<pre><code>(<a href="#QTOOLS:DEFMETHOD">defmethod</a> paint ((widget foo) paint-event)
+<pre><code>(<a href="http://l1sp.org/cl/defmethod">defmethod</a> paint ((widget foo) paint-event)
   (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="#QTOOLS:OVERRIDE">override</a> paint-event))
   ...)
 </code></pre>
 
-<p>In order to be able to use this effectively and painlessly, you should probably <code>:use</code> the extra package <code>cl+qt</code> instead of <code>cl</code> in your package. This package exports <code>cl</code>, <code>qt</code>, and <code>qtools</code> with the proper shadowing in place to use Qtools' <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>.</p>
+<p>In order to be able to use this effectively and painlessly, you should probably <code>:use</code> the extra package <code>cl+qt</code> instead of <code>cl</code> in your package. This package exports <code>cl</code>, <code>qt</code>, and <code>qtools</code> with the proper shadowing in place to use Qtools' <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code>.</p>
 
 <h3>Menu Definition</h3>
 
@@ -144,13 +144,60 @@
 
 <p>CommonQt provides a necessary readtable to add a convenient way to write foreign calls. Qtools provides its own named-readtable (<code>:qtools</code>) that inherits from this readtable, but adds some minor tweaks.</p>
 
-<p>Currently, the reader macros <code>#&lt;</code> to call <code><a href="#QTOOLS:UNBOX">unbox</a></code> and <code>#&gt;</code> to call <code><a href="#QTOOLS:MAKE-GC-FINALIZED">make-gc-finalized</a></code> on the following object are available.</p>
+<p>The reader macros <code>#&lt;</code> to call <code><a href="#QTOOLS:UNBOX">unbox</a></code> and <code>#&gt;</code> to call <code><a href="#QTOOLS:MAKE-GC-FINALIZED">make-gc-finalized</a></code> on the following object are available.</p>
+
+<p>The Qtools readtable also deals with the Q+ system.</p>
+
+<h3>Q+</h3>
+
+<p>By default with CommonQt, calling Qt methods happens with the <code>#_</code> reader macro. This requires you to follow the proper case of the class and method names. Having this kind of mixture of conventions in the code is a bit jarring. While Qtools offers solutions to deal with the discrepancies of defining your own classes and widgets using the various <code>define-*</code> macros, Q+ fixes the method calling discrepancy. In order to use Q+ you have a choice of either using the <code><a href="#QTOOLS:Q+">q+</a></code> macro, or using the <code>:qtools</code> read-table. Using the <code><a href="#QTOOLS:Q+">q+</a></code> macro directly an example looks like this:</p>
+
+<pre><code>(<a href="http://l1sp.org/cl/let">let</a> ((widget (<a href="#QTOOLS:Q+">q+</a> make-qwidget)))
+  (<a href="#QTOOLS:Q+">q+</a> set-window-title widget &quot;Hello!&quot;)
+  (<a href="#QTOOLS:Q+">q+</a> show widget)
+  (<a href="#QTOOLS:Q+">q+</a> exec *qapplication*))
+</code></pre>
+
+<p>And the same using the readtable:</p>
+
+<pre><code>(<a href="http://l1sp.org/cl/let">let</a> ((widget (q+:make-qwidget)))
+  (q+:set-window-title widget &quot;Hello!&quot;)
+  (q+:show widget)
+  (q+:exec *qapplication*))
+</code></pre>
+
+<p>The difference is minimal in the typed code. However, the second approach will give you the convenience of letting the editor display the possible arguments and a docstring linking to the Qt methods. The second example is read by the Common Lisp reader to the first example. There is therefore no code difference in how the two work. If you use the <code>cl+qt</code> package, you can also take advantage of an extended <code><a href="http://l1sp.org/cl/setf">setf</a></code> macro. Using it, the second line would look like so:</p>
+
+<pre><code>(<a href="http://l1sp.org/cl/setf">setf</a> (<a href="#QTOOLS:Q+">q+</a> window-title widget) &quot;Hello!&quot;)
+</code></pre>
+
+<p>Some of the setter functions require multiple values to be set at once. The updated <code><a href="http://l1sp.org/cl/setf">setf</a></code> can also deal with that:</p>
+
+<pre><code>(<a href="http://l1sp.org/cl/setf">setf</a> (<a href="#QTOOLS:Q+">q+</a> window painter) (<a href="http://l1sp.org/cl/values">values</a> 0 0 100 100))
+</code></pre>
+
+<p>The <code><a href="http://l1sp.org/cl/setf">setf</a></code> has extra support for <code><a href="#QTOOLS:Q+">q+</a></code>, but is otherwise identical to <code><a href="http://l1sp.org/cl/setf">cl:setf</a></code> and actually expands to that for all other places.</p>
+
+<p>In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly</p>
+
+<h3>Smoke Modules</h3>
+
+<p>CommonQt uses the SmokeQt library to interface with Qt. Smoke is divided up into different modules that provide parts of the Qt framework. In order to be able to use the various parts of Qt, these modules need to be loaded. By default CommonQt loads <code>qtcore</code> and <code>qtgui</code> when <code>make-qapplication</code> is called. However, if you want to use, say, the OpenGL parts you'll also need <code>qtopengl</code>.</p>
+
+<p>Qtools provides ASDF systems for all the different smoke modules. That way, you can simply push the modules you want into your project's ASDF system dependencies and it'll ensure that the modules are available at compile and load time. Having the modules loaded at both times is especially important for Q+ to work properly. An example system making use of this would look like</p>
+
+<pre><code>(asdf:defsystem foo
+  ...
+  :depends-on (:qtcore :qtgui))
+</code></pre>
+
+<p>For a list of available smoke modules, see <code><a href="#QTOOLS:*SMOKE-MODULES*">*smoke-modules*</a></code>.</p>
 
 <h2>Extending Qtools</h2>
 
 <h3>Copying and Finalizing</h3>
 
-<p>In order to account for your own objects and operations you can extend the <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:FINALIZE">finalize</a></code> functions by using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code> and <code><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">define-finalize-method</a></code> or <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using <code>copy/finalize-using-class</code>) if possible, making it all look a bit cleaner.</p>
+<p>In order to account for your own objects and operations you can extend the <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:FINALIZE">finalize</a></code> functions by using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code> and <code><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">define-finalize-method</a></code> or <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> directly. The two define macros bring the convenience of automatically resolving to a Qt class (and thus using <code>copy/finalize-using-class</code>) if possible, making it all look a bit cleaner.</p>
 
 <pre><code>(<a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a> (instance QPixmap)
   &quot;Creates a new QPixmap using QPixmap::copy (deep copy).&quot;
@@ -159,9 +206,9 @@
 
 <p>Since copying and finalizing are operations associated with a certain amount of ambiguity, it is advisable to always write documentation strings for your <code><a href="#QTOOLS:COPY">copy</a></code>/<code><a href="#QTOOLS:FINALIZE">finalize</a></code> methods. That way users can get a better idea of what will happen by reading about it using <code><a href="#QTOOLS:DESCRIBE-COPY-METHOD">describe-copy-method</a></code> and <code><a href="#QTOOLS:DESCRIBE-FINALIZE-METHOD">describe-finalize-method</a></code> respectively.</p>
 
-<h3>Adding <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code> declarations</h3>
+<h3>Adding <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> declarations</h3>
 
-<p>Using <code><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a></code> you can add your own processing to method declarations. Your function should extract the necessary information from its declaration arguments and the <code><a href="#QTOOLS:*METHOD*">*method*</a></code> form. Each method declaration processing function should return a single form (like a macro) to be put before the resulting <code><a href="#QTOOLS:DEFMETHOD">defmethod</a></code>. The existing declaration processors are really short:</p>
+<p>Using <code><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a></code> you can add your own processing to method declarations. Your function should extract the necessary information from its declaration arguments and the <code><a href="#QTOOLS:*METHOD*">*method*</a></code> form. Each method declaration processing function should return a single form (like a macro) to be put before the resulting <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code>. The existing declaration processors are really short:</p>
 
 <pre><code>(<a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a> override (&amp;optional name)
   (<a href="http://l1sp.org/cl/let">let</a> ((slot (<a href="#QTOOLS:TO-METHOD-NAME">qtools:to-method-name</a> (<a href="http://l1sp.org/cl/or">or</a> name (form-fiddle:lambda-name *method*)))))
@@ -177,12 +224,62 @@
 
 <p>Since Qtools does a bunch of contrived things, you might want to check what exactly is done if something doesn't go according to plan. I'm not excluding the possibility of bugs being around that mess your code up. In order to check this, you will want to load <a href="http://shinmera.github.io/verbose/">verbose</a> before loading Qtools and set the logging level to trace: <code>(<a href="http://l1sp.org/cl/setf">setf</a> (v:repl-level) :trace)</code>. Qtools will emit log messages when you compile <code><a href="#QTOOLS:DEFINE-WIDGET">define-widget</a></code> forms that contain the generated options. It will also log all objects that get passed to <code><a href="#QTOOLS:FINALIZE">finalize</a></code> and <code><a href="#QTOOLS:COPY">copy</a></code>. Hopefully the log output will help you in discovering what's going on behind the scenes.</p>
 
+<h2>Qtools Concepts</h2>
+
+<p>Qtools has grown to be a large library with a lot of rather complicated concepts. I will try to describe them here, in order to retain some information in non-code form and make things clearer to the average user. It is not necessary to read and understand this section to use Qtools, but it may be useful to be aware of the underlying ideas and functionality that make Qtools work.</p>
+
+<h3>Finalizables</h3>
+
+<p>A finalizable is implemented using two classes, one serving as the metaclass and the other as a superclass. The metaclass is required in order to allow a custom slot type that supports the <code>:finalized</code> argument. The superclass is necessary in order to allow methods such as <code><a href="#QTOOLS:FINALIZE">finalize</a></code> to operate on instances of the finalizable classes. The handling of the finalized slots is done through a general method on <code><a href="#QTOOLS:FINALIZE">finalize</a></code> that scans through the slots of the class instance and then calls <code><a href="#QTOOLS:FINALIZE">finalize</a></code> on each slot for which the definition is set to be <code>:finalized</code>. This makes finalization of class slots automatic and convenient.</p>
+
+<p>Since finalizables don't add any metaclass properties, there is no need to manually calculate inheritance order. However, as with all custom slot definitions, the slot properties must be copied over from the direct-slot instance to the effective slot. In the case of <code><a href="#QTOOLS:FINALIZABLE-CLASS">finalizable-class</a></code> this happens in <code>compute-effective-slot-definition</code>.</p>
+
+<p>In order to support finalizing of Qt class instances that don't have a CL class equivalent, the <code><a href="#QTOOLS:FINALIZE">finalize</a></code> method is extended wit ha <code><a href="#QTOOLS:FINALIZE-USING-CLASS">finalize-using-class</a></code> that is dispatched to using the Qt class and the instance of a <code>qobject</code> instance is passed to <code><a href="#QTOOLS:FINALIZE">finalize</a></code>.</p>
+
+<h3>Widgets</h3>
+
+<p>As with finalizables, the widget is implemented using two classes, the <code><a href="#QTOOLS:WIDGET-CLASS">widget-class</a></code> metaclass and the <code><a href="#QTOOLS:WIDGET">widget</a></code> superclass. These both inherit from the finalizable equivalents. The main crux of the <code><a href="#QTOOLS:WIDGET-CLASS">widget-class</a></code> lies in its <code><a href="#QTOOLS:WIDGET-CLASS-DIRECT-OPTIONS">widget-class-direct-options</a></code> and <code><a href="#QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS">widget-class-extern-options</a></code>. The direct options are the options that are passed to a <code>re/</code> <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code> (and thus also to <code><a href="http://l1sp.org/cl/defclass">defclass</a></code>). They're caught in the appropriately specialised methods and then stored on the class. The effect of this is that we can fully recompute the class definition at any time, and potentially add or remove options without influencing the original <code><a href="http://l1sp.org/cl/defclass">defclass</a></code> statement. This is where the extern-options come in.</p>
+
+<p>Using <code><a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a></code> options can be added to the class definition dynamically at any point in the program. This function then adds the option to the class' extern-options and then calls <code><a href="http://l1sp.org/cl/reinitialize-instance">reinitialize-instance</a></code>, which in turn causes the class to get effectively redefined outside of its <code><a href="http://l1sp.org/cl/defclass">defclass</a></code> form. This redefinition also allows us to change CommonQt class options. Using this we can create forms outside of the original <code><a href="http://l1sp.org/cl/defclass">defclass</a></code> that act as if they were actually options in the <code><a href="http://l1sp.org/cl/defclass">defclass</a></code> form.</p>
+
+<p>Qtools effectively only provides two forms that do this: <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code> and <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code>. The <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code> is relatively straightforward and simply expands to a class option set to add a new signal option. The <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> is an extensible machine in itself.</p>
+
+<p>What's special about the <code>cl+qt:defmethod</code> is that it inspects the declaration forms in the method body. It then checks for each declaration form whether a handler function exist and if so, calls that function. Such a <code><a href="#QTOOLS:METHOD-DECLARATION">method-declaration</a></code> function can then return forms to be put into the macroexpansion of the <code>cl+qt:defmethod</code>, before the resulting <code><a href="http://l1sp.org/cl/defmethod">cl:defmethod</a></code>. The processed declaration is then left out of the <code><a href="http://l1sp.org/cl/defmethod">cl:defmethod</a></code>form as it is assumed that it isn't a standard common lisp declaration. However, the declaration function also has the ability to change the contents of the <code><a href="http://l1sp.org/cl/defmethod">cl:defmethod</a></code> form itself, by manipulating <code><a href="#QTOOLS:*METHOD*">*method*</a></code>. This allows the declaration to output special handling for the method body, for example.</p>
+
+<p>This kind of extensible declaration mechanism is necessary both to allow further evolving of Qtools in the future as well as adaptation by users. It also offers a very &quot;native-like&quot; way of specifying external effects of a method. Qtools uses this construct then to allow definition of slots, overrides, finalizers, and initializers.</p>
+
+<p>In case the user doesn't appreciate the <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> way, Qtools then provides <code>define-*</code> alternative functions that simply wrap over <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code>, establish some default bindings, and take care of naming and specialising the method.</p>
+
+<p>The <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code> deserves special attention here, as it does more work than the rest. A large part of defining widgets is adding sub-components to it, which is a task that usually involves a lot of repetition or awkward function sharing: Setting up a slot to hold the instance, defining or using an initializer to set it up. <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code> makes this both distributed and simple by both taking care of setting up an appropriate initializer function, and automatically adding the slot to the class using, again, <code><a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a></code>. This slot is also always automatically set to be <code><a href="#QTOOLS:FINALIZED">finalized</a></code> in order to ensure that all widgets are properly cleaned up when the GUI is no longer needed.</p>
+
+<p>A minor problem regarding this approach is the same problem that appears with all of CL's definition forms. While developing incrementally, merely removing the definition form from the source file, will not actually remove it from the image. This can trip developers up, as definitions will still be active later. In this case it means having widgets still sticking around, or initializers running, etc. For this purpose there are corresponding <code>remove-*</code> functions to all the <code>define-*</code> functions to allow easy removal. This part cannot possibly be automated due to the nature of Common Lisp, but it is at least simple to correct should the need arise.</p>
+
+<h3>Q+</h3>
+
+<p>CommonQt's way of dealing with method calls is the simple and most direct way of doing it. The first possible alternative to remove the need for typing method names in their corresponding case would be to simply introduce a different reader macro that automatically translates a <code>example-function</code>-like name into <code>exampleFunction</code> as is done already in other parts of Qtools. However, this has two downsides, the first being that there does not exist a 1:1 mapping of methods anywhere. The dynamic computation of the function name means that there isn't a full correspondence table anywhere. The second downside is that methods are still not passable as first-class objects.</p>
+
+<p>The way to solve this is to generate actual CL wrapper functions to the method calls. This allows us to use them as first-class objects, have at least compile-time argument number checking, and have a linkage of wrapper name to Qt method by listing it in the docstring.</p>
+
+<p>In order to achieve this, there are two possible choices. First, the entirety of all possible wrappers can be computed once, and then subsequently loaded into the image and used directly. However, this creates two new problems. Computing all wrappers, compiling them, and loading them, takes a long time and subsequently litters the image with thousands of functions and symbols that won't ever be used in the program. Then, we have a problem with the smoke modules, as we need to know which modules will be used in a potential application ahead of time, load them all, and then generate the wrappers. We cannot generate wrappers for each module separately, as the methods from different classes share the same wrapper functions. This means that whenever a different set of modules is needed, the wrappers need to be regenerated, recompiled, and reloaded. A lot of time and space goes to waste with this. However, this approach also has an advantage: As all functions are always available, it is easy to develop with. Arguments and docstrings will be readily available through the editor. Qtools offers this approach through <code><a href="#QTOOLS:Q+-COMPILE-AND-LOAD">q+-compile-and-load</a></code>.</p>
+
+<p>The second approach is to dynamically only compile what is needed. That way, the image only ever contains wrappers for function that are actually called (at some point). However, this complicates things a lot. When a function is compiled that calls such a function, it doesn't exist yet. Even worse, when the form is read, the symbol for the function does not exist yet and isn't external! In order to catch this problem, a modified reader macro is necessary. This reader macro will detect when a call to a wrapper function is made, and instead transform it into a macro call that then sees to it that the wrapper will be created. Modifying the reader in such a way is a heavy change, and should only be used sparingly, however there is no alternative here. Qtools does not force you to use this reader extension, you can always just use the macro directly.</p>
+
+<p>However, dynamic compilation complications don't end there. Since we never dump the function to a file, it only ever exists in the environment it was compiled in. That means, if you compile a function that then dynamically generates the wrapper function, the wrapper won't be available anymore at load time. Qtools solves this issue with a trick. The <code><a href="#QTOOLS:Q+">q+</a></code> macro expands to a <code><a href="http://l1sp.org/cl/load-time-value">load-time-value</a></code> form that then generates the wrapper function. That way, the wrapper will always be available at load- and execution time, while posing no overhead to the execution time, as it will return a value to that won't impact anything.</p>
+
+<p>Function referencing gets the same problems as function calling, so the Qtools readtable also contains an overridden <code>#'</code> reader macro to handle that. In the case of a wrapper call, it expands to <code><a href="#QTOOLS:Q+FUN">Q+FUN</a></code> which in turn expands to a <code><a href="http://l1sp.org/cl/load-time-value">load-time-value</a></code> form that generates and returns the function object.</p>
+
+<p>As is probably obvious by now, Qtools also implements the second approach. Therefore, the choice as a user is yours: You can statically precompile everything and use it directly, or you an use the dynamic on the fly compilation using either a readtable expansion, or a simple macro. The concepts to make this all possible are rather complex, but the actual function wrapper compilations are quite straight-forward. The system is currently not suited for extension, but I see no need to allow that as the kind of Qt methods that can exist are fixed and Q+ should handle all that are relevant.</p>
+
+<p>Q+ does one last thing to fix the &quot;issue&quot; of having setters instead of being able to use <code><a href="http://l1sp.org/cl/setf">setf</a></code>. For this purpose it has an extended <code><a href="http://l1sp.org/cl/setf">setf</a></code> macro that checks if a place is a function in the Q+ package. if so, this place/value pair is instead expanded to a call to the appropriate wrapper function with the function name transformed. However, that's not the only reason to do this. The second is that some setters require multiple arguments to be set at once. Usually, <code><a href="http://l1sp.org/cl/setf">cl:setf</a></code> allows for cases like these by permitting setf expanders to accept multiple values. However, the number of values is fixed, and there's no way to dynamically know how many values where passed. Since Q+ needs to dispatch based on the number of values, this is not a viable approach. Therefore, with <code>cl+qt:setf</code> a <code>(<a href="http://l1sp.org/cl/values">values</a> ..)</code> value form is specially treated and its arguments are inlined into the wrapper call. This also means that it isn't possible to use multiple values of a returning function as the values to a setter call, however while that is an inconsistency, I don't think it will be a big issue. If it turns out to be problematic in the later run, this will have to be changed to a dynamic analysis at run-time, which is an overhead I wanted to avoid.</p>
+
+<p>One final note about the dynamic approach and its readtable: In order to recognise whether a call to a symbol in the Q+ package is made, it needs to read ahead multiple symbols and call <code><a href="http://l1sp.org/cl/unread-char">unread-char</a></code> multiple times consecutively, if it turns out that it is not a Q+ reference. Multiple consecutive calls to <code><a href="http://l1sp.org/cl/unread-char">unread-char</a></code> are not permitted by the hyperspec, so a different approach should be found eventually. Right now, this is an unresolved kludge and I will see about fixing it once it causes real problems.</p>
+
 <h2>Support</h2>
 
 <p>Currently the following implementations are tested and supported by Qtools:</p>
 
 <ul>
-<li><a href="http://www.sbcl.org/">SBCL</a> (1.2.4 Lin64)</li>
+<li><a href="http://www.sbcl.org/">SBCL</a> (1.2.8 Lin64)</li>
 <li><a href="http://ccl.clozure.com/">CCL</a> (1.10 Lin64)</li>
 </ul>
 
@@ -273,6 +370,20 @@ In order to retrieve the contained object, use UNBOX.</pre>
                     </code>
                   </header>
                   <pre/>
+                </article>
+              </li><li>
+                <a name="QTOOLS:SMOKE-MODULE-SYSTEM"/>
+                <article>
+                  <header>
+                    <span>CLASS</span>
+                    <code>
+                      <h4><a href="#QTOOLS:SMOKE-MODULE-SYSTEM">SMOKE-MODULE-SYSTEM</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>A wrapper ASDF system class that only exists to ensure that a
+given smoke module is loaded at compile and load time.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:WIDGET"/>
@@ -398,8 +509,53 @@ Look at the source to see the mappings.</pre>
                       <span>(LAYOUT)</span>
                     </code>
                   </header>
-                  <pre>Removews all widgets from the layout and returns them as a list.
+                  <pre>Removes all widgets from the layout and returns them as a list.
 It does not do anything with the widgets themselves.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:CLEAR-METHOD-INFO"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:CLEAR-METHOD-INFO">CLEAR-METHOD-INFO</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>Clears the *QMETHODS* table.
+
+See QTOOLS:*QMETHODS*</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:COMPILE-WRAPPER"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:COMPILE-WRAPPER">COMPILE-WRAPPER</a></h4>
+                      <span/>
+                      <span>(METHOD)</span>
+                    </code>
+                  </header>
+                  <pre>Compiles the wrapper function for METHOD.
+
+This does not actually call CL:COMPILE, or change
+the global environment in any way. It instead returns
+a form that you can then truly compile, print, or write
+to file, or whatever your intention is.
+
+See QTOOLS:ENSURE-METHODS
+See QT:QMETHOD-ENUM-P
+See QTOOLS:COMPILE-CONSTANT
+See QT:QMETHOD-CTOR-P
+See QT:QMETHOD-COPYCTOR-P
+See QTOOLS:COMPILE-CONSTRUCTOR
+See QTOOLS:QMETHOD-OPERATOR-P
+See QTOOLS:COMPILE-OPERATOR
+See QT:QMETHOD-STATIC-P
+See QTOOLS:COMPILE-STATIC-METHOD
+See QTOOLS:COMPILE-METHOD</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:DESCRIBE-COPY-METHOD"/>
@@ -474,6 +630,42 @@ by EQT-TYPE-OF.</pre>
 SYMBOL -&gt; FIND-CLASS
 CLASS  -&gt; IDENTITY
 STANDARD-OBJECT -&gt; CLASS-OF</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:ENSURE-METHODS-PROCESSED"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:ENSURE-METHODS-PROCESSED">ENSURE-METHODS-PROCESSED</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>Ensures that all methods have been generated for the currently loaded smoke modules.
+
+See QTOOLS:LOADED-SMOKE-MODULES
+See QTOOLS:*GENERATED-MODULES*
+See QTOOLS:PROCESS-ALL-METHODS</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:ENSURE-Q+-METHOD"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:ENSURE-Q+-METHOD">ENSURE-Q+-METHOD</a></h4>
+                      <span/>
+                      <span>(FUNCTION)</span>
+                    </code>
+                  </header>
+                  <pre>Ensures that the Q+ FUNCTION exists by compiling it on the fly.
+Raises an error if no appropriate function can be found.
+Returns the proper *TARGET-PACKAGE* symbol for the function.
+
+See QTOOLS:ENSURE-METHODS-PROCESSED
+See QTOOLS:COMPILE-WRAPPER
+See QTOOLS:*TARGET-PACKAGE*</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:ENUMERATE-METHOD-DESCRIPTORS"/>
@@ -591,6 +783,37 @@ A compiler macro will try to statically determine types as best as possible,
 so GENERIC-SIGNAL is save to use for static values.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:LOAD-ALL-SMOKE-MODULES"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:LOAD-ALL-SMOKE-MODULES">LOAD-ALL-SMOKE-MODULES</a></h4>
+                      <span/>
+                      <span>(&amp;REST MODS)</span>
+                    </code>
+                  </header>
+                  <pre>Loads all the smoke modules as passed.
+
+See QT:ENSURE-SMOKE</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:LOADED-SMOKE-MODULES"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:LOADED-SMOKE-MODULES">LOADED-SMOKE-MODULES</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>Returns a fresh list of currently loaded smoke modules.
+
+See QTOOLS:*SMOKE-MODULES*
+See QT:NAMED-MODULE-NUMBER</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:MAKE-CHORD"/>
                 <article>
                   <header>
@@ -615,6 +838,22 @@ so GENERIC-SIGNAL is save to use for static values.</pre>
                     </code>
                   </header>
                   <pre>Wrap the OBJECT in a GC-FINALIZED instance. Use UNBOX to retrieve the object again.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:MAP-COMPILE-ALL"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:MAP-COMPILE-ALL">MAP-COMPILE-ALL</a></h4>
+                      <span/>
+                      <span>(FUNCTION)</span>
+                    </code>
+                  </header>
+                  <pre>Calls FUNCTION with the result of COMPILE-WRAPPER on all available methods.
+
+See QTOOLS:COMPILE-WRAPPER
+See QTOOLS:*QMETHODS*</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:MAYBE-DELETE-QOBJECT"/>
@@ -656,6 +895,83 @@ so GENERIC-SIGNAL is save to use for static values.</pre>
                   <pre>Returns a function to process the method declaration NAME, if one exists.
 
 See (SETF QTOOLS:METHOD-DECLARATION).</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:METHOD-SYMBOL"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:METHOD-SYMBOL">METHOD-SYMBOL</a></h4>
+                      <span/>
+                      <span>(METHOD)</span>
+                    </code>
+                  </header>
+                  <pre>Returns an appropriate symbol to use for the name of the wrapper function for METHOD.
+
+See QT:QMETHOD-ENUM-P
+See QTOOLS:CL-CONSTANT-NAME
+See QT:QMETHOD-CTOR-P
+See QT:QMETHOD-COPYCTOR-P
+See QTOOLS:CL-CONSTRUCTOR-NAME
+See QTOOLS:QMETHOD-OPERATOR-P
+See QTOOLS:CL-OPERATOR-NAME
+See QT:QMETHOD-STATIC-P
+See QTOOLS:CL-STATIC-METHOD-NAME
+See QTOOLS:CL-METHOD-NAME</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:PROCESS-ALL-METHODS"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:PROCESS-ALL-METHODS">PROCESS-ALL-METHODS</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>Clears the method table and generates all possible data for the currently available methods.
+This also sets the *GENERATED-MODULES* to the proper value.
+
+See QT:MAP-METHODS
+See QTOOLS:PROCESS-METHOD
+See QTOOLS:CLEAR-METHOD-INFO
+See QTOOLS:*GENERATED-MODULES*
+See QTOOLS:LOADED-SMOKE-MODULES</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:PROCESS-METHOD"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:PROCESS-METHOD">PROCESS-METHOD</a></h4>
+                      <span/>
+                      <span>(METHOD)</span>
+                    </code>
+                  </header>
+                  <pre>Push the given METHOD onto its appropriate place in the method table, if it is needed.
+
+See QTOOLS:METHOD-NEEDED-P
+See QTOOLS:METHOD-SYMBOL
+See QTOOLS:*QMETHODS*</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:Q+-COMPILE-AND-LOAD"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:Q+-COMPILE-AND-LOAD">Q+-COMPILE-AND-LOAD</a></h4>
+                      <span/>
+                      <span>(&amp;KEY MODULES (FILE (MERGE-PATHNAMES q+.lisp (TEMPORARY-DIRECTORY))))</span>
+                    </code>
+                  </header>
+                  <pre>Writes, compiles, and loads the file for all generated Qt wrapper functions.
+If MODULES is passed, CommonQt is reloaded and only the given modules are loaded.
+
+See WRITE-EVERYTHING-TO-FILE</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:QOBJECT-ALIVE-P"/>
@@ -701,6 +1017,42 @@ Look at the source to see the mappings.</pre>
 Look at the source to see the mappings.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:REMOVE-FINALIZER"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:REMOVE-FINALIZER">REMOVE-FINALIZER</a></h4>
+                      <span/>
+                      <span>(WIDGET-CLASS FINALIZER)</span>
+                    </code>
+                  </header>
+                  <pre>Removes the FINALIZER definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:REMOVE-INITIALIZER"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:REMOVE-INITIALIZER">REMOVE-INITIALIZER</a></h4>
+                      <span/>
+                      <span>(WIDGET-CLASS INITIALIZER)</span>
+                    </code>
+                  </header>
+                  <pre>Removes the INITIALIZER definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:REMOVE-MENU-CONTENT-TYPE"/>
                 <article>
                   <header>
@@ -725,6 +1077,79 @@ Look at the source to see the mappings.</pre>
                     </code>
                   </header>
                   <pre>Remove the method declaration processor function of NAME.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:REMOVE-OVERRIDE"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:REMOVE-OVERRIDE">REMOVE-OVERRIDE</a></h4>
+                      <span/>
+                      <span>(WIDGET-CLASS OVERRIDE)</span>
+                    </code>
+                  </header>
+                  <pre>Removes the OVERRIDE definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the override.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:REMOVE-SIGNAL"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:REMOVE-SIGNAL">REMOVE-SIGNAL</a></h4>
+                      <span/>
+                      <span>(WIDGET-CLASS SIGNAL)</span>
+                    </code>
+                  </header>
+                  <pre>Removes the SIGNAL definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:REMOVE-SLOT"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:REMOVE-SLOT">REMOVE-SLOT</a></h4>
+                      <span/>
+                      <span>(WIDGET-CLASS SLOT)</span>
+                    </code>
+                  </header>
+                  <pre>Removes the SLOT definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:REMOVE-SUBWIDGET"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:REMOVE-SUBWIDGET">REMOVE-SUBWIDGET</a></h4>
+                      <span/>
+                      <span>(WIDGET-CLASS SUBWIDGET)</span>
+                    </code>
+                  </header>
+                  <pre>Removes the SUBWIDGET definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the subwidget.
+It does however remove the class-slot and initializer of the subwidget.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:REMOVE-WIDGET-CLASS-OPTION"/>
@@ -864,6 +1289,28 @@ returned, or the STRING-DOWNCASE of THING.</pre>
                     </code>
                   </header>
                   <pre>Returns a list of QAction instances that are active on the given CLASS.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WRITE-EVERYTHING-TO-FILE"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WRITE-EVERYTHING-TO-FILE">WRITE-EVERYTHING-TO-FILE</a></h4>
+                      <span/>
+                      <span>(PATHNAME &amp;KEY (PACKAGE *TARGET-PACKAGE*) (IF-EXISTS SUPERSEDE))</span>
+                    </code>
+                  </header>
+                  <pre>Writes all compileable Qt method wrappers to PATHNAME.
+
+PACKAGE designates in which package the symbols will live.
+This makes it possible to deviate from the standard of
+*TARGET-PACKAGE*. The value of QTOOLS:*TARGET-PACKAGE*
+will be automatically set to this once the resulting file
+is LOADed or compiled again.
+
+See QTOOLS:WRITE-FORMS
+See QTOOLS:*TARGET-PACKAGE*</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:COPY"/>
@@ -1051,7 +1498,7 @@ See QTOOLS:CALL-INITIALIZERS</pre>
                     <code>
                       <h4><a href="#QTOOLS:CONNECT!">CONNECT!</a></h4>
                       <span/>
-                      <span>(ORIGIN ORIGIN-FUNCTION TARGET TARGET-FUNCTION)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Macro for a more lisp-y writing of CONNECT.
@@ -1067,7 +1514,7 @@ SPECIFIED-TYPE-METHOD-NAME.</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-COPY-METHOD">DEFINE-COPY-METHOD</a></h4>
                       <span/>
-                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Defines a method to copy an object of CLASS.
@@ -1091,7 +1538,7 @@ See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-FINALIZABLE">DEFINE-FINALIZABLE</a></h4>
                       <span/>
-                      <span>(NAME DIRECT-SUPERCLASSES DIRECT-SLOTS &amp;REST OPTIONS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Shorthand around DEFCLASS to create a finalizable class.
@@ -1107,7 +1554,7 @@ FINALIZABLE-CLASS as metaclass.</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">DEFINE-FINALIZE-METHOD</a></h4>
                       <span/>
-                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Defines a method to finalize an object of CLASS.
@@ -1131,7 +1578,7 @@ See FINALIZE, FINALIZE-USING-CLASS</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-FINALIZER">DEFINE-FINALIZER</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Defines a new finalizer of METHOD-NAME on WIDGET-CLASS.
@@ -1144,7 +1591,7 @@ of highest PRIORITY first.
 This is translated to a method definition specialised (and bound) on WIDGET-CLASS
 with a FINALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See QTOOLS:FINALIZE</pre>
                 </article>
@@ -1156,7 +1603,7 @@ See QTOOLS:FINALIZE</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-INITIALIZER">DEFINE-INITIALIZER</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Defines a new initializer of METHOD-NAME on WIDGET-CLASS.
@@ -1168,7 +1615,7 @@ executed. They are executed in order of highest PRIORITY first.
 This is translated to a method definition specialised (and bound) on WIDGET-CLASS
 with a INITIALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND</pre>
                 </article>
               </li><li>
@@ -1179,7 +1626,7 @@ See QTOOLS:WITH-SLOTS-BOUND</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-MENU">DEFINE-MENU</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS NAME) &amp;BODY CONTENTS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Defines a menu on WIDGET-CLASS with NAME and CONTENTS.
@@ -1210,7 +1657,7 @@ See QTOOLS:MAKE-CHORD.</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">DEFINE-MENU-CONTENT-TYPE</a></h4>
                       <span/>
-                      <span>(TYPE (PARENT &amp;REST ARGS) &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Defines a new menu content type processor NAME.
@@ -1225,7 +1672,7 @@ See (SETF QTOOLS:MENU-CONTENT-TYPE).</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">DEFINE-METHOD-DECLARATION</a></h4>
                       <span/>
-                      <span>(NAME ARGS &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Define a new method declaration function of NAME.
@@ -1240,7 +1687,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-OVERRIDE">DEFINE-OVERRIDE</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS OVERRIDE &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Define a new OVERRIDE on WIDGET-CLASS with ARGS.
@@ -1250,7 +1697,7 @@ This is translated to a method definition with METHOD-NAME that specialises
 declaration in the body. Additionally, the body is wrapped in a WITH-SLOTS-BOUND
 to allow for convenient slot access.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/override</pre>
                 </article>
@@ -1262,7 +1709,7 @@ See CommonQt/override</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SIGNAL">DEFINE-SIGNAL</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS SIGNAL) ARGS &amp;BODY OPTIONS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Define a new SIGNAL on WIDGET-CLASS with ARGS.
@@ -1281,7 +1728,7 @@ See CommonQt/signals</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SIGNAL-METHOD">DEFINE-SIGNAL-METHOD</a></h4>
                       <span/>
-                      <span>(NAME ARGS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Shorthand to define wrapper methods for the given signal.
@@ -1305,7 +1752,7 @@ method to call is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SLOT">DEFINE-SLOT</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS SLOT &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Define a new SLOT on WIDGET-CLASS with ARGS.
@@ -1320,7 +1767,7 @@ specialises (and binds) on WIDGET-CLASS, with additional required arguments
 ARGS, and a SLOT declaration. Additionally, the body is wrapped in a
 WITH-SLOTS-BOUND to allow for convenient slot access.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots</pre>
                 </article>
@@ -1332,7 +1779,7 @@ See CommonQt/slots</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SUBWIDGET">DEFINE-SUBWIDGET</a></h4>
                       <span/>
-                      <span>((WIDGET-CLASS NAME) INITFORM &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Defines a new sub-widget of NAME on WIDGET-CLASS.
@@ -1352,7 +1799,7 @@ See QTOOLS:DEFINE-INITIALIZER</pre>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-WIDGET">DEFINE-WIDGET</a></h4>
                       <span/>
-                      <span>(NAME (QT-CLASS &amp;REST DIRECT-SUPERCLASSES) DIRECT-SLOTS &amp;REST OPTIONS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Shorthand over DEFCLASS.
@@ -1366,29 +1813,50 @@ All options are fused as per FUSE-ALISTS. You may therefore use
 the same form multiple times.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:DEFMETHOD"/>
+                <a name="QTOOLS:Q+"/>
                 <article>
                   <header>
                     <span>MACRO</span>
                     <code>
-                      <h4><a href="#QTOOLS:DEFMETHOD">DEFMETHOD</a></h4>
+                      <h4><a href="#QTOOLS:Q+">Q+</a></h4>
                       <span/>
-                      <span>(&amp;WHOLE WHOLE NAME &amp;REST ARGS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
-                  <pre>Defines a new method.
+                  <pre>Emits a function call to the Q+ FUNCTION with ARGS.
 
-This is identical to CL:DEFMETHOD with one exception:
-The only difference is that declarations are scanned and
-potentially specially processed. If a declaration is
-recognised through METHOD-DECLARATION, it is taken out of
-the method definition. The declaration processor function
-then may or may not cause side-effects or spit out
-additional forms to be output alongside the CL:DEFMETHOD
-form.
+This macro does a bit of a complicated thing:
+Firstly, it calls ENSURE-Q+-METHOD on FUNCTION to
+make sure that the function object exists at compile
+time. Then it emits a PROGN form that contains two
+forms, the first of which is a LOAD-TIME-VALUE form
+with a call to ENSURE-Q+-METHOD again. This is required
+since the function compiled by ENSURE-Q+-METHOD is not
+dumped to file anywhere and thus must be recreated at
+load time to be available. The second form in the PROGN
+is the actual function call, using the proper symbol
+from the *TARGET-PACKAGE*.
 
-See CL:DEFMETHOD.
-See QTOOLS:METHOD-DECLARATION.</pre>
+See QTOOLS:ENSURE-Q+-METHOD</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:Q+FUN"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:Q+FUN">Q+FUN</a></h4>
+                      <span/>
+                      <span>(&amp;REST ARGS)</span>
+                    </code>
+                  </header>
+                  <pre>Emits a form that evaluates to the function object of FUNCTION.
+
+Specifically, it returns a LOAD-TIME-VALUE form that evaluates to
+the function object, while ensuring that the function does indeed
+exist.
+
+See QTOOLS:ENSURE-Q+-METHOD</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:QTENUMCASE"/>
@@ -1398,7 +1866,7 @@ See QTOOLS:METHOD-DECLARATION.</pre>
                     <code>
                       <h4><a href="#QTOOLS:QTENUMCASE">QTENUMCASE</a></h4>
                       <span/>
-                      <span>(KEYFORM &amp;BODY FORMS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Just like CASE, but for Qt enums using QT:ENUM=.</pre>
@@ -1411,7 +1879,7 @@ See QTOOLS:METHOD-DECLARATION.</pre>
                     <code>
                       <h4><a href="#QTOOLS:SIGNAL!">SIGNAL!</a></h4>
                       <span/>
-                      <span>(OBJECT FUNCTION &amp;REST ARGS)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Macro for a more lisp-y writing of EMIT-SIGNAL.
@@ -1426,7 +1894,7 @@ The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                     <code>
                       <h4><a href="#QTOOLS:WITH-FINALIZING">WITH-FINALIZING</a></h4>
                       <span/>
-                      <span>(BINDINGS &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Executes the body as by LET and calls FINALIZE on all the objects introduced by
@@ -1441,7 +1909,7 @@ all objects bound up until that point are still finalized.</pre>
                     <code>
                       <h4><a href="#QTOOLS:WITH-FINALIZING*">WITH-FINALIZING*</a></h4>
                       <span/>
-                      <span>(BINDINGS &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Executes the body as by LET* and calls FINALIZE on all the objects introduced by
@@ -1456,7 +1924,7 @@ all objects bound up until that point are still finalized.</pre>
                     <code>
                       <h4><a href="#QTOOLS:WITH-GC-FINALIZED">WITH-GC-FINALIZED</a></h4>
                       <span/>
-                      <span>(BINDINGS &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Creates bindings as per LET with the special note that each value of a binding is wrapped
@@ -1474,11 +1942,26 @@ automatically ensured to be GC-ed and FINALIZEd once the body exits.</pre>
                     <code>
                       <h4><a href="#QTOOLS:WITH-SLOTS-BOUND">WITH-SLOTS-BOUND</a></h4>
                       <span/>
-                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
+                      <span>(&amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Turns into a WITH-SLOTS with all direct-slots of CLASS.
 Class is resolved as per ENSURE-CLASS.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:*GENERATED-MODULES*"/>
+                <article>
+                  <header>
+                    <span>SPECIAL</span>
+                    <code>
+                      <h4><a href="#QTOOLS:*GENERATED-MODULES*">*GENERATED-MODULES*</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>A list of loaded smoke modules when PROCESS-ALL-METHODS is called.
+This is useful to keep track over environments which modules are
+actually available for compilation.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:*METHOD*"/>
@@ -1495,6 +1978,41 @@ Class is resolved as per ENSURE-CLASS.</pre>
 If you modify the contents of this variable, the changes will be reflected
 in the outputted method definition form. However, no declaration that is
 processed by method-declarations will ever appear in the output.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:*OPERATOR-MAP*"/>
+                <article>
+                  <header>
+                    <span>SPECIAL</span>
+                    <code>
+                      <h4><a href="#QTOOLS:*OPERATOR-MAP*">*OPERATOR-MAP*</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>A hash-table of C++ operators to CL function names.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:*QMETHODS*"/>
+                <article>
+                  <header>
+                    <span>SPECIAL</span>
+                    <code>
+                      <h4><a href="#QTOOLS:*QMETHODS*">*QMETHODS*</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>Table mapping a *TARGET-PACKAGE* symbol to a list of
+associated Qt methods. This table should only be changed
+by PROCESS-METHOD. If you modify yourself without knowing
+exactly what you're doing you'll most likely run into problems.
+
+Methods/functions contained in this table are available
+for compilation.
+
+See QTOOLS:PROCESS-METHOD
+See QTOOLS:COMPILE-WRAPPER</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:*QT-CLASS-MAP*"/>
@@ -1521,6 +2039,40 @@ processed by method-declarations will ever appear in the output.</pre>
                     </code>
                   </header>
                   <pre>A vector of all Qt4.8 class names as strings.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:*SMOKE-MODULES*"/>
+                <article>
+                  <header>
+                    <span>SPECIAL</span>
+                    <code>
+                      <h4><a href="#QTOOLS:*SMOKE-MODULES*">*SMOKE-MODULES*</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>A list of all possible smoke modules.
+
+These modules provide the C wrappers required to work with
+the respective Qt parts. Usually you will only need
+QTCORE and QTGUI, but for example if you need OpenGL support
+you'll want QTOPENGL, or if you need phonon, you'll want
+the PHONON module.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:*TARGET-PACKAGE*"/>
+                <article>
+                  <header>
+                    <span>SPECIAL</span>
+                    <code>
+                      <h4><a href="#QTOOLS:*TARGET-PACKAGE*">*TARGET-PACKAGE*</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre>The package used to store Qt wrapper functions that the Q+ system uses.
+By default this package is called &quot;Q+&quot;. The package should not contain
+any systems except for those generated by Qtools.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:*WIDGET*"/>
