@@ -23,7 +23,8 @@
   ;; dynamic.lisp
   (:export
    #:ensure-q+-method
-   #:q+)
+   #:q+
+   #:q+fun)
   ;; finalizable.lisp
   (:export
    #:finalizable-class

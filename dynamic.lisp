@@ -60,6 +60,16 @@ See QTOOLS:ENSURE-Q+-METHOD"
        (load-time-value (ensure-q+-method ',function))
        (,symbol ,@args))))
 
+(defmacro q+fun (function)
+  "Emits a form that evaluates to the function object of FUNCTION.
+
+Specifically, it returns a LOAD-TIME-VALUE form that evaluates to
+the function object, while ensuring that the function does indeed
+exist.
+
+See QTOOLS:ENSURE-Q+-METHOD"
+  `(load-time-value (symbol-function (ensure-q+-method ,function))))
+
 ;;;;;
 ;; SETF
 
@@ -204,3 +214,16 @@ See QTOOLS:*STANDARD-PAREN-READER*"
         (funcall *standard-paren-reader* stream char)))
 
   (set-macro-character #\( #'read-paren NIL (named-readtables:find-readtable :qtools)))
+
+(defvar *standard-function-reader* (get-dispatch-macro-character #\# #\')
+  "Contains the dispatch macro character associated with the #' function in the standard readtable.")
+(progn
+  (defun read-function (stream subchar arg)
+    "Special #' reader macro that dispatches if a reference to a Q+ function is noticed.
+If such a symbol is noticed, it instead emits a call to the Q+FUN"
+    (if (q+-symbol-p stream)
+        (let ((name (q+-symbol-name (read-name stream))))
+          `(q+fun ,name))
+        (funcall *standard-function-reader* stream subchar arg)))
+
+  (set-dispatch-macro-character #\# #\' #'read-function (named-readtables:find-readtable :qtools)))
