@@ -105,7 +105,12 @@ The reader macros `#<` to call `unbox` and `#>` to call `make-gc-finalized` on t
 The Qtools readtable also deals with the Q+ system.
 
 ### Q+
-By default with CommonQt, calling Qt methods happens with the `#_` reader macro. This requires you to follow the proper case of the class and method names. Having this kind of mixture of conventions in the code is a bit jarring. While Qtools offers solutions to deal with the discrepancies of defining your own classes and widgets using the various `define-*` macros, Q+ fixes the method calling discrepancy. In order to use Q+ you have a choice of either using the `q+` macro, or using the `:qtools` read-table. Using the `q+` macro directly an example looks like this:
+By default with CommonQt, calling Qt methods happens with the `#_` reader macro. This requires you to follow the proper case of the class and method names. Having this kind of mixture of conventions in the code is a bit jarring. While Qtools offers solutions to deal with the discrepancies of defining your own classes and widgets using the various `define-*` macros, Q+ fixes the method calling discrepancy. In order to use Q+ you have a choice of either using the `q+` macro, or using the `:qtools` read-table. Using the `q+` macro directly an example translates like this:
+
+    (let ((widget (#_new QWidget)))
+      (#_setWindowTitle widget "Hello!")
+      (#_show widget)
+      (#_exec *qapplication*))
 
     (let ((widget (q+ make-qwidget)))
       (q+ set-window-title widget "Hello!")

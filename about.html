@@ -150,9 +150,14 @@
 
 <h3>Q+</h3>
 
-<p>By default with CommonQt, calling Qt methods happens with the <code>#_</code> reader macro. This requires you to follow the proper case of the class and method names. Having this kind of mixture of conventions in the code is a bit jarring. While Qtools offers solutions to deal with the discrepancies of defining your own classes and widgets using the various <code>define-*</code> macros, Q+ fixes the method calling discrepancy. In order to use Q+ you have a choice of either using the <code><a href="#QTOOLS:Q+">q+</a></code> macro, or using the <code>:qtools</code> read-table. Using the <code><a href="#QTOOLS:Q+">q+</a></code> macro directly an example looks like this:</p>
+<p>By default with CommonQt, calling Qt methods happens with the <code>#_</code> reader macro. This requires you to follow the proper case of the class and method names. Having this kind of mixture of conventions in the code is a bit jarring. While Qtools offers solutions to deal with the discrepancies of defining your own classes and widgets using the various <code>define-*</code> macros, Q+ fixes the method calling discrepancy. In order to use Q+ you have a choice of either using the <code><a href="#QTOOLS:Q+">q+</a></code> macro, or using the <code>:qtools</code> read-table. Using the <code><a href="#QTOOLS:Q+">q+</a></code> macro directly an example translates like this:</p>
 
-<pre><code>(<a href="http://l1sp.org/cl/let">let</a> ((widget (<a href="#QTOOLS:Q+">q+</a> make-qwidget)))
+<pre><code>(<a href="http://l1sp.org/cl/let">let</a> ((widget (#_new QWidget)))
+  (#_setWindowTitle widget &quot;Hello!&quot;)
+  (#_show widget)
+  (#_exec *qapplication*))
+
+(<a href="http://l1sp.org/cl/let">let</a> ((widget (<a href="#QTOOLS:Q+">q+</a> make-qwidget)))
   (<a href="#QTOOLS:Q+">q+</a> set-window-title widget &quot;Hello!&quot;)
   (<a href="#QTOOLS:Q+">q+</a> show widget)
   (<a href="#QTOOLS:Q+">q+</a> exec *qapplication*))
