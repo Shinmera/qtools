@@ -119,7 +119,13 @@
    #:define-initializer
    #:define-finalizer
    #:define-signal
-   #:define-subwidget)
+   #:define-subwidget
+   #:remove-slot
+   #:remove-override
+   #:remove-initializer
+   #:remove-finalizer
+   #:remove-signal
+   #:remove-subwidget)
   ;; widget-defmethod.lisp
   (:export
    #:*method*

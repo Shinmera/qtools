@@ -27,7 +27,7 @@ specialises (and binds) on WIDGET-CLASS, with additional required arguments
 ARGS, and a SLOT declaration. Additionally, the body is wrapped in a
 WITH-SLOTS-BOUND to allow for convenient slot access.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots"
   (setf method-name (or method-name (intern (format NIL "%~a-SLOT-~a" widget-class slot) *package*)))
@@ -47,7 +47,7 @@ This is translated to a method definition with METHOD-NAME that specialises
 declaration in the body. Additionally, the body is wrapped in a WITH-SLOTS-BOUND
 to allow for convenient slot access.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/override"
   (setf method-name (or method-name (intern (format NIL "%~a-OVERRIDE-~a" widget-class override) *package*)))
@@ -65,7 +65,7 @@ executed. They are executed in order of highest PRIORITY first.
 This is translated to a method definition specialised (and bound) on WIDGET-CLASS
 with a INITIALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND"
   `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class))
      (declare (initializer ,priority))
@@ -84,7 +84,7 @@ of highest PRIORITY first.
 This is translated to a method definition specialised (and bound) on WIDGET-CLASS
 with a FINALIZER declaration. The BODY is wrapped in a WITH-SLOTS-BOUND form.
 
-See QTOOLS:DEFMETHOD
+See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See QTOOLS:FINALIZE"
   `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class))
@@ -105,6 +105,9 @@ See CommonQt/signals"
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (set-widget-class-option ',widget-class :signals '(,(qtools:specified-type-method-name signal args)))))
 
+(defun subwidget-initializer-symbol (widget-class name)
+  (intern (format NIL "%~a-SUBWIDGET-~a-INITIALIZER" widget-class name) *package*))
+
 (defmacro define-subwidget ((widget-class name) initform &body body)
   "Defines a new sub-widget of NAME on WIDGET-CLASS.
 
@@ -114,10 +117,67 @@ is set to the value returned by the INITFORM, after which BODY is run. BODY
 is wrapped in a WITH-SLOTS-BOUND form, so all slots are conveniently available.
 
 See QTOOLS:DEFINE-INITIALIZER"
-  (let ((initfunc (intern (format NIL "%~a-SUBWIDGET-~a-INITIALIZER" widget-class name) *package*)))
+  (let ((initfunc (subwidget-initializer-symbol widget-class name)))
     `(progn
        (eval-when (:compile-toplevel :load-toplevel :execute)
          (set-widget-class-option ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL :finalized T) :key #'second))
        (define-initializer (,widget-class ,initfunc 10)
          (setf (slot-value ,widget-class ',name) ,initform)
          ,@body))))
+
+(defun remove-slot (widget-class slot)
+  "Removes the SLOT definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS"
+  (remove-widget-class-option (ensure-class widget-class) :slots slot))
+
+(defun remove-override (widget-class override)
+  "Removes the OVERRIDE definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the override.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS"
+  (remove-widget-class-option (ensure-class widget-class) :override override))
+
+(defun remove-initializer (widget-class initializer)
+  "Removes the INITIALIZER definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS"
+  (remove-widget-class-option (ensure-class widget-class) :initializers initializer))
+
+(defun remove-finalizer (widget-class finalizer)
+  "Removes the FINALIZER definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS"
+  (remove-widget-class-option (ensure-class widget-class) :finalizers finalizer))
+
+(defun remove-signal (widget-class signal)
+  "Removes the SIGNAL definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the slot.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS"
+  (remove-widget-class-option (ensure-class widget-class) :signals signal))
+
+(defun remove-subwidget (widget-class subwidget)
+  "Removes the SUBWIDGET definition from the WIDGET-CLASS.
+
+Note that this does not remove eventual methods associated with the subwidget.
+It does however remove the class-slot and initializer of the subwidget.
+
+See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
+See QTOOLS:ENSURE-CLASS"
+  (let ((class (ensure-class widget-class)))
+    (remove-widget-class-option class :direct-slots subwidget :key #'second)
+    (remove-initializer class (subwidget-initializer-symbol (class-name class) subwidget))))
