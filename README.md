@@ -100,7 +100,47 @@ A frequent task is allowing the user to redefine the keyboard shortcuts of menu 
 ### Readtable
 CommonQt provides a necessary readtable to add a convenient way to write foreign calls. Qtools provides its own named-readtable (`:qtools`) that inherits from this readtable, but adds some minor tweaks.
 
-Currently, the reader macros `#<` to call `unbox` and `#>` to call `make-gc-finalized` on the following object are available.
+The reader macros `#<` to call `unbox` and `#>` to call `make-gc-finalized` on the following object are available.
+
+The Qtools readtable also deals with the Q+ system.
+
+### Q+
+By default with CommonQt, calling Qt methods happens with the `#_` reader macro. This requires you to follow the proper case of the class and method names. Having this kind of mixture of conventions in the code is a bit jarring. While Qtools offers solutions to deal with the discrepancies of defining your own classes and widgets using the various `define-*` macros, Q+ fixes the method calling discrepancy. In order to use Q+ you have a choice of either using the `q+` macro, or using the `:qtools` read-table. Using the `q+` macro directly an example looks like this:
+
+    (let ((widget (q+ make-qwidget)))
+      (q+ set-window-title widget "Hello!")
+      (q+ show widget)
+      (q+ exec *qapplication*))
+
+And the same using the readtable:
+
+    (let ((widget (q+:make-qwidget)))
+      (q+:set-window-title widget "Hello!")
+      (q+:show widget)
+      (q+:exec *qapplication*))
+
+The difference is minimal in the typed code. However, the second approach will give you the convenience of letting the editor display the possible arguments and a docstring linking to the Qt methods. The second example is read by the Common Lisp reader to the first example. There is therefore no code difference in how the two work. If you use the `cl+qt` package, you can also take advantage of an extended `setf` macro. Using it, the second line would look like so:
+
+    (setf (q+ window-title widget) "Hello!")
+
+Some of the setter functions require multiple values to be set at once. The updated `setf` can also deal with that:
+
+    (setf (q+ window painter) (values 0 0 100 100))
+
+The `setf` has extra support for `q+`, but is otherwise identical to `cl:setf` and actually expands to that for all other places.
+
+In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly
+
+### Smoke Modules
+CommonQt uses the SmokeQt library to interface with Qt. Smoke is divided up into different modules that provide parts of the Qt framework. In order to be able to use the various parts of Qt, these modules need to be loaded. By default CommonQt loads `qtcore` and `qtgui` when `make-qapplication` is called. However, if you want to use, say, the OpenGL parts you'll also need `qtopengl`.
+
+Qtools provides ASDF systems for all the different smoke modules. That way, you can simply push the modules you want into your project's ASDF system dependencies and it'll ensure that the modules are available at compile and load time. Having the modules loaded at both times is especially important for Q+ to work properly. An example system making use of this would look like
+
+    (asdf:defsystem foo
+      ...
+      :depends-on (:qtcore :qtgui))
+
+For a list of available smoke modules, see `*smoke-modules*`.
 
 ## Extending Qtools
 
@@ -127,10 +167,56 @@ The menu definition form allows for arbitrary content types, so you may add new 
 ## Debugging Qtools
 Since Qtools does a bunch of contrived things, you might want to check what exactly is done if something doesn't go according to plan. I'm not excluding the possibility of bugs being around that mess your code up. In order to check this, you will want to load [verbose](http://shinmera.github.io/verbose/) before loading Qtools and set the logging level to trace: `(setf (v:repl-level) :trace)`. Qtools will emit log messages when you compile `define-widget` forms that contain the generated options. It will also log all objects that get passed to `finalize` and `copy`. Hopefully the log output will help you in discovering what's going on behind the scenes.
 
+## Qtools Concepts
+Qtools has grown to be a large library with a lot of rather complicated concepts. I will try to describe them here, in order to retain some information in non-code form and make things clearer to the average user. It is not necessary to read and understand this section to use Qtools, but it may be useful to be aware of the underlying ideas and functionality that make Qtools work.
+
+### Finalizables
+A finalizable is implemented using two classes, one serving as the metaclass and the other as a superclass. The metaclass is required in order to allow a custom slot type that supports the `:finalized` argument. The superclass is necessary in order to allow methods such as `finalize` to operate on instances of the finalizable classes. The handling of the finalized slots is done through a general method on `finalize` that scans through the slots of the class instance and then calls `finalize` on each slot for which the definition is set to be `:finalized`. This makes finalization of class slots automatic and convenient.
+
+Since finalizables don't add any metaclass properties, there is no need to manually calculate inheritance order. However, as with all custom slot definitions, the slot properties must be copied over from the direct-slot instance to the effective slot. In the case of `finalizable-class` this happens in `compute-effective-slot-definition`.
+
+In order to support finalizing of Qt class instances that don't have a CL class equivalent, the `finalize` method is extended wit ha `finalize-using-class` that is dispatched to using the Qt class and the instance of a `qobject` instance is passed to `finalize`.
+
+### Widgets
+As with finalizables, the widget is implemented using two classes, the `widget-class` metaclass and the `widget` superclass. These both inherit from the finalizable equivalents. The main crux of the `widget-class` lies in its `widget-class-direct-options` and `widget-class-extern-options`. The direct options are the options that are passed to a `re/` `initialize-instance` (and thus also to `defclass`). They're caught in the appropriately specialised methods and then stored on the class. The effect of this is that we can fully recompute the class definition at any time, and potentially add or remove options without influencing the original `defclass` statement. This is where the extern-options come in.
+
+Using `set-widget-class-option` options can be added to the class definition dynamically at any point in the program. This function then adds the option to the class' extern-options and then calls `reinitialize-instance`, which in turn causes the class to get effectively redefined outside of its `defclass` form. This redefinition also allows us to change CommonQt class options. Using this we can create forms outside of the original `defclass` that act as if they were actually options in the `defclass` form.
+
+Qtools effectively only provides two forms that do this: `define-signal` and `defmethod`. The `define-signal` is relatively straightforward and simply expands to a class option set to add a new signal option. The `defmethod` is an extensible machine in itself.
+
+What's special about the `cl+qt:defmethod` is that it inspects the declaration forms in the method body. It then checks for each declaration form whether a handler function exist and if so, calls that function. Such a `method-declaration` function can then return forms to be put into the macroexpansion of the `cl+qt:defmethod`, before the resulting `cl:defmethod`. The processed declaration is then left out of the `cl:defmethod`form as it is assumed that it isn't a standard common lisp declaration. However, the declaration function also has the ability to change the contents of the `cl:defmethod` form itself, by manipulating `*method*`. This allows the declaration to output special handling for the method body, for example.
+
+This kind of extensible declaration mechanism is necessary both to allow further evolving of Qtools in the future as well as adaptation by users. It also offers a very "native-like" way of specifying external effects of a method. Qtools uses this construct then to allow definition of slots, overrides, finalizers, and initializers.
+
+In case the user doesn't appreciate the `defmethod` way, Qtools then provides `define-*` alternative functions that simply wrap over `defmethod`, establish some default bindings, and take care of naming and specialising the method.
+
+The `define-subwidget` deserves special attention here, as it does more work than the rest. A large part of defining widgets is adding sub-components to it, which is a task that usually involves a lot of repetition or awkward function sharing: Setting up a slot to hold the instance, defining or using an initializer to set it up. `define-subwidget` makes this both distributed and simple by both taking care of setting up an appropriate initializer function, and automatically adding the slot to the class using, again, `set-widget-class-option`. This slot is also always automatically set to be `finalized` in order to ensure that all widgets are properly cleaned up when the GUI is no longer needed.
+
+A minor problem regarding this approach is the same problem that appears with all of CL's definition forms. While developing incrementally, merely removing the definition form from the source file, will not actually remove it from the image. This can trip developers up, as definitions will still be active later. In this case it means having widgets still sticking around, or initializers running, etc. For this purpose there are corresponding `remove-*` functions to all the `define-*` functions to allow easy removal. This part cannot possibly be automated due to the nature of Common Lisp, but it is at least simple to correct should the need arise.
+
+### Q+
+CommonQt's way of dealing with method calls is the simple and most direct way of doing it. The first possible alternative to remove the need for typing method names in their corresponding case would be to simply introduce a different reader macro that automatically translates a `example-function`-like name into `exampleFunction` as is done already in other parts of Qtools. However, this has two downsides, the first being that there does not exist a 1:1 mapping of methods anywhere. The dynamic computation of the function name means that there isn't a full correspondence table anywhere. The second downside is that methods are still not passable as first-class objects.
+
+The way to solve this is to generate actual CL wrapper functions to the method calls. This allows us to use them as first-class objects, have at least compile-time argument number checking, and have a linkage of wrapper name to Qt method by listing it in the docstring.
+
+In order to achieve this, there are two possible choices. First, the entirety of all possible wrappers can be computed once, and then subsequently loaded into the image and used directly. However, this creates two new problems. Computing all wrappers, compiling them, and loading them, takes a long time and subsequently litters the image with thousands of functions and symbols that won't ever be used in the program. Then, we have a problem with the smoke modules, as we need to know which modules will be used in a potential application ahead of time, load them all, and then generate the wrappers. We cannot generate wrappers for each module separately, as the methods from different classes share the same wrapper functions. This means that whenever a different set of modules is needed, the wrappers need to be regenerated, recompiled, and reloaded. A lot of time and space goes to waste with this. However, this approach also has an advantage: As all functions are always available, it is easy to develop with. Arguments and docstrings will be readily available through the editor. Qtools offers this approach through `q+-compile-and-load`.
+
+The second approach is to dynamically only compile what is needed. That way, the image only ever contains wrappers for function that are actually called (at some point). However, this complicates things a lot. When a function is compiled that calls such a function, it doesn't exist yet. Even worse, when the form is read, the symbol for the function does not exist yet and isn't external! In order to catch this problem, a modified reader macro is necessary. This reader macro will detect when a call to a wrapper function is made, and instead transform it into a macro call that then sees to it that the wrapper will be created. Modifying the reader in such a way is a heavy change, and should only be used sparingly, however there is no alternative here. Qtools does not force you to use this reader extension, you can always just use the macro directly.
+
+However, dynamic compilation complications don't end there. Since we never dump the function to a file, it only ever exists in the environment it was compiled in. That means, if you compile a function that then dynamically generates the wrapper function, the wrapper won't be available anymore at load time. Qtools solves this issue with a trick. The `q+` macro expands to a `load-time-value` form that then generates the wrapper function. That way, the wrapper will always be available at load- and execution time, while posing no overhead to the execution time, as it will return a value to that won't impact anything.
+
+Function referencing gets the same problems as function calling, so the Qtools readtable also contains an overridden `#'` reader macro to handle that. In the case of a wrapper call, it expands to `Q+FUN` which in turn expands to a `load-time-value` form that generates and returns the function object.
+
+As is probably obvious by now, Qtools also implements the second approach. Therefore, the choice as a user is yours: You can statically precompile everything and use it directly, or you an use the dynamic on the fly compilation using either a readtable expansion, or a simple macro. The concepts to make this all possible are rather complex, but the actual function wrapper compilations are quite straight-forward. The system is currently not suited for extension, but I see no need to allow that as the kind of Qt methods that can exist are fixed and Q+ should handle all that are relevant.
+
+Q+ does one last thing to fix the "issue" of having setters instead of being able to use `setf`. For this purpose it has an extended `setf` macro that checks if a place is a function in the Q+ package. if so, this place/value pair is instead expanded to a call to the appropriate wrapper function with the function name transformed. However, that's not the only reason to do this. The second is that some setters require multiple arguments to be set at once. Usually, `cl:setf` allows for cases like these by permitting setf expanders to accept multiple values. However, the number of values is fixed, and there's no way to dynamically know how many values where passed. Since Q+ needs to dispatch based on the number of values, this is not a viable approach. Therefore, with `cl+qt:setf` a `(values ..)` value form is specially treated and its arguments are inlined into the wrapper call. This also means that it isn't possible to use multiple values of a returning function as the values to a setter call, however while that is an inconsistency, I don't think it will be a big issue. If it turns out to be problematic in the later run, this will have to be changed to a dynamic analysis at run-time, which is an overhead I wanted to avoid.
+
+One final note about the dynamic approach and its readtable: In order to recognise whether a call to a symbol in the Q+ package is made, it needs to read ahead multiple symbols and call `unread-char` multiple times consecutively, if it turns out that it is not a Q+ reference. Multiple consecutive calls to `unread-char` are not permitted by the hyperspec, so a different approach should be found eventually. Right now, this is an unresolved kludge and I will see about fixing it once it causes real problems.
+
 ## Support
 Currently the following implementations are tested and supported by Qtools:
 
-* [SBCL](http://www.sbcl.org/) (1.2.4 Lin64)
+* [SBCL](http://www.sbcl.org/) (1.2.8 Lin64)
 * [CCL](http://ccl.clozure.com/) (1.10 Lin64)
 
 It may or may not work more or less smoothly on other implementations and platforms depending on MOP and CommonQt support and general implementation quirks.
