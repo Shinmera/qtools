@@ -7,7 +7,7 @@
 (in-package #:cl-user)
 (asdf:defsystem qtools
   :name "qTools"
-  :version "0.4.2"
+  :version "0.5.1"
   :license "Artistic"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
