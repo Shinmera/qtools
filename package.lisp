@@ -37,7 +37,9 @@
    #:define-finalize-method
    #:describe-finalize-method
    #:with-finalizing
-   #:with-finalizing*)
+   #:with-finalizing*
+   #:with-main-window)
+  (:shadow #:with-main-window)
   ;; gc-finalized.lisp
   (:export
    #:gc-finalized
@@ -152,6 +154,8 @@
 (defpackage #:cl+qt
   (:nicknames #:org.shirakumo.qtools+common-lisp)
   (:use #:cl #:qt #:qtools)
+  (:import-from #:named-readtables #:in-readtable)
+  (:shadowing-import-from #:qt #:with-main-window)
   (:shadow #:setf #:defmethod))
 
 (do-symbols (symbol '#:cl+qt)

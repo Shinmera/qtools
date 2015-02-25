@@ -213,3 +213,13 @@ all objects bound up until that point are still finalized."
                                   (,values (push ,var ,values))))
               ,@body)
          (mapc #'finalize ,values)))))
+
+(defmacro with-main-window ((window instantiator) &body body)
+  "Identical to QT:WITH-MAIN-WINDOW with the exception of using FINALIZE to clean up
+the main window."
+  `(progn
+     (make-qapplication)
+     (with-finalizing ((,window ,instantiator))
+       ,@body
+       (#_show ,window)
+       (#_exec *qapplication*))))
