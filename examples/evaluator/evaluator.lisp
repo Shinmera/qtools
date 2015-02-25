@@ -4,7 +4,6 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:cl-user)
 (defpackage #:qtools-evaluator
   (:nicknames #:org.shirakumo.qtools.evaluator)
   (:use #:cl+qt #:trivial-gray-streams)

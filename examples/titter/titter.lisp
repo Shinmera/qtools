@@ -5,6 +5,7 @@
 |#
 
 (defpackage #:titter
+  (:nicknames #:org.shirakumo.qtools.titter)
   (:use #:cl+qt)
   (:export #:main))
 (in-package #:titter)
