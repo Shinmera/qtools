@@ -133,6 +133,7 @@
   (:export
    #:*method*
    #:method-declaration
+   #:with-widget-class
    #:remove-method-declaration
    #:define-method-declaration
    #:slot

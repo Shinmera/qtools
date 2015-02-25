@@ -81,6 +81,8 @@ See QTOOLS:METHOD-DECLARATION."
        ,*method*)))
 
 (defmacro with-widget-class ((variable &optional (method '*method*)) &body body)
+  "Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.
+This also signals errors if there is no such specializer or if it is invalid."
   `(let ((,variable (second (first (form-fiddle:lambda-lambda-list ,method)))))
      (assert (not (null ,variable)) () "Method must have a primary specializer.")
      (assert (not (listp ,variable)) () "Primary specializer cannot be an EQL-specializer.")
