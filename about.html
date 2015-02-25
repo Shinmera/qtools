@@ -29,96 +29,147 @@
 
 <p>Qtools is a collection of utilities to help development with CommonQt. There are a lot of things in there, from name mapping over garbage handling to widget class definition. Some tools are straightforward, others are quite complex. I'll try to explain everything as best I can.</p>
 
-<h2>How To</h2>
+<h2>Fundamentals</h2>
 
-<p>For Qtools to work you'll obviously need a working <a href="http://common-lisp.net/project/commonqt/">CommonQt</a>. Knowing a bit about CommonQt and Qt development will also help in understanding these tools.</p>
+<p>There are three layers working beneath Qtools, of which you need to know about in order to understand how to use the various facilities Qtools offers.</p>
 
-<h3>Basic Tools</h3>
+<h3><a href="http://qt-project.org/doc/qt-4.8/">Qt</a></h3>
 
-<h4>Names</h4>
+<p>Qt is a gigantic toolkit that mainly concerns itself with GUI creation. It is cross-platform and written in C++. While its size and large user-base means that it is very mature and usable for pretty much any kind of GUI, the fact that it's written in C++ makes things complicated. The usual way to interoperate with C++ libraries and projects is to create a C API wrapper.</p>
 
-<p>Since Qt is a C++ library we're dealing with different naming conventions and different type designators. Qtools offers some help in dealing with both. Mapping more lisp-y class names to the equivalent Qt class names can be done with <code><a href="#QTOOLS:FIND-QT-CLASS-NAME">find-qt-class-name</a></code>. It translates things like the symbol <code>qwidget</code>, or even <code>q-widget</code> into <code>&quot;QWidget&quot;</code>. In order to guess the correct capitalisation it uses a predefined set of names from <code><a href="#QTOOLS:*QT-CLASS-MAP*">*qt-class-map*</a></code>.</p>
+<h3><a href="https://techbase.kde.org/Development/Languages/Smoke">Smoke</a></h3>
 
-<p>Translating a lispy function name symbol into a C++ method name can be done with <code><a href="#QTOOLS:TO-METHOD-NAME">to-method-name</a></code>. Example, <code><a href="#QTOOLS:TO-METHOD-NAME">to-method-name</a></code> would become <code>&quot;toMethodName&quot;</code>.</p>
+<p>And this is what Smoke does. It generates a C wrapper so that other languages can make use of Qt through C-FFI. Smoke is divided up into a bunch of modules, each being associated with a part of Qt, such as qtcore, qtgui, qtopengl, phonon, etc.</p>
 
-<p>C++/Qt also has a different set of types than CL, but we need the type names to define things like signals and slots. The functions <code><a href="#QTOOLS:QT-TYPE-OF">qt-type-of</a></code>, <code><a href="#QTOOLS:QT-TYPE-FOR">qt-type-for</a></code>, <code><a href="#QTOOLS:TO-TYPE-NAME">to-type-name</a></code>, <code><a href="#QTOOLS:CL-TYPE-FOR">cl-type-for</a></code>, <code><a href="#QTOOLS:EQT-TYPE-OF">eqt-type-of</a></code> and <code><a href="#QTOOLS:ECL-TYPE-FOR">ecl-type-for</a></code> can help with that by attempting to translate between the two worlds. Using these may be dangerous, as the type information might be ambiguous or no proper translation exists at all, so the results might not always be exactly what you need.</p>
+<h3><a href="http://common-lisp.net/project/commonqt/">CommonQt</a></h3>
 
-<p>Also useful for full method name (including argument types) translation are <code><a href="#QTOOLS:DETERMINED-TYPE-METHOD-NAME">determined-type-method-name</a></code> and <code><a href="#QTOOLS:SPECIFIED-TYPE-METHOD-NAME">specified-type-method-name</a></code>.</p>
+<p>The heavy lifting and ground-work that is required to interface with Smoke (and thus with Qt) is done by CommonQt. By itself, CommonQt offers a complete framework to create Qt GUIs from Common Lisp out.</p>
 
-<h4>Other Stuff</h4>
+<h3><a href="https://shinmera.github.io/qtools/">Qtools</a></h3>
 
-<p>Aside from name handling, Qtools also offers some convenience functions like <code>copy-qobject</code>, <code><a href="#QTOOLS:MAYBE-DELETE-QOBJECT">maybe-delete-qobject</a></code> and <code><a href="#QTOOLS:QTENUMCASE">qtenumcase</a></code> to ease handling of Qt objects.</p>
+<p>Unfortunately, working with CommonQt itself is a bit awkward. While it offers everything you need, the way you have to make use of it is sub-par. Qtools attempts to help with this by offering another layer over CommonQt to smooth everything out. However, since you might not like certain parts of the Qtools ecosystem, it should be possible for you to only use the features you like, rather than being forced to use everything. So, you can always mix and match &quot;plain&quot; CommonQt and Qtools extensions.</p>
 
-<h3>Working Without GC</h3>
+<h2>Getting Started</h2>
 
-<p>One major headache when working with CommonQt is the lack of garbage collection for Qt objects. This is something that is unavoidable, short of adding a garbage collector C++-side, and even then synchronising the two worlds would be a big undertaking. Qtools attempts to ease the pain by providing functions to at least have some form of GC, or in the very least minimise the need to keep track of instances.</p>
+<p>Before getting started with explaining the details on the various parts of Qtools, I'll go through a basic project setup of a project using it.</p>
 
-<p>Central to this effort is the <code><a href="#QTOOLS:FINALIZE">finalize</a></code> generic function. This function should be called on any object that you want to discard. By default, objects of type <code>abstract-qobject</code> and <code><a href="#QTOOLS:FINALIZABLE">finalizable</a></code> are specially handled. Qobjects are automatically deleted so they won't linger on the C++ side and <code><a href="#QTOOLS:FINALIZABLE">finalizable</a></code>s are taken care of by calling <code><a href="#QTOOLS:FINALIZE">finalize</a></code> on all their <code><a href="#QTOOLS:FINALIZED">finalized</a></code> slots.</p>
+<p>First you will want an ASDF system to define your project. In its dependencies it should contain <code>:qtools</code> and the smoke modules you require, usually just <code>:qtcore</code> and <code>:qtgui</code>.</p>
 
-<p>The <code><a href="#QTOOLS:FINALIZABLE">finalizable</a></code> class (which you can subclass with <code><a href="#QTOOLS:DEFINE-FINALIZABLE">define-finalizable</a></code>) offers a different slot type with the extra argument <code>:finalizable</code>. If that argument is non-NIL, the slot's value is <code><a href="#QTOOLS:FINALIZE">finalize</a></code>d when the object is <code><a href="#QTOOLS:FINALIZE">finalize</a></code>d. Of course you don't need to use the <code><a href="#QTOOLS:FINALIZED">finalized</a></code> class and can instead define methods for your own classes to handle cleanup explicitly.</p>
-
-<p>If you only need to have certain objects around for the duration of a let body or something similar, you may find the <code><a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a></code> and <code><a href="#QTOOLS:WITH-FINALIZING*">with-finalizing*</a></code> functions of use.</p>
-
-<p>As an attempt to automate garbage collection, you can also take advantage of the <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> object. This object is a container for another object. Once the gc-finalized object loses all its references and is then at some point hit by the GC, <code><a href="#QTOOLS:FINALIZE">finalize</a></code> is automatically invoked on the contained object. For this to work properly, the container needs to have references for as long as you need the inner object. This might be dangerous if, for example, your contained object is referenced on the C++ side, but the container loses all its references on the CL side. That would result in the C++ object being finalized (and thus deleted), which might cause instability. Always be sure to keep the references in sync if you use the <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> object.</p>
-
-<p>However, the <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> object can be useful when used with <code><a href="#QTOOLS:WITH-GC-FINALIZED">with-gc-finalized</a></code>, as an alternative to the <code><a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a></code> macro. With this macro, the values are automatically wrapped in a gc-finalized object, but also made convenient by providing a symbol-macro to automatically unwrap the contained object so it feels like a standard let. Once the block exits the objects are then not immediately finalized, but instead the containers lose their references and are thus garbage collected whenever the gc next hits.</p>
-
-<p>Even with these tools, keeping track of objects is a pain and something you'll have to be careful about. I wish there was a way to have full garbage collection, but alas, life is difficult.</p>
-
-<h3>Signals</h3>
-
-<p>Qtools offers some small macros to wrap around CommonQt's direct exposing of C++ names and types. This is especially noticeable with signals (the <code>connect</code> and <code>emit-signal</code> functions). To make these more lispy, you may use <code><a href="#QTOOLS:CONNECT!">connect!</a></code> and <code><a href="#QTOOLS:SIGNAL!">signal!</a></code>:</p>
-
-<pre><code>(<a href="#QTOOLS:CONNECT!">connect!</a> origin (signal-name int double) target (slot-name int double))
-(<a href="#QTOOLS:SIGNAL!">signal!</a> target slot-name (0 int) (1.0 double))
+<pre><code>(asdf:defsystem qtools-intro
+  ...
+  :depends-on (:qtools :qtcore :qtgui))
 </code></pre>
 
-<p>These still require explicit type declaration though. Unfortunately, this is often necessary due to ambiguity or type mismatch. If you're feeling lucky, you may use <code><a href="#QTOOLS:GENERIC-SIGNAL">generic-signal</a></code>, which attempts to statically and dynamically determine the proper types for its arguments:</p>
+<p>Then of course you'll usually want a package to put all your stuff in. Instead of <code>:use #:cl</code> you will most likely want to <code>:use #:cl+qt</code>. This package combines the symbols of the common-lisp base package, the commonqt package, and qtools. Thus all the symbols and functions you usually need for development are already included.</p>
 
-<pre><code>(<a href="#QTOOLS:GENERIC-SIGNAL">generic-signal</a> target 'slot-name 0 1.0)
+<pre><code>(<a href="http://l1sp.org/cl/defpackage">defpackage</a> #:qtools-intro
+  (:use #:cl+qt)
+  (:export #:main))
 </code></pre>
 
-<p>If you want to use <code><a href="#QTOOLS:GENERIC-SIGNAL">generic-signal</a></code> to dynamically determine only some arguments, you can wrap the ones you want to declare explicitly in a list:</p>
+<p>CommonQt, and Qtools itself, require a few extensions to the standard reader syntax. For this reason you will want to change the readtable using <code>named-readtables:in-readtable</code>, which <code>cl+qt</code> includes. Readtable changes are on a <em>per-file</em> basis, so you need both an <code><a href="http://l1sp.org/cl/in-package">in-package</a></code> and an <code>in-readtable</code> call on every file.</p>
 
-<pre><code>(<a href="#QTOOLS:GENERIC-SIGNAL">generic-signal</a> target 'slot-name dynamic `(,fixed double))
+<pre><code>(<a href="http://l1sp.org/cl/in-package">in-package</a> #:qtools-intro)
+(in-readtable :qtools)
 </code></pre>
 
-<h3>The Widget Class</h3>
+<p>This sets up everything you need to get started writing an actual GUI. So let's do that as well. In Qt things are organised as widgets. Windows are widgets, buttons are widgets, text fields are widgets, etc. Qtools mirrors this.</p>
 
-<p>CommonQt's default class adds options that are necessary for proper Qt integration, such as overrides, slots and signals. However, the usage thereof is a big annoying. Qtools offers a separate metaclass/class pair that should handle this much more elegantly. In order to define widgets, you should use <code><a href="#QTOOLS:DEFINE-WIDGET">define-widget</a></code>. This will automatically set the proper metaclass and superclasses:</p>
-
-<pre><code>(<a href="#QTOOLS:DEFINE-WIDGET">define-widget</a> my-widget (QWidget)
+<pre><code>(<a href="#QTOOLS:DEFINE-WIDGET">define-widget</a> main-window (QWidget)
   ())
 </code></pre>
 
-<p>As you can see, it doesn't require string-escaping the Qt class name, as it can leverage <code><a href="#QTOOLS:FIND-QT-CLASS-NAME">find-qt-class-name</a></code>. Aside form this minor convenience in definition shortage, a widget class keeps track of a few more things for you, which allow changing of class options outside of the definition form itself. This is useful precisely because it allows us to use a much more lispy approach to widget definition that would ordinarily be possible. With widgets you have access to <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code>, <code><a href="#QTOOLS:DEFINE-SLOT">define-slot</a></code>, <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>, <code><a href="#QTOOLS:DEFINE-INITIALIZER">define-initializer</a></code>, <code><a href="#QTOOLS:DEFINE-FINALIZER">define-finalizer</a></code>, <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code>, and <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code> that Qtools provides out of the box:</p>
+<p>This <code><a href="#QTOOLS:DEFINE-WIDGET">define-widget</a></code> form is syntactically equivalent to <code><a href="http://l1sp.org/cl/defclass">defclass</a></code>. The only change is that the first argument in the superclass list is the Qt class to inherit from. Now we'll want to add some things to display in the widget.</p>
 
-<pre><code>(<a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a> (my-widget chant) (<a href="http://l1sp.org/cl/string">string</a>))
+<pre><code>(<a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a> (main-window name) (q+:make-qlineedit main-window)
+  (<a href="http://l1sp.org/cl/setf">setf</a> (q+:placeholder-text name) &quot;Your name please.&quot;))
 
-(<a href="#QTOOLS:DEFINE-SLOT">define-slot</a> (my-widget hear) ((thing string))
-  (<a href="http://l1sp.org/cl/format">format</a> T &quot;I heard: ~s&quot; thing))
-
-(<a href="#QTOOLS:DEFINE-SLOT">define-slot</a> (my-widget chant) ()
-  (<a href="#QTOOLS:SIGNAL!">signal!</a> my-widget chant (&quot;MORE CODE&quot; string)))
-
-(<a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a> (my-widget chant-button) (#_new QPushButton &quot;Chant!&quot;)
-  (<a href="#QTOOLS:CONNECT!">connect!</a> chant-button (released) my-widget (chant)))
+(<a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a> (main-window go) (q+:make-qpushbutton &quot;Go!&quot; main-window))
 </code></pre>
 
-<h3>The <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code></h3>
+<p>This adds a QLineEdit widget called <code>name</code> to the <code>main-window</code> and sets its placeholder text to <code>&quot;Your name please.&quot;</code>. The second form adds a button called <code><a href="http://l1sp.org/cl/go">go</a></code> with a label of <code>&quot;Go!&quot;</code>. Simple stuff. The body of the <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code> form can contain any number of statements. By default, the symbols of all the other subwidgets and slots defined prior to the <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code> form are bound to their corresponding values. This is useful if you for example need to define a layout, as we will do now.</p>
 
-<p>Qtools provides its own version of <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code>. Now, I understand and agree that usually it is a bad idea to provide alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> (in fact, it will emit such a form) and only gives special treatment to select <code><a href="http://l1sp.org/cl/declare">declare</a></code> forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for <code><a href="#QTOOLS:SLOT">slot</a></code>, <code><a href="#QTOOLS:OVERRIDE">override</a></code>, <code><a href="#QTOOLS:INITIALIZER">initializer</a></code>, and <code><a href="#QTOOLS:FINALIZER">finalizer</a></code> are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.</p>
-
-<pre><code>(<a href="http://l1sp.org/cl/defmethod">defmethod</a> paint ((widget foo) paint-event)
-  (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="#QTOOLS:OVERRIDE">override</a> paint-event))
-  ...)
+<pre><code>(<a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a> (main-window layout) (q+:make-qhboxlayout main-window)
+  (q+:add-widget layout name)
+  (q+:add-widget layout go))
 </code></pre>
 
-<p>In order to be able to use this effectively and painlessly, you should probably <code>:use</code> the extra package <code>cl+qt</code> instead of <code>cl</code> in your package. This package exports <code>cl</code>, <code>qt</code>, and <code>qtools</code> with the proper shadowing in place to use Qtools' <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code>.</p>
+<p>This sets up the displaying part of our GUI, but so far we haven't made it react to anything yet. Reacting to events in Qt happens through signals and slots. Slots are functions that receive signals, and signals are event carriers.</p>
 
-<h3>Menu Definition</h3>
+<pre><code>(<a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a> (main-window name-set) (<a href="http://l1sp.org/cl/string">string</a>))
 
-<p>As mentioned above, Qtools also offers a <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code> macro which allows you to write menus in an extremely compact format:</p>
+(<a href="#QTOOLS:DEFINE-SLOT">define-slot</a> (main-window go) ()
+  (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="#QTOOLS:CONNECTED">connected</a> go (pressed)))
+  (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="#QTOOLS:CONNECTED">connected</a> name (return-pressed)))
+  (<a href="#QTOOLS:SIGNAL!">signal!</a> main-window (name-set string) (q+:text name)))
+
+(<a href="#QTOOLS:DEFINE-SLOT">define-slot</a> (main-window name-set) ((new-name string))
+  (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="#QTOOLS:CONNECTED">connected</a> main-window (name-set string)))
+  (q+:qmessagebox-information main-window &quot;Greetings&quot; (<a href="http://l1sp.org/cl/format">format</a> NIL &quot;Good day to you, ~a!&quot; new-name)))
+</code></pre>
+
+<p>We're doing things a bit roundabout here to illustrate creating signals. <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code> introduces a new signal called <code>name-set</code> that takes a single <code><a href="http://l1sp.org/cl/string">string</a></code> as argument. We then define a new slot that is connected to the <code><a href="http://l1sp.org/cl/go">go</a></code> button's <code>pressed</code> signal (which has no arguments) as well as the <code>name</code> field's <code>return-pressed</code>. We then simply fetch the current text of our <code>name</code> field and send it out again with our custom signal. The second slot catches this signal again and uses it to display a message box.</p>
+
+<p>And that's that. The only thing we didn't take a look at here is <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>, which allows you to define override functions for your Qt classes. So, if you for example want to manually draw onto a widget you can override its <code>paintEvent</code> method using this.</p>
+
+<pre><code>(<a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a> (main-window paint-event) (event)
+  (<a href="http://l1sp.org/cl/declare">declare</a> (<a href="http://l1sp.org/cl/ignore">ignore</a> event))
+  (<a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a> ((painter (q+:make-qpainter main-window)))
+    (q+:fill-rect painter (q+:rect main-window) (q+:qt.white))))
+</code></pre>
+
+<p>This'll make the background of our window completely white. The important thing to note here is the <code><a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a></code>. What has been rather well hidden from you so far, is that as Qt is a C++ framework, you will have to do manual memory management. Qtools makes this a lot easier by offering macros and automations to take most of it off of your hands. For example, all the sub widgets we defined are automatically deleted once the main window is.</p>
+
+<h2>Qtools Components</h2>
+
+<h3>Name Conversion</h3>
+
+<p>Common Lisp and C++ follow different naming conventions for classes, variables, methods, and types. Qtools offers a couple of functions to attempt to translate between the two. Finding a Qt class can be done with <code><a href="#QTOOLS:FIND-QT-CLASS-NAME">find-qt-class-name</a></code>. It searches a static table of known Qt classes (<code><a href="#QTOOLS:*QT-CLASS-MAP*">*qt-class-map*</a></code>) by first stripping all dashes from the name, and then case-insensitively finding a matching name.</p>
+
+<p>Translating method names can be done through <code><a href="#QTOOLS:TO-METHOD-NAME">to-method-name</a></code>, which translates dashes to mean that the next character should be in uppercase. So <code>foo-bar</code> is <code>fooBar</code>. In case you pass it a string instead of a symbol however, it will not do any translation. This is important to take care of edge-cases, where this primitive translation would prohibit using a certain name. If you need a method signature instead of just a name, there are <code><a href="#QTOOLS:SPECIFIED-TYPE-METHOD-NAME">specified-type-method-name</a></code> that takes a name and a list of type specifiers, and <code><a href="#QTOOLS:DETERMINED-TYPE-METHOD-NAME">determined-type-method-name</a></code>, which attempts to determine the type of the arguments, rather than requiring type specifiers directly.</p>
+
+<p>Types are translated using <code><a href="#QTOOLS:QT-TYPE-OF">qt-type-of</a></code>, <code><a href="#QTOOLS:EQT-TYPE-OF">eqt-type-of</a></code>, <code><a href="#QTOOLS:QT-TYPE-FOR">qt-type-for</a></code>, and <code><a href="#QTOOLS:TO-TYPE-NAME">to-type-name</a></code>. Where <code><a href="#QTOOLS:QT-TYPE-FOR">qt-type-for</a></code> translates a type specifier and <code><a href="#QTOOLS:QT-TYPE-OF">qt-type-of</a></code> tries to determine the type through a value. Reversing from a Qt type specifier to a CL type is possible with <code><a href="#QTOOLS:CL-TYPE-FOR">cl-type-for</a></code> and <code><a href="#QTOOLS:ECL-TYPE-FOR">ecl-type-for</a></code>.</p>
+
+<h3>Object Handling</h3>
+
+<p>In C++ there usually is no garbage collector, so you need to carefully clean up yourself or you'll create a memory leak. In Common Lisp we're used to the luxury of not having to worry about this, thanks to garbage collection. Sadly, we cannot use the garbage collector to also take care of C++ objects, as they live in a different world not governed by us. So, garbage collection of Qt objects is still our own worry.</p>
+
+<p>To make this all just a smidgeon easier, Qtools introduces a system of <em>finalizables</em>, the central point of which is the <code><a href="#QTOOLS:FINALIZE">finalize</a></code> generic function. This function should take care of all necessary cleanup when an object is no longer needed. For <code>qobject</code>s, this means running eventual cleanup (through <code><a href="#QTOOLS:FINALIZE-USING-CLASS">finalize-using-class</a></code>) and then being <code><a href="http://l1sp.org/cl/delete">delete</a></code>d, thus properly removed from memory. However, <code><a href="#QTOOLS:FINALIZE">finalize</a></code> can not only be used for Qt objects, but for anything else as well. Especially interesting here are <code><a href="#QTOOLS:FINALIZABLE">finalizable</a></code> objects, whose slots can specify an additional argument <code>:finalized</code>, which dictates whether <code><a href="#QTOOLS:FINALIZE">finalize</a></code> is run on the slot's value when the class instance is <code><a href="#QTOOLS:FINALIZE">finalize</a></code>d.</p>
+
+<p>Often times we only need Qt instances for a certain lexical context of code. For this case, <code><a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a></code> (and <code><a href="#QTOOLS:WITH-FINALIZING*">with-finalizing*</a></code>) can be used, which is a counterpart to <code><a href="http://l1sp.org/cl/let">let</a></code> that calls <code><a href="#QTOOLS:FINALIZE">finalize</a></code> on all its bindings once the form exits. This will take care of most cases. For cases where the instance may escape, or has to stay bound in a closure, there's <code><a href="#QTOOLS:WITH-GC-FINALIZED">with-gc-finalized</a></code>. This wraps the value of each binding in a <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> object. Using such a container, we can use Common Lisp's garbage collector to keep track of the references and, once the object is garbage collected it calls <code><a href="#QTOOLS:FINALIZE">finalize</a></code> on its inner value, ensuring proper removal. The <code><a href="#QTOOLS:WITH-GC-FINALIZED">with-gc-finalized</a></code> uses a <code><a href="http://l1sp.org/cl/symbol-macrolet">symbol-macrolet</a></code> to ensure that you don't have to worry about the boxing. However, if you manually use <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> objects, there's the <code><a href="#QTOOLS:MAKE-GC-FINALIZED">make-gc-finalized</a></code> and <code><a href="#QTOOLS:UNBOX">unbox</a></code> functions (with corresponding reader macros <code>#&gt;</code> and <code>#&lt;</code> in the <code>:qtools</code> read-table).</p>
+
+<p>While this kind of system takes care of a lot of cases, it's still not perfect and it may happen that you accidentally create a memory leak somewhere. I wish there was an easier way, but alas, life is difficult. You can try to solve this kind of situation by debugging Qtools and keeping track of which objects get finalized and which don't.</p>
+
+<p>Another occasional task is to copy an object instance. Qtools offers a <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:COPY-USING-CLASS">copy-using-class</a></code> methods which handle proper copying for a couple of Qt objects, but sadly by far not all. If you want to use the copying system for a class that isn't handled by Qtools by default, you can define your own using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code>.</p>
+
+<h3>Widgets</h3>
+
+<p>Qt deals with widgets. As such, making everything associated with them simple and easy to use should be a primary objective. Qtools' widget system attempts to do exactly that. The central part to this is the <code><a href="#QTOOLS:DEFINE-WIDGET">define-widget</a></code> macro. This expands to a <code><a href="http://l1sp.org/cl/defclass">defclass</a></code> with the following effects: It sets <code><a href="#QTOOLS:WIDGET-CLASS">widget-class</a></code> as the metaclass, sets the first item of the superclass list as the qt-superclass, and injects <code><a href="#QTOOLS:WIDGET">widget</a></code> as a superclass, if it isn't one already. This means that essentially you can use anything you could in a standard <code><a href="http://l1sp.org/cl/defclass">defclass</a></code> without having to worry about the necessary default options.</p>
+
+<p>However, just with a single <code><a href="#QTOOLS:DEFINE-WIDGET">define-widget</a></code> you won't get far ahead. You still need to use CommonQt's way of declaring slots, signals, and overrides, which is quite cumbersome. You can do that of course, but there is a more convenient method, which is to use <code><a href="#QTOOLS:DEFINE-SLOT">define-slot</a></code>, <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code>, and <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>. These essentially translate to class options, albeit in a detached way. Each of these define statements is of the following syntax:</p>
+
+<pre><code>(define-* (<a href="#QTOOLS:WIDGET-CLASS">widget-class</a> name) arglist &amp;body body)
+</code></pre>
+
+<p>Some of them take optional extra arguments in the name-list, such as a method-name in the case of <code><a href="#QTOOLS:DEFINE-SLOT">define-slot</a></code> and <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>. In the case of <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code> the body is discarded. However, even with these extensions things are rather cumbersome: You need to manually define slots for each of the widgets you want to use inside your widget class, and define their behaviour in an <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code> function. This is unwieldy, which is why Qtools also adds <code><a href="#QTOOLS:DEFINE-INITIALIZER">define-initializer</a></code>, <code><a href="#QTOOLS:DEFINE-FINALIZER">define-finalizer</a></code>, and <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code>. The first two follow in signature to the above and do what you might expect them to do: handle initialization and finalization. The initializer and finalizer forms take an optional priority argument in their name-list. The higher, the sooner. <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code> on the other hand looks like this:</p>
+
+<pre><code>(<a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a> (<a href="#QTOOLS:WIDGET-CLASS">widget-class</a> name) initform &amp;body body)
+</code></pre>
+
+<p>And its effects are two-fold. First, it adds a finalized slot to the widget-class called name. Then, it adds an initializer (with priority 10) that sets the slot-value to the value of <code>initform</code> and then evaluates the <code>body</code> forms. This by itself takes care of the repetitive slot and initializer definition, but without an extra helper called <code><a href="#QTOOLS:WITH-SLOTS-BOUND">with-slots-bound</a></code>, it would still be annoying to write functions, as you would have to reference widgets using <code><a href="http://l1sp.org/cl/slot-value">slot-value</a></code> everywhere. <code><a href="#QTOOLS:WITH-SLOTS-BOUND">with-slots-bound</a></code> is like <code><a href="http://l1sp.org/cl/with-slots">with-slots</a></code>, but it binds <em>all</em> direct class-slot values to their respective slot names. Every <code>define-*</code> function's body is automatically wrapped in a <code><a href="#QTOOLS:WITH-SLOTS-BOUND">with-slots-bound</a></code>, to make this convenience possible.</p>
+
+<p>If you do not like this behaviour, due to potential symbol clashes and general confusion that might arise from the implicit action, you can instead use <code>cl+qt:defmethod</code> and <code><a href="http://l1sp.org/cl/declare">declare</a></code> statements. This is actually what all the <code>define-*</code> (with the exception of <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code>) expand to: A <code>cl+qt:defmethod</code> with an appropriate declaration inserted into the body. The <code>cl+qt:defmethod</code> behaves exaclty like <code><a href="http://l1sp.org/cl/defmethod">cl:defmethod</a></code> with the exception of allowing the handling of custom declaration forms. Qtools defines the following declarations: <code><a href="#QTOOLS:SLOT">slot</a></code>, <code><a href="#QTOOLS:OVERRIDE">override</a></code>, <code><a href="#QTOOLS:INITIALIZER">initializer</a></code>, and <code><a href="#QTOOLS:FINALIZER">finalizer</a></code>. In the case of a <code><a href="#QTOOLS:SLOT">slot</a></code> definition, an extra declaration called <code><a href="#QTOOLS:CONNECTED">connected</a></code> is also available. The effects of the declarations are as you might expect, and have the following signatures:</p>
+
+<pre><code>(<a href="#QTOOLS:SLOT">slot</a> slot-name args)
+(<a href="#QTOOLS:CONNECTED">connected</a> slot-name (signal-name &amp;rest args))
+(<a href="#QTOOLS:OVERRIDE">override</a> &amp;optional method-name)
+(<a href="#QTOOLS:INITIALIZER">initializer</a> &amp;optional (priority 0))
+(<a href="#QTOOLS:FINALIZER">finalizer</a> &amp;optional (priority 0))
+</code></pre>
+
+<p>The user may define additional declarations using <code><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a></code>.</p>
+
+<p>One last widget-related definition form is <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code>, which is a very convenient way of specifying menus:</p>
 
 <pre><code>(<a href="#QTOOLS:DEFINE-MENU">define-menu</a> (my-widget File)
   (:item (&quot;Open...&quot; (ctrl o))
@@ -136,17 +187,15 @@
     (#_close widget)))
 </code></pre>
 
-<p>In the case of items and menus, if the first argument is a symbol, it picks the object from the according slot on the widget. Otherwise it expects a string to use as text, or in the case of an item a string and a mnemonic. For items the body can be arbitrary lisp forms to be executed when the item is triggered. Menus can also be nested to arbitrary depth. All items that are created in a menu are also automatically stored in a list of QAction objects. You can retrieve this list for any class using <code><a href="#QTOOLS:WIDGET-ACTIONS">widget-actions</a></code>.</p>
+<p>Out of the box, it supports <code>:item</code>, <code>:menu</code>, and <code>:separator</code> components. The item takes a name, which can be either a string for a label, a list of string and keyboard mnemonic, or a symbol indicating the class slot that contains the item widget, and it takes a body of forms to execute if the item is triggered. Menus take a name as a string and a body of components to contain, or a symbol indicating the slot that contains the menu widget. New components can be added with <code><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">define-menu-content-type</a></code>.</p>
 
-<p>A frequent task is allowing the user to redefine the keyboard shortcuts of menu items. Since Qtools' <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code> keeps track of all its items, it is easy to inspect them and change their mnemonics. However, there's also the <code><a href="#QTOOLS:KEYCHORD-EDITOR">keychord-editor</a></code> widget class, which should offer you a simple but effective dialog to change keyboard shortcuts.</p>
+<p>As a final touch, Qtools offers macros for connecting slots and emitting signals. These translate to CommonQt's <code>emit-signal</code> and <code>connect</code> functions, and thus just offer a bit of syntactic sugar. They're called <code><a href="#QTOOLS:SIGNAL!">signal!</a></code> and <code><a href="#QTOOLS:CONNECT!">connect!</a></code>. Their use is simple enough:</p>
 
-<h3>Readtable</h3>
+<pre><code> (<a href="#QTOOLS:CONNECT!">connect!</a> input (text-edited string) widget (text-changed string))
+ (<a href="#QTOOLS:SIGNAL!">signal!</a> input (text-edited string) &quot;Eyyyy&quot;)
+</code></pre>
 
-<p>CommonQt provides a necessary readtable to add a convenient way to write foreign calls. Qtools provides its own named-readtable (<code>:qtools</code>) that inherits from this readtable, but adds some minor tweaks.</p>
-
-<p>The reader macros <code>#&lt;</code> to call <code><a href="#QTOOLS:UNBOX">unbox</a></code> and <code>#&gt;</code> to call <code><a href="#QTOOLS:MAKE-GC-FINALIZED">make-gc-finalized</a></code> on the following object are available.</p>
-
-<p>The Qtools readtable also deals with the Q+ system.</p>
+<p>An experimental variant for the adventurous is <code><a href="#QTOOLS:GENERIC-SIGNAL">generic-signal</a></code>, which attempts to determine the argument types by their values at run-time. It does therefore not require specifying the type explicitly, but might instead screw up and choose a wrong type for the signal and thus fail to emit.</p>
 
 <h3>Q+</h3>
 
@@ -183,11 +232,13 @@
 
 <p>The <code><a href="http://l1sp.org/cl/setf">setf</a></code> has extra support for <code><a href="#QTOOLS:Q+">q+</a></code>, but is otherwise identical to <code><a href="http://l1sp.org/cl/setf">cl:setf</a></code> and actually expands to that for all other places.</p>
 
-<p>In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly</p>
+<p>In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.</p>
+
+<p><code><a href="#QTOOLS:Q+">q+</a></code> and the reader extension dynamically compile wrapper functions for the Qt methods you access. You can, however, also precompile all possible methods for the currently active set of smoke modules. To do this, you can either <code>:depends-on (:q+)</code> or compile a source file using <code><a href="#QTOOLS:WRITE-EVERYTHING-TO-FILE">write-everything-to-file</a></code> and include it in your ASDF system. If you choose this approach, you will not need to switch the readtable or use the <code><a href="#QTOOLS:Q+">q+</a></code> macro, as the package will be available fully populated.</p>
 
 <h3>Smoke Modules</h3>
 
-<p>CommonQt uses the SmokeQt library to interface with Qt. Smoke is divided up into different modules that provide parts of the Qt framework. In order to be able to use the various parts of Qt, these modules need to be loaded. By default CommonQt loads <code>qtcore</code> and <code>qtgui</code> when <code>make-qapplication</code> is called. However, if you want to use, say, the OpenGL parts you'll also need <code>qtopengl</code>.</p>
+<p>In order to be able to use the various parts of Qt, the corresponding smoke modules need to be loaded. By default CommonQt loads <code>qtcore</code> and <code>qtgui</code> when <code>make-qapplication</code> is called. However, if you want to use, say, the OpenGL parts you'll also need <code>qtopengl</code>.</p>
 
 <p>Qtools provides ASDF systems for all the different smoke modules. That way, you can simply push the modules you want into your project's ASDF system dependencies and it'll ensure that the modules are available at compile and load time. Having the modules loaded at both times is especially important for Q+ to work properly. An example system making use of this would look like</p>
 
@@ -197,6 +248,10 @@
 </code></pre>
 
 <p>For a list of available smoke modules, see <code><a href="#QTOOLS:*SMOKE-MODULES*">*smoke-modules*</a></code>.</p>
+
+<h2>Examples</h2>
+
+<p>A couple of example applications using Qtools can be found in the <a href="https://github.com/Shinmera/qtools/tree/master/examples/">examples/</a> folder: <code>qtools-evaluator</code>. Each of them can be loaded by their name, and launched using the <code>main</code> function from their package.</p>
 
 <h2>Extending Qtools</h2>
 
@@ -217,9 +272,11 @@
 
 <pre><code>(<a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a> override (&amp;optional name)
   (<a href="http://l1sp.org/cl/let">let</a> ((slot (<a href="#QTOOLS:TO-METHOD-NAME">qtools:to-method-name</a> (<a href="http://l1sp.org/cl/or">or</a> name (form-fiddle:lambda-name *method*)))))
-    (with-widget-class (<a href="#QTOOLS:WIDGET-CLASS">widget-class</a>)
+    (<a href="#QTOOLS:WITH-WIDGET-CLASS">with-widget-class</a> (<a href="#QTOOLS:WIDGET-CLASS">widget-class</a>)
       `(<a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">set-widget-class-option</a> ',widget-class :override '(,slot ,name)))))
 </code></pre>
+
+<p>In this example we're using <a href="http://github.com/Shinmera/form-fiddle">form-fiddle</a> to parse the method form. Using a library like that to ensure proper destructuring is important, as otherwise it's easy to accidentally butcher the method form, or get the wrong information.</p>
 
 <h3>Extending the menu definition</h3>
 
@@ -1940,6 +1997,20 @@ In other words, this will look like a standard LET to you, but each value of the
 automatically ensured to be GC-ed and FINALIZEd once the body exits.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:WITH-MAIN-WINDOW"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WITH-MAIN-WINDOW">WITH-MAIN-WINDOW</a></h4>
+                      <span/>
+                      <span>(&amp;REST ARGS)</span>
+                    </code>
+                  </header>
+                  <pre>Identical to QT:WITH-MAIN-WINDOW with the exception of using FINALIZE to clean up
+the main window.</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:WITH-SLOTS-BOUND"/>
                 <article>
                   <header>
@@ -1952,6 +2023,20 @@ automatically ensured to be GC-ed and FINALIZEd once the body exits.</pre>
                   </header>
                   <pre>Turns into a WITH-SLOTS with all direct-slots of CLASS.
 Class is resolved as per ENSURE-CLASS.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WITH-WIDGET-CLASS"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WITH-WIDGET-CLASS">WITH-WIDGET-CLASS</a></h4>
+                      <span/>
+                      <span>(&amp;REST ARGS)</span>
+                    </code>
+                  </header>
+                  <pre>Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.
+This also signals errors if there is no such specializer or if it is invalid.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:*GENERATED-MODULES*"/>

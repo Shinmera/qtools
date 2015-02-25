@@ -1,82 +1,127 @@
 ## About Qtools
 Qtools is a collection of utilities to help development with CommonQt. There are a lot of things in there, from name mapping over garbage handling to widget class definition. Some tools are straightforward, others are quite complex. I'll try to explain everything as best I can.
 
-## How To
-For Qtools to work you'll obviously need a working [CommonQt](http://common-lisp.net/project/commonqt/). Knowing a bit about CommonQt and Qt development will also help in understanding these tools.
+## Fundamentals
+There are three layers working beneath Qtools, of which you need to know about in order to understand how to use the various facilities Qtools offers.
 
-### Basic Tools
+### [Qt](http://qt-project.org/doc/qt-4.8/)
+Qt is a gigantic toolkit that mainly concerns itself with GUI creation. It is cross-platform and written in C++. While its size and large user-base means that it is very mature and usable for pretty much any kind of GUI, the fact that it's written in C++ makes things complicated. The usual way to interoperate with C++ libraries and projects is to create a C API wrapper.
 
-#### Names
-Since Qt is a C++ library we're dealing with different naming conventions and different type designators. Qtools offers some help in dealing with both. Mapping more lisp-y class names to the equivalent Qt class names can be done with `find-qt-class-name`. It translates things like the symbol `qwidget`, or even `q-widget` into `"QWidget"`. In order to guess the correct capitalisation it uses a predefined set of names from `*qt-class-map*`.
+### [Smoke](https://techbase.kde.org/Development/Languages/Smoke)
+And this is what Smoke does. It generates a C wrapper so that other languages can make use of Qt through C-FFI. Smoke is divided up into a bunch of modules, each being associated with a part of Qt, such as qtcore, qtgui, qtopengl, phonon, etc.
 
-Translating a lispy function name symbol into a C++ method name can be done with `to-method-name`. Example, `to-method-name` would become `"toMethodName"`.
+### [CommonQt](http://common-lisp.net/project/commonqt/)
+The heavy lifting and ground-work that is required to interface with Smoke (and thus with Qt) is done by CommonQt. By itself, CommonQt offers a complete framework to create Qt GUIs from Common Lisp out.
 
-C++/Qt also has a different set of types than CL, but we need the type names to define things like signals and slots. The functions `qt-type-of`, `qt-type-for`, `to-type-name`, `cl-type-for`, `eqt-type-of` and `ecl-type-for` can help with that by attempting to translate between the two worlds. Using these may be dangerous, as the type information might be ambiguous or no proper translation exists at all, so the results might not always be exactly what you need.
+### [Qtools](https://shinmera.github.io/qtools/)
+Unfortunately, working with CommonQt itself is a bit awkward. While it offers everything you need, the way you have to make use of it is sub-par. Qtools attempts to help with this by offering another layer over CommonQt to smooth everything out. However, since you might not like certain parts of the Qtools ecosystem, it should be possible for you to only use the features you like, rather than being forced to use everything. So, you can always mix and match "plain" CommonQt and Qtools extensions.
 
-Also useful for full method name (including argument types) translation are `determined-type-method-name` and `specified-type-method-name`.
+## Getting Started
+Before getting started with explaining the details on the various parts of Qtools, I'll go through a basic project setup of a project using it.
 
-#### Other Stuff
-Aside from name handling, Qtools also offers some convenience functions like `copy-qobject`, `maybe-delete-qobject` and `qtenumcase` to ease handling of Qt objects.
+First you will want an ASDF system to define your project. In its dependencies it should contain `:qtools` and the smoke modules you require, usually just `:qtcore` and `:qtgui`.
 
-### Working Without GC
-One major headache when working with CommonQt is the lack of garbage collection for Qt objects. This is something that is unavoidable, short of adding a garbage collector C++-side, and even then synchronising the two worlds would be a big undertaking. Qtools attempts to ease the pain by providing functions to at least have some form of GC, or in the very least minimise the need to keep track of instances.
+    (asdf:defsystem qtools-intro
+      ...
+      :depends-on (:qtools :qtcore :qtgui))
 
-Central to this effort is the `finalize` generic function. This function should be called on any object that you want to discard. By default, objects of type `abstract-qobject` and `finalizable` are specially handled. Qobjects are automatically deleted so they won't linger on the C++ side and `finalizable`s are taken care of by calling `finalize` on all their `finalized` slots.
+Then of course you'll usually want a package to put all your stuff in. Instead of `:use #:cl` you will most likely want to `:use #:cl+qt`. This package combines the symbols of the common-lisp base package, the commonqt package, and qtools. Thus all the symbols and functions you usually need for development are already included.
 
-The `finalizable` class (which you can subclass with `define-finalizable`) offers a different slot type with the extra argument `:finalizable`. If that argument is non-NIL, the slot's value is `finalize`d when the object is `finalize`d. Of course you don't need to use the `finalized` class and can instead define methods for your own classes to handle cleanup explicitly.
+    (defpackage #:qtools-intro
+      (:use #:cl+qt)
+      (:export #:main))
 
-If you only need to have certain objects around for the duration of a let body or something similar, you may find the `with-finalizing` and `with-finalizing*` functions of use.
+CommonQt, and Qtools itself, require a few extensions to the standard reader syntax. For this reason you will want to change the readtable using `named-readtables:in-readtable`, which `cl+qt` includes. Readtable changes are on a *per-file* basis, so you need both an `in-package` and an `in-readtable` call on every file.
 
-As an attempt to automate garbage collection, you can also take advantage of the `gc-finalized` object. This object is a container for another object. Once the gc-finalized object loses all its references and is then at some point hit by the GC, `finalize` is automatically invoked on the contained object. For this to work properly, the container needs to have references for as long as you need the inner object. This might be dangerous if, for example, your contained object is referenced on the C++ side, but the container loses all its references on the CL side. That would result in the C++ object being finalized (and thus deleted), which might cause instability. Always be sure to keep the references in sync if you use the `gc-finalized` object.
+    (in-package #:qtools-intro)
+    (in-readtable :qtools)
 
-However, the `gc-finalized` object can be useful when used with `with-gc-finalized`, as an alternative to the `with-finalizing` macro. With this macro, the values are automatically wrapped in a gc-finalized object, but also made convenient by providing a symbol-macro to automatically unwrap the contained object so it feels like a standard let. Once the block exits the objects are then not immediately finalized, but instead the containers lose their references and are thus garbage collected whenever the gc next hits.
+This sets up everything you need to get started writing an actual GUI. So let's do that as well. In Qt things are organised as widgets. Windows are widgets, buttons are widgets, text fields are widgets, etc. Qtools mirrors this.
 
-Even with these tools, keeping track of objects is a pain and something you'll have to be careful about. I wish there was a way to have full garbage collection, but alas, life is difficult.
-
-### Signals
-Qtools offers some small macros to wrap around CommonQt's direct exposing of C++ names and types. This is especially noticeable with signals (the `connect` and `emit-signal` functions). To make these more lispy, you may use `connect!` and `signal!`:
-
-    (connect! origin (signal-name int double) target (slot-name int double))
-    (signal! target slot-name (0 int) (1.0 double))
-
-These still require explicit type declaration though. Unfortunately, this is often necessary due to ambiguity or type mismatch. If you're feeling lucky, you may use `generic-signal`, which attempts to statically and dynamically determine the proper types for its arguments:
-
-    (generic-signal target 'slot-name 0 1.0)
-
-If you want to use `generic-signal` to dynamically determine only some arguments, you can wrap the ones you want to declare explicitly in a list:
-
-    (generic-signal target 'slot-name dynamic `(,fixed double))
-
-### The Widget Class
-CommonQt's default class adds options that are necessary for proper Qt integration, such as overrides, slots and signals. However, the usage thereof is a big annoying. Qtools offers a separate metaclass/class pair that should handle this much more elegantly. In order to define widgets, you should use `define-widget`. This will automatically set the proper metaclass and superclasses:
-
-    (define-widget my-widget (QWidget)
+    (define-widget main-window (QWidget)
       ())
 
-As you can see, it doesn't require string-escaping the Qt class name, as it can leverage `find-qt-class-name`. Aside form this minor convenience in definition shortage, a widget class keeps track of a few more things for you, which allow changing of class options outside of the definition form itself. This is useful precisely because it allows us to use a much more lispy approach to widget definition that would ordinarily be possible. With widgets you have access to `define-signal`, `define-slot`, `define-override`, `define-initializer`, `define-finalizer`, `define-subwidget`, and `define-menu` that Qtools provides out of the box:
+This `define-widget` form is syntactically equivalent to `defclass`. The only change is that the first argument in the superclass list is the Qt class to inherit from. Now we'll want to add some things to display in the widget.
 
-    (define-signal (my-widget chant) (string))
+    (define-subwidget (main-window name) (q+:make-qlineedit main-window)
+      (setf (q+:placeholder-text name) "Your name please."))
 
-    (define-slot (my-widget hear) ((thing string))
-      (format T "I heard: ~s" thing))
+    (define-subwidget (main-window go) (q+:make-qpushbutton "Go!" main-window))
 
-    (define-slot (my-widget chant) ()
-      (signal! my-widget chant ("MORE CODE" string)))
+This adds a QLineEdit widget called `name` to the `main-window` and sets its placeholder text to `"Your name please."`. The second form adds a button called `go` with a label of `"Go!"`. Simple stuff. The body of the `define-subwidget` form can contain any number of statements. By default, the symbols of all the other subwidgets and slots defined prior to the `define-subwidget` form are bound to their corresponding values. This is useful if you for example need to define a layout, as we will do now.
 
-    (define-subwidget (my-widget chant-button) (#_new QPushButton "Chant!")
-      (connect! chant-button (released) my-widget (chant)))
-    
-### The `defmethod`
-Qtools provides its own version of `defmethod`. Now, I understand and agree that usually it is a bad idea to provide alternate standard functions as it will cause confusion. Here's the trick to Qtools' version though: It will act exactly like the standard `defmethod` (in fact, it will emit such a form) and only gives special treatment to select `declare` forms. This allows us to re-use the existing syntax that everyone already knows, but extend it by introducing new declarations, which won't clash otherwise. By default, the declarations for `slot`, `override`, `initializer`, and `finalizer` are recognised. These cause the effect that you might expect: They each modify the class the method specialises on and introduce the necessary machinery to connect the method call.
+    (define-subwidget (main-window layout) (q+:make-qhboxlayout main-window)
+      (q+:add-widget layout name)
+      (q+:add-widget layout go))
 
-    (defmethod paint ((widget foo) paint-event)
-      (declare (override paint-event))
-      ...)
+This sets up the displaying part of our GUI, but so far we haven't made it react to anything yet. Reacting to events in Qt happens through signals and slots. Slots are functions that receive signals, and signals are event carriers.
 
-In order to be able to use this effectively and painlessly, you should probably `:use` the extra package `cl+qt` instead of `cl` in your package. This package exports `cl`, `qt`, and `qtools` with the proper shadowing in place to use Qtools' `defmethod`.
+    (define-signal (main-window name-set) (string))
 
-### Menu Definition
-As mentioned above, Qtools also offers a `define-menu` macro which allows you to write menus in an extremely compact format:
+    (define-slot (main-window go) ()
+      (declare (connected go (pressed)))
+      (declare (connected name (return-pressed)))
+      (signal! main-window (name-set string) (q+:text name)))
+
+    (define-slot (main-window name-set) ((new-name string))
+      (declare (connected main-window (name-set string)))
+      (q+:qmessagebox-information main-window "Greetings" (format NIL "Good day to you, ~a!" new-name)))
+
+We're doing things a bit roundabout here to illustrate creating signals. `define-signal` introduces a new signal called `name-set` that takes a single `string` as argument. We then define a new slot that is connected to the `go` button's `pressed` signal (which has no arguments) as well as the `name` field's `return-pressed`. We then simply fetch the current text of our `name` field and send it out again with our custom signal. The second slot catches this signal again and uses it to display a message box.
+
+And that's that. The only thing we didn't take a look at here is `define-override`, which allows you to define override functions for your Qt classes. So, if you for example want to manually draw onto a widget you can override its `paintEvent` method using this.
+
+    (define-override (main-window paint-event) (event)
+      (declare (ignore event))
+      (with-finalizing ((painter (q+:make-qpainter main-window)))
+        (q+:fill-rect painter (q+:rect main-window) (q+:qt.white))))
+
+This'll make the background of our window completely white. The important thing to note here is the `with-finalizing`. What has been rather well hidden from you so far, is that as Qt is a C++ framework, you will have to do manual memory management. Qtools makes this a lot easier by offering macros and automations to take most of it off of your hands. For example, all the sub widgets we defined are automatically deleted once the main window is.
+
+## Qtools Components
+
+### Name Conversion
+Common Lisp and C++ follow different naming conventions for classes, variables, methods, and types. Qtools offers a couple of functions to attempt to translate between the two. Finding a Qt class can be done with `find-qt-class-name`. It searches a static table of known Qt classes (`*qt-class-map*`) by first stripping all dashes from the name, and then case-insensitively finding a matching name.
+
+Translating method names can be done through `to-method-name`, which translates dashes to mean that the next character should be in uppercase. So `foo-bar` is `fooBar`. In case you pass it a string instead of a symbol however, it will not do any translation. This is important to take care of edge-cases, where this primitive translation would prohibit using a certain name. If you need a method signature instead of just a name, there are `specified-type-method-name` that takes a name and a list of type specifiers, and `determined-type-method-name`, which attempts to determine the type of the arguments, rather than requiring type specifiers directly.
+
+Types are translated using `qt-type-of`, `eqt-type-of`, `qt-type-for`, and `to-type-name`. Where `qt-type-for` translates a type specifier and `qt-type-of` tries to determine the type through a value. Reversing from a Qt type specifier to a CL type is possible with `cl-type-for` and `ecl-type-for`.
+
+### Object Handling
+In C++ there usually is no garbage collector, so you need to carefully clean up yourself or you'll create a memory leak. In Common Lisp we're used to the luxury of not having to worry about this, thanks to garbage collection. Sadly, we cannot use the garbage collector to also take care of C++ objects, as they live in a different world not governed by us. So, garbage collection of Qt objects is still our own worry.
+
+To make this all just a smidgeon easier, Qtools introduces a system of *finalizables*, the central point of which is the `finalize` generic function. This function should take care of all necessary cleanup when an object is no longer needed. For `qobject`s, this means running eventual cleanup (through `finalize-using-class`) and then being `delete`d, thus properly removed from memory. However, `finalize` can not only be used for Qt objects, but for anything else as well. Especially interesting here are `finalizable` objects, whose slots can specify an additional argument `:finalized`, which dictates whether `finalize` is run on the slot's value when the class instance is `finalize`d.
+
+Often times we only need Qt instances for a certain lexical context of code. For this case, `with-finalizing` (and `with-finalizing*`) can be used, which is a counterpart to `let` that calls `finalize` on all its bindings once the form exits. This will take care of most cases. For cases where the instance may escape, or has to stay bound in a closure, there's `with-gc-finalized`. This wraps the value of each binding in a `gc-finalized` object. Using such a container, we can use Common Lisp's garbage collector to keep track of the references and, once the object is garbage collected it calls `finalize` on its inner value, ensuring proper removal. The `with-gc-finalized` uses a `symbol-macrolet` to ensure that you don't have to worry about the boxing. However, if you manually use `gc-finalized` objects, there's the `make-gc-finalized` and `unbox` functions (with corresponding reader macros `#>` and `#<` in the `:qtools` read-table).
+
+While this kind of system takes care of a lot of cases, it's still not perfect and it may happen that you accidentally create a memory leak somewhere. I wish there was an easier way, but alas, life is difficult. You can try to solve this kind of situation by debugging Qtools and keeping track of which objects get finalized and which don't.
+
+Another occasional task is to copy an object instance. Qtools offers a `copy` and `copy-using-class` methods which handle proper copying for a couple of Qt objects, but sadly by far not all. If you want to use the copying system for a class that isn't handled by Qtools by default, you can define your own using `define-copy-method`.
+
+### Widgets
+Qt deals with widgets. As such, making everything associated with them simple and easy to use should be a primary objective. Qtools' widget system attempts to do exactly that. The central part to this is the `define-widget` macro. This expands to a `defclass` with the following effects: It sets `widget-class` as the metaclass, sets the first item of the superclass list as the qt-superclass, and injects `widget` as a superclass, if it isn't one already. This means that essentially you can use anything you could in a standard `defclass` without having to worry about the necessary default options.
+
+However, just with a single `define-widget` you won't get far ahead. You still need to use CommonQt's way of declaring slots, signals, and overrides, which is quite cumbersome. You can do that of course, but there is a more convenient method, which is to use `define-slot`, `define-signal`, and `define-override`. These essentially translate to class options, albeit in a detached way. Each of these define statements is of the following syntax:
+
+    (define-* (widget-class name) arglist &body body)
+
+Some of them take optional extra arguments in the name-list, such as a method-name in the case of `define-slot` and `define-override`. In the case of `define-signal` the body is discarded. However, even with these extensions things are rather cumbersome: You need to manually define slots for each of the widgets you want to use inside your widget class, and define their behaviour in an `initialize-instance` function. This is unwieldy, which is why Qtools also adds `define-initializer`, `define-finalizer`, and `define-subwidget`. The first two follow in signature to the above and do what you might expect them to do: handle initialization and finalization. The initializer and finalizer forms take an optional priority argument in their name-list. The higher, the sooner. `define-subwidget` on the other hand looks like this:
+
+    (define-subwidget (widget-class name) initform &body body)
+
+And its effects are two-fold. First, it adds a finalized slot to the widget-class called name. Then, it adds an initializer (with priority 10) that sets the slot-value to the value of `initform` and then evaluates the `body` forms. This by itself takes care of the repetitive slot and initializer definition, but without an extra helper called `with-slots-bound`, it would still be annoying to write functions, as you would have to reference widgets using `slot-value` everywhere. `with-slots-bound` is like `with-slots`, but it binds *all* direct class-slot values to their respective slot names. Every `define-*` function's body is automatically wrapped in a `with-slots-bound`, to make this convenience possible.
+
+If you do not like this behaviour, due to potential symbol clashes and general confusion that might arise from the implicit action, you can instead use `cl+qt:defmethod` and `declare` statements. This is actually what all the `define-*` (with the exception of `define-signal`) expand to: A `cl+qt:defmethod` with an appropriate declaration inserted into the body. The `cl+qt:defmethod` behaves exaclty like `cl:defmethod` with the exception of allowing the handling of custom declaration forms. Qtools defines the following declarations: `slot`, `override`, `initializer`, and `finalizer`. In the case of a `slot` definition, an extra declaration called `connected` is also available. The effects of the declarations are as you might expect, and have the following signatures:
+
+    (slot slot-name args)
+    (connected slot-name (signal-name &rest args))
+    (override &optional method-name)
+    (initializer &optional (priority 0))
+    (finalizer &optional (priority 0))
+
+The user may define additional declarations using `define-method-declaration`.
+
+One last widget-related definition form is `define-menu`, which is a very convenient way of specifying menus:
 
     (define-menu (my-widget File)
       (:item ("Open..." (ctrl o))
@@ -93,16 +138,14 @@ As mentioned above, Qtools also offers a `define-menu` macro which allows you to
       (:item ("Quit" (ctrl q))
         (#_close widget)))
 
-In the case of items and menus, if the first argument is a symbol, it picks the object from the according slot on the widget. Otherwise it expects a string to use as text, or in the case of an item a string and a mnemonic. For items the body can be arbitrary lisp forms to be executed when the item is triggered. Menus can also be nested to arbitrary depth. All items that are created in a menu are also automatically stored in a list of QAction objects. You can retrieve this list for any class using `widget-actions`.
+Out of the box, it supports `:item`, `:menu`, and `:separator` components. The item takes a name, which can be either a string for a label, a list of string and keyboard mnemonic, or a symbol indicating the class slot that contains the item widget, and it takes a body of forms to execute if the item is triggered. Menus take a name as a string and a body of components to contain, or a symbol indicating the slot that contains the menu widget. New components can be added with `define-menu-content-type`.
 
-A frequent task is allowing the user to redefine the keyboard shortcuts of menu items. Since Qtools' `define-menu` keeps track of all its items, it is easy to inspect them and change their mnemonics. However, there's also the `keychord-editor` widget class, which should offer you a simple but effective dialog to change keyboard shortcuts.
+As a final touch, Qtools offers macros for connecting slots and emitting signals. These translate to CommonQt's `emit-signal` and `connect` functions, and thus just offer a bit of syntactic sugar. They're called `signal!` and `connect!`. Their use is simple enough:
 
-### Readtable
-CommonQt provides a necessary readtable to add a convenient way to write foreign calls. Qtools provides its own named-readtable (`:qtools`) that inherits from this readtable, but adds some minor tweaks.
+     (connect! input (text-edited string) widget (text-changed string))
+     (signal! input (text-edited string) "Eyyyy")
 
-The reader macros `#<` to call `unbox` and `#>` to call `make-gc-finalized` on the following object are available.
-
-The Qtools readtable also deals with the Q+ system.
+An experimental variant for the adventurous is `generic-signal`, which attempts to determine the argument types by their values at run-time. It does therefore not require specifying the type explicitly, but might instead screw up and choose a wrong type for the signal and thus fail to emit.
 
 ### Q+
 By default with CommonQt, calling Qt methods happens with the `#_` reader macro. This requires you to follow the proper case of the class and method names. Having this kind of mixture of conventions in the code is a bit jarring. While Qtools offers solutions to deal with the discrepancies of defining your own classes and widgets using the various `define-*` macros, Q+ fixes the method calling discrepancy. In order to use Q+ you have a choice of either using the `q+` macro, or using the `:qtools` read-table. Using the `q+` macro directly an example translates like this:
@@ -134,10 +177,12 @@ Some of the setter functions require multiple values to be set at once. The upda
 
 The `setf` has extra support for `q+`, but is otherwise identical to `cl:setf` and actually expands to that for all other places.
 
-In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly
+In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.
+
+`q+` and the reader extension dynamically compile wrapper functions for the Qt methods you access. You can, however, also precompile all possible methods for the currently active set of smoke modules. To do this, you can either `:depends-on (:q+)` or compile a source file using `write-everything-to-file` and include it in your ASDF system. If you choose this approach, you will not need to switch the readtable or use the `q+` macro, as the package will be available fully populated.
 
 ### Smoke Modules
-CommonQt uses the SmokeQt library to interface with Qt. Smoke is divided up into different modules that provide parts of the Qt framework. In order to be able to use the various parts of Qt, these modules need to be loaded. By default CommonQt loads `qtcore` and `qtgui` when `make-qapplication` is called. However, if you want to use, say, the OpenGL parts you'll also need `qtopengl`.
+In order to be able to use the various parts of Qt, the corresponding smoke modules need to be loaded. By default CommonQt loads `qtcore` and `qtgui` when `make-qapplication` is called. However, if you want to use, say, the OpenGL parts you'll also need `qtopengl`.
 
 Qtools provides ASDF systems for all the different smoke modules. That way, you can simply push the modules you want into your project's ASDF system dependencies and it'll ensure that the modules are available at compile and load time. Having the modules loaded at both times is especially important for Q+ to work properly. An example system making use of this would look like
 
@@ -146,6 +191,9 @@ Qtools provides ASDF systems for all the different smoke modules. That way, you 
       :depends-on (:qtcore :qtgui))
 
 For a list of available smoke modules, see `*smoke-modules*`.
+
+## Examples
+A couple of example applications using Qtools can be found in the [examples/](https://github.com/Shinmera/qtools/tree/master/examples/) folder: `qtools-evaluator`. Each of them can be loaded by their name, and launched using the `main` function from their package.
 
 ## Extending Qtools
 
@@ -165,6 +213,8 @@ Using `define-method-declaration` you can add your own processing to method decl
       (let ((slot (qtools:to-method-name (or name (form-fiddle:lambda-name *method*)))))
         (with-widget-class (widget-class)
           `(set-widget-class-option ',widget-class :override '(,slot ,name)))))
+
+In this example we're using [form-fiddle](http://github.com/Shinmera/form-fiddle) to parse the method form. Using a library like that to ensure proper destructuring is important, as otherwise it's easy to accidentally butcher the method form, or get the wrong information.
 
 ### Extending the menu definition
 The menu definition form allows for arbitrary content types, so you may add new ones yourself by using `define-menu-content-type`. Each content type definition can return two values: an initform and a side-form. The initform will be put into the initialization function for the menu and thus evaluated when the widget is created. The side-form is put alongside the initializer definition and thus evaluated during compilation. If your menu type needs to modify the widget class in some way, that should be done through the side-forms. If it needs to connect signals, add items, or perform similar actions that involve Qt, that should go into the initform. You can call the expansion of other component types using `build-menu-content`. During the time your content-type function is run, `*widget*` is bound to the class-name of the widget and during initialization it is bound to the actual widget instance.
