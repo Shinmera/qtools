@@ -5,16 +5,16 @@
 |#
 
 (in-package #:cl-user)
-(asdf:defsystem qtools-example
-  :name "Qtools-Example"
+(asdf:defsystem qtools-evaluator
+  :name "Qtools-Evaluator"
   :version "0.4.2"
   :license "Artistic"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
-  :description "An example use project of Qtools"
+  :description "A simple REPL in Qt."
   :homepage "https://github.com/Shinmera/qtools"
   :serial T
-  :components ((:file "example"))
+  :components ((:file "evaluator"))
   :depends-on (:qtools :qtcore :qtgui
                :cl-ppcre
                :trivial-gray-streams))

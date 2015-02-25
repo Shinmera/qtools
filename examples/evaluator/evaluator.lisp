@@ -5,11 +5,11 @@
 |#
 
 (in-package #:cl-user)
-(defpackage #:qtools-example
-  (:nicknames #:org.shirakumo.qtools.example)
+(defpackage #:qtools-evaluator
+  (:nicknames #:org.shirakumo.qtools.evaluator)
   (:use #:cl+qt #:trivial-gray-streams)
   (:export #:main))
-(in-package #:qtools-example)
+(in-package #:qtools-evaluator)
 (named-readtables:in-readtable :qtools)
 
 ;; Basic REPL widget
