@@ -57,28 +57,35 @@ form.
 
 See CL:DEFMETHOD.
 See QTOOLS:METHOD-DECLARATION."
-  (declare (ignore name args))
-  (let ((*method* (copy-list whole))
+  (declare (ignore args))
+  ;; Split multi-specifier declarations into singulars.
+  (let ((all-declarations (loop for form in (form-fiddle:lambda-declarations whole)
+                                append (loop for specifier in (rest form)
+                                             collect `(declare ,specifier))))
         (declaration-forms)
         (known-declarations))
-    ;; Process declarations
-    (dolist (form (form-fiddle:lambda-declarations *method*))
-      (loop for specifier in (rest form)
-            for declaration = `(declare ,specifier)
-            for (name . args) = specifier
-            for declaration-function = (method-declaration name)
-            do (when declaration-function
-                 (push (apply declaration-function args) declaration-forms)
-                 (push declaration known-declarations))))
-    ;; Remove the known declarations from the method body
-    (loop for declaration in known-declarations
-          do (setf *method* (delete declaration *method*)))
-    ;; Change symbol
-    (setf (first *method*) 'cl:defmethod)
-    `(progn
-       (eval-when (:compile-toplevel :load-toplevel :execute)
-         ,@declaration-forms)
-       ,*method*)))
+    ;; Rebuild method with new declarations
+    (form-fiddle:with-destructured-lambda-form (:qualifiers qualifiers :lambda-list args :docstring docs :forms forms) whole
+      (let ((*method* `(cl:defmethod ,name ,@qualifiers ,args
+                         ,@(when docs (list docs))
+                         ,@all-declarations
+                         ,@forms)))
+        ;; Process declarations
+        (loop for declaration in all-declarations
+              for (name . args) = (second declaration)
+              for declaration-function = (method-declaration name)
+              do (when declaration-function
+                   (push (apply declaration-function args) declaration-forms)
+                   (push declaration known-declarations)))
+        ;; Remove the known declarations from the method body
+        (loop for declaration in known-declarations
+              do (setf *method* (delete declaration *method*)))
+        ;; Change symbol
+        (setf (first *method*) 'cl:defmethod)
+        `(progn
+           (eval-when (:compile-toplevel :load-toplevel :execute)
+             ,@declaration-forms)
+           ,*method*)))))
 
 (defmacro with-widget-class ((variable &optional (method '*method*)) &body body)
   "Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.
