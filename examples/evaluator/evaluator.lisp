@@ -23,7 +23,7 @@
         ((or (= (q+:key ev) (q+:qt.key-enter))
              (= (q+:key ev) (q+:qt.key-return)))
          (call-next-qmethod)
-         (signal! repl return-pressed))
+         (signal! repl (return-pressed)))
         ;; Catch escape to forbid removing text before input.
         ((= (q+:key ev) (q+:qt.key-backspace))
          (when (< (input-begin repl) (cursor repl))
