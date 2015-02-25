@@ -78,6 +78,8 @@ And that's that. The only thing we didn't take a look at here is `define-overrid
 
 This'll make the background of our window completely white. The important thing to note here is the `with-finalizing`. What has been rather well hidden from you so far, is that as Qt is a C++ framework, you will have to do manual memory management. Qtools makes this a lot easier by offering macros and automations to take most of it off of your hands. For example, all the sub widgets we defined are automatically deleted once the main window is.
 
+A general note about developing with Qtools/CommonQt: While custom function bodies such as from qt-slots, overrides, initializers, and finalizers reside on the CL side and can thus be redefined at any time and take effect immediately, adding or removing qt-slots and overrides will not affect already created instances. This is to say, if you run your application and recompile your override, the effect will be visible immediately. But if you add a new slot, override, or signal, the existing instance will not have them. This is due to the fact that these things need to be tied to the C++ class, which will not update existing instances when it is changed, like CLOS usually does. This means that if you change a running widget by adding new components, you need to recreate or restart it to see the effects.
+
 ## Qtools Components
 
 ### Name Conversion
