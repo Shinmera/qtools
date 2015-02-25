@@ -62,12 +62,14 @@ See QTOOLS:METHOD-DECLARATION."
         (declaration-forms)
         (known-declarations))
     ;; Process declarations
-    (loop for declaration in (form-fiddle:lambda-declarations *method*)
-          for (name . args) = (second declaration)
-          for declaration-function = (method-declaration name)
-          do (when declaration-function
-               (push (apply declaration-function args) declaration-forms)
-               (push declaration known-declarations)))
+    (dolist (form (form-fiddle:lambda-declarations *method*))
+      (loop for specifier in (rest form)
+            for declaration = `(declare ,specifier)
+            for (name . args) = specifier
+            for declaration-function = (method-declaration name)
+            do (when declaration-function
+                 (push (apply declaration-function args) declaration-forms)
+                 (push declaration known-declarations))))
     ;; Remove the known declarations from the method body
     (loop for declaration in known-declarations
           do (setf *method* (delete declaration *method*)))
@@ -107,12 +109,12 @@ See QTOOLS:METHOD-DECLARATION."
     (with-widget-class (widget-class)
       `(set-widget-class-option ',widget-class :override '(,slot ,lambda-name)))))
 
-(define-method-declaration initializer (priority)
+(define-method-declaration initializer (&optional (priority 0))
   (let ((method (form-fiddle:lambda-name *method*)))
     (with-widget-class (widget-class)
       `(set-widget-class-option ',widget-class :initializers '(,method ,priority ,method)))))
 
-(define-method-declaration finalizer (priority)
+(define-method-declaration finalizer (&optional (priority 0))
   (let ((method (form-fiddle:lambda-name *method*)))
     (with-widget-class (widget-class)
       `(set-widget-class-option ',widget-class :finalizers '(,method ,priority ,method)))))
