@@ -61,8 +61,7 @@ If all types can be determined statically, EMIT-SIGNAL is used directly instead.
   "Macro for a more lisp-y writing of EMIT-SIGNAL.
 Function should be a list of the METHOD-NAME followed by Qt argument types.
 The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME."
-  `(emit-signal ,object ,(specified-type-method-name function (mapcar #'second args))
-                ,@(mapcar #'first args)))
+  `(emit-signal ,object ,(specified-type-method-name (first function) (rest function)) ,@args))
 
 (defmacro connect! (origin origin-function target target-function)
   "Macro for a more lisp-y writing of CONNECT.
