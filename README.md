@@ -177,7 +177,11 @@ Some of the setter functions require multiple values to be set at once. The upda
 
 The `setf` has extra support for `q+`, but is otherwise identical to `cl:setf` and actually expands to that for all other places.
 
-In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.
+In order to access enum values, you simply use the class name followed by a dot and the enum name:
+
+    (q+:qt.blue)
+
+For Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.
 
 `q+` and the reader extension dynamically compile wrapper functions for the Qt methods you access. You can, however, also precompile all possible methods for the currently active set of smoke modules. To do this, you can either `:depends-on (:q+)` or compile a source file using `write-everything-to-file` and include it in your ASDF system. If you choose this approach, you will not need to switch the readtable or use the `q+` macro, as the package will be available fully populated.
 

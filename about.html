@@ -232,7 +232,13 @@
 
 <p>The <code><a href="http://l1sp.org/cl/setf">setf</a></code> has extra support for <code><a href="#QTOOLS:Q+">q+</a></code>, but is otherwise identical to <code><a href="http://l1sp.org/cl/setf">cl:setf</a></code> and actually expands to that for all other places.</p>
 
-<p>In order for Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.</p>
+<p>In order to access enum values, you simply use the class name followed by a dot and the enum name:</p>
+
+<pre><code>(q+:qt.blue)
+
+</code></pre>
+
+<p>For Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.</p>
 
 <p><code><a href="#QTOOLS:Q+">q+</a></code> and the reader extension dynamically compile wrapper functions for the Qt methods you access. You can, however, also precompile all possible methods for the currently active set of smoke modules. To do this, you can either <code>:depends-on (:q+)</code> or compile a source file using <code><a href="#QTOOLS:WRITE-EVERYTHING-TO-FILE">write-everything-to-file</a></code> and include it in your ASDF system. If you choose this approach, you will not need to switch the readtable or use the <code><a href="#QTOOLS:Q+">q+</a></code> macro, as the package will be available fully populated.</p>
 
