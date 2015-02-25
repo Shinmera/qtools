@@ -232,10 +232,11 @@
 
 <p>The <code><a href="http://l1sp.org/cl/setf">setf</a></code> has extra support for <code><a href="#QTOOLS:Q+">q+</a></code>, but is otherwise identical to <code><a href="http://l1sp.org/cl/setf">cl:setf</a></code> and actually expands to that for all other places.</p>
 
-<p>In order to access enum values, you simply use the class name followed by a dot and the enum name:</p>
+<p>In order to access enum values, you simply use the class name followed by a dot and the enum name. Constructors are the class name prefixed with &quot;make&quot;. Static functions are the class name, a dash, and the method name in the standard translation scheme.</p>
 
 <pre><code>(q+:qt.blue)
-
+(q+:make-qpushbutton &quot;Foo!&quot;)
+(q+:qmessagebox-information parent &quot;!&quot; &quot;hello!&quot;)
 </code></pre>
 
 <p>For Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.</p>

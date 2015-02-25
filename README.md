@@ -177,9 +177,13 @@ Some of the setter functions require multiple values to be set at once. The upda
 
 The `setf` has extra support for `q+`, but is otherwise identical to `cl:setf` and actually expands to that for all other places.
 
-In order to access enum values, you simply use the class name followed by a dot and the enum name:
+In order to access enum values, you simply use the class name followed by a dot and the enum name. Constructors are the class name prefixed with "make". Static functions are the class name, a dash, and the method name in the standard translation scheme.
 
     (q+:qt.blue)
+    (q+:make-qpushbutton "Foo!")
+    (q+:qmessagebox-information parent "!" "hello!")
+
+For the specific arguments, names, and everything else, refer to the [Qt4.8](http://qt-project.org/doc/qt-4.8/) documentation. It's very good, trust me.
 
 For Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.
 
