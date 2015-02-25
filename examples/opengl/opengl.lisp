@@ -55,11 +55,11 @@
     (gl:pop-matrix)
 
     (q+:end-native-painting painter)
-    (let ((font (q+:make-qfont "Monospace" 10)))
+    (with-finalizing ((font (q+:make-qfont "Monospace" 10)))
       (setf (q+:style-hint font) (q+:qfont.type-writer))
-      (setf (q+:font painter) font))
-    (q+:draw-text painter 5 15 "<left>:  Decrease speed")
-    (q+:draw-text painter 5 30 "<right>: Increase speed")))
+      (setf (q+:font painter) font)
+      (q+:draw-text painter 5 15 "<left>:  Decrease speed")
+      (q+:draw-text painter 5 30 "<right>: Increase speed"))))
 
 (defun main ()
   (with-main-window (window (make-instance 'opengl))))
