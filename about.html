@@ -239,6 +239,8 @@
 (q+:qmessagebox-information parent &quot;!&quot; &quot;hello!&quot;)
 </code></pre>
 
+<p>For the specific arguments, names, and everything else, refer to the <a href="http://qt-project.org/doc/qt-4.8/">Qt4.8</a> documentation. It's very good, trust me.</p>
+
 <p>For Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.</p>
 
 <p><code><a href="#QTOOLS:Q+">q+</a></code> and the reader extension dynamically compile wrapper functions for the Qt methods you access. You can, however, also precompile all possible methods for the currently active set of smoke modules. To do this, you can either <code>:depends-on (:q+)</code> or compile a source file using <code><a href="#QTOOLS:WRITE-EVERYTHING-TO-FILE">write-everything-to-file</a></code> and include it in your ASDF system. If you choose this approach, you will not need to switch the readtable or use the <code><a href="#QTOOLS:Q+">q+</a></code> macro, as the package will be available fully populated.</p>
