@@ -107,7 +107,7 @@ However, just with a single `define-widget` you won't get far ahead. You still n
 
     (define-* (widget-class name) arglist &body body)
 
-Some of them take optional extra arguments in the name-list, such as a method-name in the case of `define-slot` and `define-override`. In the case of `define-signal` the body is discarded. However, even with these extensions things are rather cumbersome: You need to manually define slots for each of the widgets you want to use inside your widget class, and define their behaviour in an `initialize-instance` function. This is unwieldy, which is why Qtools also adds `define-initializer`, `define-finalizer`, and `define-subwidget`. The first two follow in signature to the above and do what you might expect them to do: handle initialization and finalization. The initializer and finalizer forms take an optional priority argument in their name-list. The higher, the sooner. `define-subwidget` on the other hand looks like this:
+Some of them take optional extra arguments in the name-list, such as a method-name in the case of `define-slot` and `define-override`. In the case of `define-signal` the body is discarded. However, even with these extensions things are rather cumbersome: You need to manually define slots for each of the widgets you want to use inside your widget class, and define their behaviour in an `initialize-instance` function. This is unwieldy, which is why Qtools also adds `define-initializer`, `define-finalizer`, and `define-subwidget`. The first two follow in signature to the above minus the `arglist` and do what you might expect them to do: handle initialization and finalization. The initializer and finalizer forms take an optional priority argument in their name-list. The higher, the sooner. `define-subwidget` on the other hand looks like this:
 
     (define-subwidget (widget-class name) initform &body body)
 
@@ -205,7 +205,7 @@ Qtools provides ASDF systems for all the different smoke modules. That way, you 
 For a list of available smoke modules, see `*smoke-modules*`.
 
 ## Examples
-A couple of example applications using Qtools can be found in the [examples/](https://github.com/Shinmera/qtools/tree/master/examples/) folder: `qtools-evaluator`. Each of them can be loaded by their name, and launched using the `main` function from their package.
+A couple of example applications using Qtools can be found in the [examples/](https://github.com/Shinmera/qtools/tree/master/examples/) folder: `qtools-evaluator`, `qtools-titter`, and `qtools-opengl`. Each of them can be loaded by their name, and launched using the `main` function from their package.
 
 ## Extending Qtools
 

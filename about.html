@@ -4,14 +4,15 @@
     <meta charset="utf-8"/>
     <title>QTOOLS</title>
     <style type="text/css">
-      code a{text-decoration:none;}
-      h1{display:inline-block;font-size: 28pt;margin-bottom:0;}
-      code{font-family: Consolas, Inconsolata, monospace;}
-      h4{display: inline-block;margin:0;padding:0;}
+      html{font-family: serif;}
+      code a{text-decoration: none;}
+      h1{display: inline-block; margin-bottom: 0;}
+      code{font-family: monospace;}
+      h4{display: inline-block; margin: 0; padding: 0;}
       #symbol-index ul{list-style: none;}
       .package li{margin-bottom: 20px;}
       .package pre{margin: 0 0 0 10px; white-space: pre-wrap;}
-      .package .nicknames{font-size: 12pt; font-weight: normal;}
+      .package .nicknames{font-weight: normal;}
       table{margin: 20px;}
       td{padding-bottom: 10px;}
     </style>
@@ -153,7 +154,7 @@
 <pre><code>(define-* (<a href="#QTOOLS:WIDGET-CLASS">widget-class</a> name) arglist &amp;body body)
 </code></pre>
 
-<p>Some of them take optional extra arguments in the name-list, such as a method-name in the case of <code><a href="#QTOOLS:DEFINE-SLOT">define-slot</a></code> and <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>. In the case of <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code> the body is discarded. However, even with these extensions things are rather cumbersome: You need to manually define slots for each of the widgets you want to use inside your widget class, and define their behaviour in an <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code> function. This is unwieldy, which is why Qtools also adds <code><a href="#QTOOLS:DEFINE-INITIALIZER">define-initializer</a></code>, <code><a href="#QTOOLS:DEFINE-FINALIZER">define-finalizer</a></code>, and <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code>. The first two follow in signature to the above and do what you might expect them to do: handle initialization and finalization. The initializer and finalizer forms take an optional priority argument in their name-list. The higher, the sooner. <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code> on the other hand looks like this:</p>
+<p>Some of them take optional extra arguments in the name-list, such as a method-name in the case of <code><a href="#QTOOLS:DEFINE-SLOT">define-slot</a></code> and <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>. In the case of <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code> the body is discarded. However, even with these extensions things are rather cumbersome: You need to manually define slots for each of the widgets you want to use inside your widget class, and define their behaviour in an <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code> function. This is unwieldy, which is why Qtools also adds <code><a href="#QTOOLS:DEFINE-INITIALIZER">define-initializer</a></code>, <code><a href="#QTOOLS:DEFINE-FINALIZER">define-finalizer</a></code>, and <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code>. The first two follow in signature to the above minus the <code>arglist</code> and do what you might expect them to do: handle initialization and finalization. The initializer and finalizer forms take an optional priority argument in their name-list. The higher, the sooner. <code><a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a></code> on the other hand looks like this:</p>
 
 <pre><code>(<a href="#QTOOLS:DEFINE-SUBWIDGET">define-subwidget</a> (<a href="#QTOOLS:WIDGET-CLASS">widget-class</a> name) initform &amp;body body)
 </code></pre>
@@ -264,7 +265,7 @@
 
 <h2>Examples</h2>
 
-<p>A couple of example applications using Qtools can be found in the <a href="https://github.com/Shinmera/qtools/tree/master/examples/">examples/</a> folder: <code>qtools-evaluator</code>. Each of them can be loaded by their name, and launched using the <code>main</code> function from their package.</p>
+<p>A couple of example applications using Qtools can be found in the <a href="https://github.com/Shinmera/qtools/tree/master/examples/">examples/</a> folder: <code>qtools-evaluator</code>, <code>qtools-titter</code>, and <code>qtools-opengl</code>. Each of them can be loaded by their name, and launched using the <code>main</code> function from their package.</p>
 
 <h2>Extending Qtools</h2>
 
