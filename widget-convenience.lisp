@@ -20,22 +20,29 @@
 ARGS is a list of arguments, where each item is a list of two values,
 the first being the symbol used to bind the value within the function
 body, and the second being a type specifier usable for the slot definition
-and, if possible, as a specializer in the method.
+and, if possible, as a specializer in the method. You may specify an
+explicit type to use for the method specializer as a third item. If no
+explicit type is passed, the Qt type is translated using CL-TYPE-FOR.
 
 In effect this translates to a method definition with METHOD-NAME that
 specialises (and binds) on WIDGET-CLASS, with additional required arguments
 ARGS, and a SLOT declaration. Additionally, the body is wrapped in a
 WITH-SLOTS-BOUND to allow for convenient slot access.
 
+See QTOOLS:CL-TYPE-FOR
 See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots"
   (setf method-name (or method-name (intern (format NIL "%~a-SLOT-~a" widget-class slot) *package*)))
   `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
-                                                                  for type = (or (cl-type-for (second arg))
-                                                                                 (warn "Unable to determine CL-type of ~s for argument ~s, falling back to T."
-                                                                                       (second arg) (first arg)))
-                                                                  collect `(,(first arg) ,(or type T))))
+                                                                        for type = (or (third arg)
+                                                                                       (cl-type-for (or (second arg)
+                                                                                                        (error "Qt type specifier required for ~s"
+                                                                                                               (first arg))))
+                                                                                       (emit-compilation-note
+                                                                                        "Unable to determine CL-type of ~s for argument ~s, falling back to T."
+                                                                                        (second arg) (first arg)))
+                                                                        collect `(,(first arg) ,(or type T))))
      (declare (slot ,slot ,(mapcar #'second args)))
      ,@(%make-slots-bound-proper widget-class body)))
 
