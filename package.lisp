@@ -100,7 +100,9 @@
    #:fuse-alists
    #:fuse-plists
    #:split
-   #:capitalize-on)
+   #:capitalize-on
+   #:compilation-note
+   #:emit-compilation-note)
   ;; widget.lisp
   (:export
    #:widget-class

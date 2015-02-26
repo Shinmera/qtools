@@ -157,3 +157,12 @@ Example:
                     (setf capitalize NIL))
                    (T
                     (write-char char stream))))))
+
+(define-condition compilation-note (#+:sbcl sb-ext:compiler-note #-:sbcl condition)
+  ((message :initarg :message :initform (error "MESSAGE required.") :accessor message))
+  (:report (lambda (c s) (write-string (message c) s))))
+
+(defun emit-compilation-note (format-string &rest args)
+  (let ((message (apply #'format NIL format-string args)))
+    #+:sbcl (sb-c:maybe-compiler-notify 'compilation-note :message message)
+    #-:sbcl (signal 'compilation-note :message message)))
