@@ -96,41 +96,6 @@
             (unless (string= (q+:text album) "") (q+:text album))
             (unless (string= (q+:text artist) "") (q+:text artist)))))
 
-;; We have to do this kind of idiotic garbage
-;; because of Qt's impossibly studid handling
-;; of table cell widgets.
-;; To be more precise, we need to have a container
-;; as we cannot use setCellWidget directly to
-;; move rows in our dropEvent (which we have to
-;; override to fix Qt's broken default behaviour)
-;; as setCellWidget /deletes/ the widget that's
-;; at the position you're setting to.
-;; Instead we have to set the contained item
-;; as we can do that without causing any weird
-;; deletion garbage.
-;;
-;; Needless to say I wish such annoying kludges
-;; weren't necessary in example code like this,
-;; but my excuse is that I'm showing off Qtools
-;; and not necessarily Qt, so I don't really
-;; care if I rant about it.
-(define-widget track-list-container (QWidget)
-  ((inner :initarg :inner :initform (error "INNER required."))))
-
-(define-subwidget (track-list-container layout) (q+:make-qhboxlayout track-list-container)
-  (q+:add-widget layout inner)
-  (setf (q+:spacing layout) 0)
-  (setf (q+:margin layout) 0))
-
-(defun inner (container)
-  (slot-value container 'inner))
-
-(defun (cl:setf inner) (widget container)
-  (with-slots-bound (container track-list-container)
-    (q+:remove-widget layout inner)
-    (q+:add-widget layout widget)
-    (setf inner widget)))
-
 (define-widget track-list (QTableWidget)
   ())
 
@@ -174,14 +139,11 @@
       (let* ((row (q+:current-row track-list))
              (current (track track-list row))
              (dropping (drop-row track-list ev)))
-        (if (< row dropping)
-            (loop for i from row below dropping
-                  do (setf (inner (q+:cell-widget track-list i 0))
-                           (inner (q+:cell-widget track-list (1+ i) 0))))
-            (loop for i downfrom row above dropping
-                  do (setf (inner (q+:cell-widget track-list i 0))
-                           (inner (q+:cell-widget track-list (1- i) 0)))))
-        (setf (inner (q+:cell-widget track-list dropping 0)) current)))))
+        (q+:insert-row track-list dropping)
+        (setf (q+:cell-widget track-list dropping 0) current)
+        (q+:remove-row track-list (if (< row dropping) row (1+ row)))
+        (q+:select-row track-list dropping)
+        (q+:resize-rows-to-contents track-list)))))
 
 (defun add-track (track-list track)
   (let ((track (etypecase track
@@ -191,8 +153,7 @@
         (index (q+:row-count track-list)))
     (format T "~&Adding track ~a at ~d" track index)
     (q+:insert-row track-list index)
-    (setf (q+:cell-widget track-list index 0)
-          (make-instance 'track-list-container :inner track))
+    (setf (q+:cell-widget track-list index 0) track)
     (q+:resize-rows-to-contents track-list)
     track))
 
@@ -233,8 +194,8 @@
 
 (defun track (track-list n)
   (when (< -1 n (q+:row-count track-list))
-    (inner (q+:cell-widget track-list n 0))))
+    (q+:cell-widget track-list n 0)))
 
 (defun tracks (track-list)
   (loop for i from 0 below (q+:row-count track-list)
-        collect (inner (q+:cell-widget track-list i 0))))
+        collect (q+:cell-widget track-list i 0)))
