@@ -265,7 +265,7 @@
 
 <h2>Examples</h2>
 
-<p>A couple of example applications using Qtools can be found in the <a href="https://github.com/Shinmera/qtools/tree/master/examples/">examples/</a> folder: <code>qtools-evaluator</code>, <code>qtools-titter</code>, and <code>qtools-opengl</code>. Each of them can be loaded by their name, and launched using the <code>main</code> function from their package.</p>
+<p>A couple of example applications using Qtools can be found in the <a href="https://github.com/Shinmera/qtools/tree/master/examples/">examples/</a> folder: <code>qtools-evaluator</code>, <code>qtools-titter</code>, <code>qtools-melody</code>, and <code>qtools-opengl</code>. Each of them can be loaded by their name, and launched using the <code>main</code> function from their package.</p>
 
 <h2>Extending Qtools</h2>
 
@@ -375,6 +375,19 @@
               <span class="nicknames">(ORG.SHIRAKUMO.QTOOLS)</span>
             </h3>
             <ul><li>
+                <a name="QTOOLS:COMPILATION-NOTE"/>
+                <article>
+                  <header>
+                    <span>CLASS</span>
+                    <code>
+                      <h4><a href="#QTOOLS:COMPILATION-NOTE">COMPILATION-NOTE</a></h4>
+                      <span/>
+                      <span/>
+                    </code>
+                  </header>
+                  <pre/>
+                </article>
+              </li><li>
                 <a name="QTOOLS:FINALIZABLE"/>
                 <article>
                   <header>
@@ -690,6 +703,19 @@ by EQT-TYPE-OF.</pre>
                     </code>
                   </header>
                   <pre>Same as CL-TYPE-FOR, but signals an error if no matching type could be found.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:EMIT-COMPILATION-NOTE"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:EMIT-COMPILATION-NOTE">EMIT-COMPILATION-NOTE</a></h4>
+                      <span/>
+                      <span>(FORMAT-STRING &amp;REST ARGS)</span>
+                    </code>
+                  </header>
+                  <pre/>
                 </article>
               </li><li>
                 <a name="QTOOLS:ENSURE-CLASS"/>
@@ -1836,13 +1862,16 @@ method to call is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
 ARGS is a list of arguments, where each item is a list of two values,
 the first being the symbol used to bind the value within the function
 body, and the second being a type specifier usable for the slot definition
-and, if possible, as a specializer in the method.
+and, if possible, as a specializer in the method. You may specify an
+explicit type to use for the method specializer as a third item. If no
+explicit type is passed, the Qt type is translated using CL-TYPE-FOR.
 
 In effect this translates to a method definition with METHOD-NAME that
 specialises (and binds) on WIDGET-CLASS, with additional required arguments
 ARGS, and a SLOT declaration. Additionally, the body is wrapped in a
 WITH-SLOTS-BOUND to allow for convenient slot access.
 
+See QTOOLS:CL-TYPE-FOR
 See CL+QT:DEFMETHOD
 See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/slots</pre>

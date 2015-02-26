@@ -205,7 +205,7 @@ Qtools provides ASDF systems for all the different smoke modules. That way, you 
 For a list of available smoke modules, see `*smoke-modules*`.
 
 ## Examples
-A couple of example applications using Qtools can be found in the [examples/](https://github.com/Shinmera/qtools/tree/master/examples/) folder: `qtools-evaluator`, `qtools-titter`, and `qtools-opengl`. Each of them can be loaded by their name, and launched using the `main` function from their package.
+A couple of example applications using Qtools can be found in the [examples/](https://github.com/Shinmera/qtools/tree/master/examples/) folder: `qtools-evaluator`, `qtools-titter`, `qtools-melody`, and `qtools-opengl`. Each of them can be loaded by their name, and launched using the `main` function from their package.
 
 ## Extending Qtools
 
