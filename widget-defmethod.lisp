@@ -107,7 +107,7 @@ This also signals errors if there is no such specializer or if it is invalid."
         `(progn
            (set-widget-class-option ',widget-class :slots '(,slot ,method))
            ,@(when connectors
-               `((define-initializer (,widget-class ,connectors-initializer)
+               `((define-initializer (,widget-class ,connectors-initializer 9)
                    ,@(loop for connector in connectors
                            for (source source-args) = (rest (second connector))
                            collect `(connect! ,source ,source-args ,widget-class (,name ,@args)))))))))))
