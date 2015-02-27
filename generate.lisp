@@ -541,10 +541,8 @@ See QTOOLS:*QMETHODS*"
          `((setf (documentation ',name 'variable) ,documentation)))))
 
 (defun compile-constant (methods)
-  `(progn
-     ,@(loop for method in methods
-             for constant = (cl-constant-name method)
-             collect `(define-qt-constant ,constant
-                          (,(qclass-name (qt::qmethod-class method))
-                           ,(qmethod-name method))
-                          ,(generate-constant-docstring method)))))
+  (let ((method (first methods)))
+    `(define-qt-constant ,(cl-constant-name method)
+         (,(qclass-name (qt::qmethod-class method))
+          ,(qmethod-name method))
+         ,(generate-constant-docstring method))))
