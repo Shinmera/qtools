@@ -105,7 +105,8 @@ This also signals errors if there is no such specializer or if it is invalid."
         (dolist (connector connectors)
           (setf *method* (delete connector *method*)))
         `(progn
-           (set-widget-class-option ',widget-class :slots '(,slot ,method))
+           (unless (widget-class-option-p ',widget-class :slots '(,slot ,method) :key #'identity)
+             (set-widget-class-option ',widget-class :slots '(,slot ,method)))
            ,@(when connectors
                `((define-initializer (,widget-class ,connectors-initializer 9)
                    ,@(loop for connector in connectors
@@ -116,14 +117,17 @@ This also signals errors if there is no such specializer or if it is invalid."
   (let* ((lambda-name (form-fiddle:lambda-name *method*))
          (slot (qtools:to-method-name (or name lambda-name))))
     (with-widget-class (widget-class)
-      `(set-widget-class-option ',widget-class :override '(,slot ,lambda-name)))))
+      `(unless (widget-class-option-p ',widget-class :override '(,slot ,lambda-name) :key #'identity)
+         (set-widget-class-option ',widget-class :override '(,slot ,lambda-name))))))
 
 (define-method-declaration initializer (&optional (priority 0))
   (let ((method (form-fiddle:lambda-name *method*)))
     (with-widget-class (widget-class)
-      `(set-widget-class-option ',widget-class :initializers '(,method ,priority ,method)))))
+      `(unless (widget-class-option-p ',widget-class :initializers '(,method ,priority ,method) :key #'identity)
+         (set-widget-class-option ',widget-class :initializers '(,method ,priority ,method))))))
 
 (define-method-declaration finalizer (&optional (priority 0))
   (let ((method (form-fiddle:lambda-name *method*)))
     (with-widget-class (widget-class)
-      `(set-widget-class-option ',widget-class :finalizers '(,method ,priority ,method)))))
+      `(unless (widget-class-option-p ',widget-class :finalizers '(,method ,priority ,method) :key #'identity)
+         (set-widget-class-option ',widget-class :finalizers '(,method ,priority ,method))))))
