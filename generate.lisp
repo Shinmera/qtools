@@ -274,7 +274,7 @@ See QTOOLS:METHOD-NEEDED-P
 See QTOOLS:METHOD-SYMBOL
 See QTOOLS:*QMETHODS*"
   (when (method-needed-p method)
-    (push method (gethash (method-symbol method) *qmethods*))))
+    (pushnew method (gethash (method-symbol method) *qmethods*))))
 
 (defun process-all-methods ()
   "Clears the method table and generates all possible data for the currently available methods.
