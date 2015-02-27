@@ -38,7 +38,7 @@ is LOADed or compiled again.
 
 See QTOOLS:WRITE-FORMS
 See QTOOLS:*TARGET-PACKAGE*"
-  (let* ((package (cond ((typep package 'package))
+  (let* ((package (cond ((typep package 'package) package)
                         ((find-package package) (find-package package))
                         (T (make-package package))))
          (modules (loaded-smoke-modules))
