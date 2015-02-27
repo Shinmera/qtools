@@ -418,7 +418,8 @@ See QTOOLS:*QMETHODS*"
            ,(generate-method-docstring methods)
            ,(if optargs
                 `(cond
-                   ,@(loop for (arg noop arg-p) in (reverse optargs-p)
+                   ,@(loop for arg in (reverse optargs-p)
+                           for arg-p = (third arg)
                            for count from 0
                            collect `(,arg-p
                                      (optimized-call T ,instance ,method ,@reqargs ,@(butlast optargs count))))
@@ -440,7 +441,8 @@ See QTOOLS:*QMETHODS*"
            ,(generate-method-docstring methods)
            ,(if optargs
                 `(cond
-                   ,@(loop for (arg noop arg-p) in (reverse optargs-p)
+                   ,@(loop for arg in (reverse optargs-p)
+                           for arg-p = (third arg)
                            for count from 0
                            collect `(,arg-p
                                      (optimized-call T ,class-name ,method ,@reqargs ,@(butlast optargs count))))
@@ -514,7 +516,8 @@ See QTOOLS:*QMETHODS*"
            ,(generate-method-docstring methods)
            ,(if optargs
                 `(cond
-                   ,@(loop for (arg noop arg-p) in (reverse optargs-p)
+                   ,@(loop for arg in (reverse optargs-p)
+                           for arg-p = (third arg)
                            for count from 0
                            collect `(,arg-p
                                      (optimized-new ,class ,@reqargs ,@(butlast optargs count))))

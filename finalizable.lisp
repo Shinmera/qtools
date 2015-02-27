@@ -39,6 +39,7 @@
 
 ;; For some reason the slot doesn't get set? (?????)
 (defmethod c2mop:compute-effective-slot-definition ((class finalizable-class) name direct-slots)
+  (declare (ignore name))
   (let ((effective-slot (call-next-method)))
     (loop for direct-slot in direct-slots
           do (when (and (typep direct-slot 'finalizable-direct-slot-definition)
