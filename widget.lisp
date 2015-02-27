@@ -145,6 +145,14 @@ FINALIZE-INHERITANCE call on the class."
     (c2mop:finalize-inheritance class)
     class))
 
+(defun widget-class-option-p (class option value &key (key #'first) (test #'equal))
+  "Tests if OPTION VALUE is already present on CLASS.
+Returns the full option value if it can be found.
+
+See QTOOLS:SET-WIDGET-CLASS-OPTION"
+  (let ((idents (getf (widget-class-extern-options (ensure-class class)) option)))
+    (find (funcall key value) idents :key key :test test)))
+
 (defun set-widget-class-option (class option value &key (key #'first) (test #'equal))
   "Sets a CLASS OPTION VALUE.
 

@@ -114,6 +114,7 @@
    #:call-initializers
    #:call-finalizers
    #:softly-redefine-widget-class
+   #:widget-class-option-p
    #:set-widget-class-option
    #:remove-widget-class-option
    #:define-widget)
