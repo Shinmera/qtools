@@ -8,7 +8,7 @@
   (:nicknames #:org.shirakumo.qtools.opengl)
   (:use #:cl+qt)
   (:export #:main))
-(in-package #:qtools-opengl)
+(in-package #:org.shirakumo.qtools.opengl)
 (named-readtables:in-readtable :qtools)
 
 (define-widget opengl (QGLWidget)

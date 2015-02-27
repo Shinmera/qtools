@@ -8,7 +8,7 @@
   (:nicknames #:org.shirakumo.qtools.evaluator)
   (:use #:cl+qt #:trivial-gray-streams)
   (:export #:main))
-(in-package #:qtools-evaluator)
+(in-package #:org.shirakumo.qtools.evaluator)
 (named-readtables:in-readtable :qtools)
 
 ;; Basic REPL widget

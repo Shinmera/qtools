@@ -4,11 +4,11 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(defpackage #:titter
+(defpackage #:qtools-titter
   (:nicknames #:org.shirakumo.qtools.titter)
   (:use #:cl+qt)
   (:export #:main))
-(in-package #:titter)
+(in-package #:org.shirakumo.qtools.titter)
 (in-readtable :qtools)
 
 ;; Please have a look at the following blog post,
