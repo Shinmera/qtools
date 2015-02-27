@@ -5,6 +5,9 @@
 |#
 
 (in-package #:cl-user)
+(defpackage #:org.shirakumo.qtools.q+.asdf
+  (:use #:cl))
+(in-package #:org.shirakumo.qtools.q+.asdf)
 
 (defclass dynamic-smoke-wrapper (asdf:cl-source-file)
   ())
@@ -22,7 +25,7 @@
         (with-open-file (stream module-buffer :direction :output :if-exists :supersede)
           (print (qtools 'loaded-smoke-modules) stream))))))
 
-(defsystem #:q+
+(asdf:defsystem #:q+
   :name "q+"
   :version "0.2.1"
   :license "Artistic"
@@ -31,6 +34,5 @@
   :description "Precompiles all Q+ method wrappers for currently active smoke modules."
   :homepage "https://github.com/Shinmera/qtools"
   :serial T
-  :components ((:module "q+"
-                :components ((:dynamic-smoke-wrapper "q+"))))
+  :components ((:dynamic-smoke-wrapper "q+"))
   :depends-on (:qtools))
