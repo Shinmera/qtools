@@ -68,7 +68,9 @@ actually available for compilation.")
 
 See QT:ENSURE-SMOKE"
   (dolist (mod mods)
-    (ensure-smoke mod)))
+    (let ((mod (intern (string-upcase mod) "KEYWORD")))
+      (ensure-smoke mod)
+      (pushnew mod *smoke-modules*))))
 
 (defun loaded-smoke-modules ()
   "Returns a fresh list of currently loaded smoke modules.
