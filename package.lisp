@@ -66,7 +66,8 @@
   (:export
    #:write-everything-to-file
    #:q+-compile-and-load
-   #:smoke-module-system)
+   #:smoke-module-system
+   #:write-smoke-module-system-file)
   ;; keychord-editor.lisp
   (:export
    #:keychord-editor)

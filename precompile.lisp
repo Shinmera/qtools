@@ -102,16 +102,15 @@ See QTOOLS:SMOKE-MODULE-SYSTEM"
      :class "qtools::smoke-module-system"
      :module ,(string-upcase module)))
 
-(defun write-smoke-module-system-file (module)
-  "Writes a SMOKE-MODULE-SYSTEM form to the proper file in the \"smoke\" subfolder of Qtools.
+(defun write-smoke-module-system-file (module &optional (path (asdf:system-relative-pathname :qtools (format NIL "smoke/~(~a~).asd" module))))
+  "Writes a SMOKE-MODULE-SYSTEM form to the given PATH.
 
 See QTOOLS:COMPILE-SMOKE-MODULE-SYSTEM-DEFINITION"
-  (let ((file (asdf:system-relative-pathname :qtools (format NIL "smoke/~(~a~).asd" module))))
-    (with-open-file (stream file :direction :output :if-exists :supersede)
-      (let ((*package* (find-package :cl-user)))
-        (print '(in-package #:cl-user) stream)
-        (print (compile-smoke-module-system-definition module) stream)))
-    file))
+  (with-open-file (stream path :direction :output :if-exists :supersede)
+    (let ((*package* (find-package :cl-user)))
+      (print '(in-package #:cl-user) stream)
+      (print (compile-smoke-module-system-definition module) stream)))
+  path)
 
 (defun write-all-smoke-module-system-files ()
   "Writes module system files for all possible smoke modules.
