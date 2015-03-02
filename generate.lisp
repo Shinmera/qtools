@@ -496,12 +496,12 @@ See QTOOLS:*QMETHODS*"
           ((string= method "operator=")
            `(define-extern-macro ,name (,instance ,value)
               ,(generate-method-docstring methods)
-              `(setf ,,instance ,,(emit-operator-call methods instance value))))
+              `(setf ,,instance ,(emit-operator-call ',methods ,instance ,value))))
           ((or (string= method "operator+=")
                (string= method "operator-="))
            `(define-extern-macro ,name (,instance &optional (,value 1))
               ,(generate-method-docstring methods)
-              `(setf ,,instance ,,(emit-operator-call methods instance value))))
+              `(setf ,,instance ,(emit-operator-call ',methods ,instance ,value))))
           ;; Default case 1 arg
           (T
            `(define-extern-inline-fun ,name (,instance ,operand)
