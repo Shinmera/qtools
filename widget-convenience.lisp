@@ -8,7 +8,7 @@
 (named-readtables:in-readtable :qt)
 
 (defun %make-slots-bound-proper (widget-class body)
-  (form-fiddle:with-destructured-lambda-form (:docstring doc :declarations declarations :forms forms) `(noop () ,@body)
+  (form-fiddle:with-destructured-lambda-form (:docstring doc :declarations declarations :forms forms) `(lambda () ,@body)
     `(,@declarations
       ,@(when doc `(,doc))
       (qtools:with-slots-bound (,widget-class ,widget-class)
@@ -130,7 +130,7 @@ See QTOOLS:DEFINE-INITIALIZER"
          (unless (widget-class-option-p ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL :finalized T) :key #'identity)
            (set-widget-class-option ',widget-class :direct-slots '(:name ,name :readers NIL :writers NIL :initargs NIL :finalized T) :key #'second)))
        (define-initializer (,widget-class ,initfunc 10)
-         (setf (slot-value ,widget-class ',name) ,initform)
+         (setf ,name ,initform)
          ,@body))))
 
 (defun remove-slot (widget-class slot)
