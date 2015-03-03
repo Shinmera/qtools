@@ -44,7 +44,7 @@
 ;;;;;
 ;; Chunk forms
 (defclass square-chunk (chunk)
-  ((size :initarg :size :initform 64 :accessor size)))
+  ((size :initarg :size :initform 32 :accessor size)))
 
 (defmethod (cl:setf size) (size (square square-chunk))
   (setf (slot-value square 'size) size

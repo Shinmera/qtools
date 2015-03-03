@@ -23,8 +23,6 @@
   (setf (q+:size-policy chunk-selector) (values (q+:qsizepolicy.minimum) (q+:qsizepolicy.minimum)))
   (setf (q+:stretch-last-section (q+:horizontal-header chunk-selector)) T)
   (setf (q+:column-count chunk-selector) 1)
-  (setf (q+:default-section-size (q+:horizontal-header chunk-selector)) 64)
-  (setf (q+:default-section-size (q+:vertical-header chunk-selector)) 64)
   (setf (q+:selection-mode chunk-selector) (q+:qabstractitemview.single-selection)) 
   (setf (q+:selection-behavior chunk-selector) (q+:qabstractitemview.select-rows))
   (q+:hide (q+:horizontal-header chunk-selector))
@@ -42,7 +40,7 @@
 (define-subwidget (editor selector) (make-instance 'chunk-selector))
 
 (define-subwidget (editor raster) (q+:make-qspinbox editor)
-  (setf (q+:value raster) 64)
+  (setf (q+:value raster) 32)
   (setf (q+:minimum raster) 1)
   (setf (q+:single-step raster) 1))
 
