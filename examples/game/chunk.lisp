@@ -56,27 +56,32 @@
 (defmethod initialize-instance :after ((square square-chunk) &key)
   (setf (size square) (size square)))
 
+(defmethod make-args ((chunk square-chunk))
+  `(:size ,(size chunk)
+    ,@(when (next-method-p)
+        (call-next-method))))
+
 (defclass rectangular-chunk (chunk)
   ())
 
 (defmethod paint ((chunk rectangular-chunk) painter)
   (q+:draw-rect painter
-                (- (x chunk) (left chunk))
-                (- (y chunk) (top chunk))
-                (w chunk) (h chunk)))
+                (floor (- (x chunk) (left chunk)))
+                (floor (- (y chunk) (top chunk)))
+                (floor (w chunk)) (floor (h chunk))))
 
 (defclass circular-chunk (chunk)
   ())
 
 (defmethod paint ((chunk circular-chunk) painter)
   (q+:draw-ellipse painter
-                   (- (x chunk) (left chunk))
-                   (- (y chunk) (top chunk))
-                   (w chunk) (h chunk)))
+                   (floor (- (x chunk) (left chunk)))
+                   (floor (- (y chunk) (top chunk)))
+                   (floor (w chunk)) (floor (h chunk))))
 ;;;;;
 ;; Chunk visuals
 (defclass colored-chunk (chunk)
-  ((color :initarg :color :initform (q+:qt.white) :accessor color)))
+  ((color :initarg :color :initform (error "COLOR required.") :accessor color)))
 
 (defmethod paint :before ((chunk colored-chunk) painter)
   (setf (q+:pen painter) (q+:qt.no-pen))
@@ -85,12 +90,20 @@
 (defclass textured-chunk (plain-chunk)
   ((texture :initarg :texture :initform (error "TEXTURE required.") :accessor texture)))
 
+(defmethod initialize-instance :after ((chunk textured-chunk) &key)
+  (setf (texture chunk)
+        (etypecase (texture chunk)
+          (pathname (q+:make-qimage (uiop:native-namestring (texture chunk))))
+          (string (q+:make-qimage (texture chunk)))
+          (qobject (texture chunk)))))
+
 (defmethod paint :before ((chunk textured-chunk) painter)
   (setf (q+:pen painter) (q+:qt.no-pen))
   (setf (q+:brush painter) (q+:make-qbrush (texture chunk))))
 
 (defclass white-square (rectangular-chunk square-chunk colored-chunk real-chunk)
-  ())
+  ()
+  (:default-initargs :color (q+:qt.white)))
 
 (defclass red-ball (circular-chunk square-chunk colored-chunk real-chunk)
   ()

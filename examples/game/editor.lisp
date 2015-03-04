@@ -33,8 +33,7 @@
   (q+:select-row chunk-selector 0))
 
 (define-widget editor (QWidget)
-  ((game :initarg :game :initform (error "GAME required."))
-   (active :initarg :active :initform T :accessor active)
+  ((active :initarg :active :initform T :accessor active)
    (file :initarg :file :initform "" :accessor file)))
 
 (define-subwidget (editor selector) (make-instance 'chunk-selector))
@@ -71,27 +70,34 @@
   (let ((raster (q+:value (slot-value editor 'raster))))
     (* (round (/ x raster)) raster)))
 
+(defmethod (cl:setf active) (value (editor editor))
+  (setf (slot-value editor 'active) value)
+  (if value
+      (q+:show editor)
+      (q+:hide editor)))
+
 (define-slot (editor mouse-release) ((x int) (y int) (button int))
-  (declare (connected game (mouse-release int int int)))
-  (cond ((= button (q+:qt.left-button))
-         (add-chunk (make-instance (class-name (class-of (chunk editor)))
-                                   :x (snap-to-raster x editor)
-                                   :y (snap-to-raster y editor))
-                    (world game)))
-        ((= button (q+:qt.right-button))
-         (remove-chunk (chunk-at (world game) x y)
-                       (world game)))))
+  (declare (connected *game* (mouse-release int int int)))
+  (when active
+    (cond ((= button (q+:qt.left-button))
+           (add-chunk (make-instance (class-name (class-of (chunk editor)))
+                                     :x (snap-to-raster x editor)
+                                     :y (snap-to-raster y editor))
+                      (world *game*)))
+          ((= button (q+:qt.right-button))
+           (remove-chunk (chunk-at (world *game*) x y)
+                         (world *game*))))))
 
 (define-slot (editor save) ()
   (declare (connected save (pressed)))
   (let ((new-file (q+:qfiledialog-get-save-file-name editor "Save World" file "Lisp Files (*.lisp-expr *.lisp)")))
     (when new-file
-      (save-world (uiop:parse-native-namestring new-file) (world game) :if-exists :supersede)
+      (save-world (uiop:parse-native-namestring new-file) (world *game*) :if-exists :supersede)
       (setf file new-file))))
 
 (define-slot (editor load) ()
   (declare (connected load (pressed)))
-  (let ((new-file (q+:qfiledialog-get-open-file-name editor "Save World" file "Lisp Files (*.lisp-expr *.lisp)")))
+  (let ((new-file (q+:qfiledialog-get-open-file-name editor "Load World" file "Lisp Files (*.lisp-expr *.lisp)")))
     (when new-file
-      (load-world (uiop:parse-native-namestring new-file) (world game))
+      (load-world (uiop:parse-native-namestring new-file) (world *game*))
       (setf file new-file))))
