@@ -91,7 +91,22 @@ STANDARD-OBJECT -> CLASS-OF"
   "Turns into a WITH-SLOTS with all direct-slots of CLASS.
 Class is resolved as per ENSURE-CLASS."
   (let ((slots (loop for slot in (c2mop:class-direct-slots
-                                  (ensure-class class))
+                                  (let ((class (ensure-class class)))
+                                    (c2mop:finalize-inheritance class)
+                                    class))
+                     for name = (c2mop:slot-definition-name slot)
+                     collect name)))
+    `(with-slots ,slots ,instance
+       (declare (ignorable ,@slots))
+       ,@body)))
+
+(defmacro with-all-slots-bound ((instance class) &body body)
+  "Turns into a WITH-SLOTS with all slots of CLASS.
+Class is resolved as per ENSURE-CLASS."
+  (let ((slots (loop for slot in (c2mop:class-slots
+                                  (let ((class (ensure-class class)))
+                                    (c2mop:finalize-inheritance class)
+                                    class))
                      for name = (c2mop:slot-definition-name slot)
                      collect name)))
     `(with-slots ,slots ,instance

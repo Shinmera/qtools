@@ -98,6 +98,7 @@
    #:enumerate-method-descriptors
    #:ensure-class
    #:with-slots-bound
+   #:with-all-slots-bound
    #:fuse-alists
    #:fuse-plists
    #:split
