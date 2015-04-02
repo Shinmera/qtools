@@ -66,7 +66,8 @@ See QTOOLS:METHOD-DECLARATION."
         (known-declarations))
     ;; Rebuild method with new declarations
     (form-fiddle:with-destructured-lambda-form (:qualifiers qualifiers :lambda-list args :docstring docs :forms forms) whole
-      (let ((*method* `(cl:defmethod ,name ,@qualifiers ,args
+      (let* ((name (ensure-cl-function-name name))
+             (*method* `(cl:defmethod ,name ,@qualifiers ,args
                          ,@(when docs (list docs))
                          ,@all-declarations
                          ,@forms)))
@@ -80,12 +81,30 @@ See QTOOLS:METHOD-DECLARATION."
         ;; Remove the known declarations from the method body
         (loop for declaration in known-declarations
               do (setf *method* (delete declaration *method*)))
-        ;; Change symbol
-        (setf (first *method*) 'cl:defmethod)
         `(progn
            (eval-when (:compile-toplevel :load-toplevel :execute)
              ,@declaration-forms)
            ,*method*)))))
+
+(defmacro cl+qt:defgeneric (name args &body options)
+  "Defines a new generic function.
+
+Identical to CL:DEFGENERIC, but takes care of translating
+function-names with SETF to use CL:SETF instead of CL+QT:SETF.
+
+See CL:DEFGENERIC."
+  `(cl:defgeneric ,(ensure-cl-function-name name) ,args
+     ,@options))
+
+(defmacro cl+qt:defun (name args &body body)
+  "Defines a new function.
+
+Identical to CL:DEFUN, but takes care of translating function-names
+with SETF to use CL:SETF instead of CL+QT:SETF.
+
+See CL:DEFUN."
+  `(cl:defun ,(ensure-cl-function-name name) ,args
+     ,@body))
 
 (defmacro with-widget-class ((variable &optional (method '*method*)) &body body)
   "Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.

@@ -181,3 +181,8 @@ Example:
   (let ((message (apply #'format NIL format-string args)))
     #+:sbcl (sb-c:maybe-compiler-notify 'compilation-note :message message)
     #-:sbcl (signal 'compilation-note :message message)))
+
+(defun ensure-cl-function-name (name)
+  (if (and (listp name) (eql (first name) 'cl+qt:setf))
+      `(cl:setf ,(second name))
+      name))
