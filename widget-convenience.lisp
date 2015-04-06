@@ -78,6 +78,7 @@ See QTOOLS:WITH-SLOTS-BOUND"
      (declare (initializer ,priority))
      (when (next-method-p)
        (call-next-method))
+     #+:verbose (v:trace :qtools ,(format NIL "Running initializer ~a for ~~a" method-name) ,widget-class)
      ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-finalizer ((widget-class method-name &optional (priority 0)) &body body)
@@ -96,6 +97,7 @@ See QTOOLS:WITH-SLOTS-BOUND
 See QTOOLS:FINALIZE"
   `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class))
      (declare (finalizer ,priority))
+     #+:verbose (v:trace :qtools ,(format NIL "Running finalizer ~a for ~~a" method-name) ,widget-class)
      ,@(%make-slots-bound-proper widget-class body)
      (when (next-method-p)
        (call-next-method))))
