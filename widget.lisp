@@ -94,7 +94,8 @@ and CLOS methods that process them."
             do (setf (getf options name) (append (getf options name) value))))
     ;; Delegate
     (remf options :save-direct-options)
-    #+:verbose (v:debug :qtools.widget "~s Delegating class options: ~s" class options)
+    #+:verbose (unless (getf options 'init) (v:debug :qtools.widget "~s Delegating class options: ~s" class options))
+    (remf options 'init)
     (apply next-method class options)
     ;; Save directly specified options
     (when save-direct-options
@@ -103,7 +104,7 @@ and CLOS methods that process them."
   class)
 
 (defmethod initialize-instance :around ((class widget-class) &rest options)
-  (apply #'setup-widget-class class #'call-next-method options))
+  (apply #'setup-widget-class class #'call-next-method 'init T options))
 
 (defmethod reinitialize-instance :around ((class widget-class) &rest options)
   (apply #'setup-widget-class class #'call-next-method options))
