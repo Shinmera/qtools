@@ -161,7 +161,7 @@
   (:nicknames #:org.shirakumo.qtools+common-lisp)
   (:use #:cl #:qt #:qtools)
   (:import-from #:named-readtables #:in-readtable)
-  (:shadowing-import-from #:qt #:with-main-window)
+  (:shadowing-import-from #:qtools #:with-main-window)
   (:shadow #:setf #:defun #:defgeneric #:defmethod))
 
 (do-symbols (symbol '#:cl+qt)
