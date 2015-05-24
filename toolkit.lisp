@@ -53,9 +53,9 @@
 (defun map-layout (function layout)
   "Map all widgets on LAYOUT onto FUNCTION."
   (loop for i from 0
-        for item = (q+:item-at layout i)
+        for item = (#_itemAt layout i)
         until (typep item 'null-qobject)
-        do (funcall function (q+:widget item))))
+        do (funcall function (#_widget item))))
 
 (defmacro do-layout ((widget layout) &body body)
   "Iterate over all WIDGETs on LAYOUT."
