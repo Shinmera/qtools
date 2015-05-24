@@ -177,7 +177,10 @@ Translation is as follows:
 If an uppercase alphabetic character is encountered and the previous
 character was not already uppercase, #\- is printed. If #\_ is
 encountered, it is treated as an uppercase character and printed
-as #\-. Any other character is printed as their uppercase equivalent.
+as #\_. A #\- would be more \"lispy\" to use for a #\_, but doing so
+leads to method name clashes (most notably \"set_widget\" and 
+\"setWidget\"). Any other character is printed as their uppercase
+equivalent.
 
 KLUDGE: This approach does not currently take the readtable case 
 into account. This will be problematic on systems where it matters.
@@ -195,7 +198,7 @@ See CL:CHAR-UPCASE"
                   (write-char char stream))
                  ((char= char #\_)
                   (setf prev-cap T)
-                  (write-char #\- stream))
+                  (write-char char stream))
                  (T (setf prev-cap NIL)
                     (write-char (char-upcase char) stream)))))
 
