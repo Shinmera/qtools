@@ -187,7 +187,14 @@ In order to access enum values, you simply use the class name followed by a dot 
     (q+:make-qpushbutton "Foo!")
     (q+:qmessagebox-information parent "!" "hello!")
 
-For the specific arguments, names, and everything else, refer to the [Qt4.8](http://qt-project.org/doc/qt-4.8/) documentation. It's very good, trust me.
+For the specific arguments, names, and everything else, refer to the [Qt4.8](http://qt-project.org/doc/qt-4.8/) documentation. It's very good, trust me. The only thing you need to be aware of is the name conversion rules that Q+ uses to determine the proper Lisp symbol to use:
+
+* Method `QImage::constScanLine` => `q+:const-scan-line`
+* Method `Foo::set_widget` => `q+:set_widget`
+* Constant `QImage::InvertRgb` => `q+:qimage.invert-rgb`
+* Constant `QImage::Format_ARGB32_Premultiplied` => `q+:qimage.format_argb32_premultiplied`
+* Static Method `QFileDialog::getExistingDirectory` => `q+:qfiledialog-get-existing-directory`
+* Constructor `QImage::QImage` => `q+:make-qimage`
 
 For Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.
 

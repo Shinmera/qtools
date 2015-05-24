@@ -20,7 +20,7 @@
   <body>
     <header>
       <h1><img src="qtools-logo.png" alt="qtools"/></h1>
-      <span>0.5.2</span>
+      <span>0.6.0</span>
       <p>A collection of tools to aid in development with CommonQt.</p>
     </header>
     <div id="content">
@@ -244,7 +244,16 @@
 (q+:qmessagebox-information parent &quot;!&quot; &quot;hello!&quot;)
 </code></pre>
 
-<p>For the specific arguments, names, and everything else, refer to the <a href="http://qt-project.org/doc/qt-4.8/">Qt4.8</a> documentation. It's very good, trust me.</p>
+<p>For the specific arguments, names, and everything else, refer to the <a href="http://qt-project.org/doc/qt-4.8/">Qt4.8</a> documentation. It's very good, trust me. The only thing you need to be aware of is the name conversion rules that Q+ uses to determine the proper Lisp symbol to use:</p>
+
+<ul>
+<li>Method <code>QImage::constScanLine</code> =&gt; <code>q+:const-scan-line</code></li>
+<li>Method <code>Foo::set_widget</code> =&gt; <code>q+:set_widget</code></li>
+<li>Constant <code>QImage::InvertRgb</code> =&gt; <code>q+:qimage.invert-rgb</code></li>
+<li>Constant <code>QImage::Format_ARGB32_Premultiplied</code> =&gt; <code>q+:qimage.format_argb32_premultiplied</code></li>
+<li>Static Method <code>QFileDialog::getExistingDirectory</code> =&gt; <code>q+:qfiledialog-get-existing-directory</code></li>
+<li>Constructor <code>QImage::QImage</code> =&gt; <code>q+:make-qimage</code></li>
+</ul>
 
 <p>For Q+ to work seamlessly in conjunction with ASDF systems and compiling/loading code, you have to make sure that the smoke modules are set up correctly.</p>
 
@@ -375,17 +384,119 @@
               <span class="nicknames">(ORG.SHIRAKUMO.QTOOLS)</span>
             </h3>
             <ul><li>
-                <a name="QTOOLS:COMPILATION-NOTE"/>
+                <a name="QTOOLS:MENU-CONTENT-TYPE"/>
                 <article>
                   <header>
-                    <span>CLASS</span>
+                    <span>ACCESSOR</span>
                     <code>
-                      <h4><a href="#QTOOLS:COMPILATION-NOTE">COMPILATION-NOTE</a></h4>
-                      <span/>
-                      <span/>
+                      <h4><a href="#QTOOLS:MENU-CONTENT-TYPE">MENU-CONTENT-TYPE</a></h4>
+                      <span></span>
+                      <span>(NAME)</span>
                     </code>
                   </header>
-                  <pre/>
+                  <pre>Returns the function to process a menu content type NAME, if any.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:METHOD-DECLARATION"/>
+                <article>
+                  <header>
+                    <span>ACCESSOR</span>
+                    <code>
+                      <h4><a href="#QTOOLS:METHOD-DECLARATION">METHOD-DECLARATION</a></h4>
+                      <span></span>
+                      <span>(NAME)</span>
+                    </code>
+                  </header>
+                  <pre>Returns a function to process the method declaration NAME, if one exists.
+
+See (SETF QTOOLS:METHOD-DECLARATION).</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:VALUE"/>
+                <article>
+                  <header>
+                    <span>ACCESSOR</span>
+                    <code>
+                      <h4><a href="#QTOOLS:VALUE">VALUE</a></h4>
+                      <span></span>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>Returns the VALUE of object. This usually translates to (#_value object) unless overriden.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-ACTIONS"/>
+                <article>
+                  <header>
+                    <span>ACCESSOR</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-ACTIONS">WIDGET-ACTIONS</a></h4>
+                      <span></span>
+                      <span>(CLASS)</span>
+                    </code>
+                  </header>
+                  <pre>Returns a list of QAction instances that are active on the given CLASS.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-DIRECT-OPTIONS"/>
+                <article>
+                  <header>
+                    <span>ACCESSOR</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-DIRECT-OPTIONS">WIDGET-CLASS-DIRECT-OPTIONS</a></h4>
+                      <span></span>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>Contains all the options passed to RE/INITIALIZE-INSTANCE when
+the class is re/initialized directly through a DEFCLASS form.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS"/>
+                <article>
+                  <header>
+                    <span>ACCESSOR</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS">WIDGET-CLASS-EXTERN-OPTIONS</a></h4>
+                      <span></span>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>Contains all the options that are added to the class definition
+through external forms and thus need to be included and kept separate
+from options directly specified in the class definition.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-FINALIZERS"/>
+                <article>
+                  <header>
+                    <span>ACCESSOR</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-FINALIZERS">WIDGET-CLASS-FINALIZERS</a></h4>
+                      <span></span>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>A sorted list of functions to be called upon finalization.
+This list is overwritten completely whenever the class is re/initialized.
+
+See QTOOLS:CALL-FINALIZERS</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WIDGET-CLASS-INITIALIZERS"/>
+                <article>
+                  <header>
+                    <span>ACCESSOR</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-INITIALIZERS">WIDGET-CLASS-INITIALIZERS</a></h4>
+                      <span></span>
+                      <span>(OBJECT)</span>
+                    </code>
+                  </header>
+                  <pre>A sorted list of functions to be called upon initialization.
+This list is overwritten completely whenever the class is re/initialized.
+
+See QTOOLS:CALL-INITIALIZERS</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:FINALIZABLE"/>
@@ -394,8 +505,8 @@
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:FINALIZABLE">FINALIZABLE</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>A class for finalizable objects.</pre>
@@ -407,8 +518,8 @@
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:FINALIZABLE-CLASS">FINALIZABLE-CLASS</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Metaclass for classes with finalizable slots.</pre>
@@ -420,8 +531,8 @@
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:FINALIZABLE-SLOT">FINALIZABLE-SLOT</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Superclass for slots with a finalized option.</pre>
@@ -433,8 +544,8 @@
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:GC-FINALIZED">GC-FINALIZED</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Wrapper object to allow automatic calling of FINALIZE by the GC.
@@ -454,8 +565,8 @@ In order to retrieve the contained object, use UNBOX.</pre>
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:KEYCHORD-EDITOR">KEYCHORD-EDITOR</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre/>
@@ -467,8 +578,8 @@ In order to retrieve the contained object, use UNBOX.</pre>
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:SMOKE-MODULE-SYSTEM">SMOKE-MODULE-SYSTEM</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>A wrapper ASDF system class that only exists to ensure that a
@@ -481,8 +592,8 @@ given smoke module is loaded at compile and load time.</pre>
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:WIDGET">WIDGET</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Common superclass for all widgets in order to allow for
@@ -498,8 +609,8 @@ See QTOOLS:DEFINE-WIDGET.</pre>
                     <span>CLASS</span>
                     <code>
                       <h4><a href="#QTOOLS:WIDGET-CLASS">WIDGET-CLASS</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Metaclass for widgets storing necessary information.
@@ -513,13 +624,26 @@ The metadata stored in this is mostly responsible for two things:
 In order to modify the metadata, please look at SET/REMOVE-WIDGET-CLASS-OPTION.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:COMPILATION-NOTE"/>
+                <article>
+                  <header>
+                    <span>CONDITION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:COMPILATION-NOTE">COMPILATION-NOTE</a></h4>
+                      <span></span>
+                      <span>()</span>
+                    </code>
+                  </header>
+                  <pre/>
+                </article>
+              </li><li>
                 <a name="QTOOLS:BUILD-MENU-CONTENT"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:BUILD-MENU-CONTENT">BUILD-MENU-CONTENT</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(PARENT TYPE CONTENTS)</span>
                     </code>
                   </header>
@@ -534,7 +658,7 @@ See (SETF QTOOLS:MENU-CONTENT-TYPE).</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:CALL-FINALIZERS">CALL-FINALIZERS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CLASS)</span>
                     </code>
                   </header>
@@ -550,7 +674,7 @@ WIDGET-CLASS itself, or a symbol naming the class.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:CALL-INITIALIZERS">CALL-INITIALIZERS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CLASS)</span>
                     </code>
                   </header>
@@ -566,7 +690,7 @@ WIDGET-CLASS itself, or a symbol naming the class.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:CAPITALIZE-ON">CAPITALIZE-ON</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CHARACTER STRING &amp;OPTIONAL (REPLACEMENT CHARACTER) START-CAPITALIZED)</span>
                     </code>
                   </header>
@@ -579,7 +703,7 @@ WIDGET-CLASS itself, or a symbol naming the class.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:CL-TYPE-FOR">CL-TYPE-FOR</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(QT-TYPE)</span>
                     </code>
                   </header>
@@ -594,12 +718,11 @@ Look at the source to see the mappings.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:CLEAR-LAYOUT">CLEAR-LAYOUT</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(LAYOUT)</span>
                     </code>
                   </header>
-                  <pre>Removes all widgets from the layout and returns them as a list.
-It does not do anything with the widgets themselves.</pre>
+                  <pre>Removes all widgets from the layout and finalizes them.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:CLEAR-METHOD-INFO"/>
@@ -608,8 +731,8 @@ It does not do anything with the widgets themselves.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:CLEAR-METHOD-INFO">CLEAR-METHOD-INFO</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Clears the *QMETHODS* table.
@@ -623,7 +746,7 @@ See QTOOLS:*QMETHODS*</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:COMPILE-WRAPPER">COMPILE-WRAPPER</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(METHOD)</span>
                     </code>
                   </header>
@@ -653,7 +776,7 @@ See QTOOLS:COMPILE-METHOD</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:DESCRIBE-COPY-METHOD">DESCRIBE-COPY-METHOD</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CLASS)</span>
                     </code>
                   </header>
@@ -666,7 +789,7 @@ See QTOOLS:COMPILE-METHOD</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:DESCRIBE-FINALIZE-METHOD">DESCRIBE-FINALIZE-METHOD</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CLASS)</span>
                     </code>
                   </header>
@@ -679,8 +802,8 @@ See QTOOLS:COMPILE-METHOD</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:DETERMINED-TYPE-METHOD-NAME">DETERMINED-TYPE-METHOD-NAME</a></h4>
-                      <span/>
-                      <span>#'ARGS</span>
+                      <span></span>
+                      <span>(FUNCTION ARGS)</span>
                     </code>
                   </header>
                   <pre>Returns a method designator for the FUNCTION and ARGS.
@@ -698,7 +821,7 @@ by EQT-TYPE-OF.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:ECL-TYPE-FOR">ECL-TYPE-FOR</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(QT-TYPE)</span>
                     </code>
                   </header>
@@ -711,7 +834,7 @@ by EQT-TYPE-OF.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:EMIT-COMPILATION-NOTE">EMIT-COMPILATION-NOTE</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(FORMAT-STRING &amp;REST ARGS)</span>
                     </code>
                   </header>
@@ -724,7 +847,7 @@ by EQT-TYPE-OF.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:ENSURE-CLASS">ENSURE-CLASS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(THING)</span>
                     </code>
                   </header>
@@ -740,8 +863,8 @@ STANDARD-OBJECT -&gt; CLASS-OF</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:ENSURE-METHODS-PROCESSED">ENSURE-METHODS-PROCESSED</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Ensures that all methods have been generated for the currently loaded smoke modules.
@@ -757,7 +880,7 @@ See QTOOLS:PROCESS-ALL-METHODS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:ENSURE-Q+-METHOD">ENSURE-Q+-METHOD</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(FUNCTION)</span>
                     </code>
                   </header>
@@ -776,7 +899,7 @@ See QTOOLS:*TARGET-PACKAGE*</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:ENUMERATE-METHOD-DESCRIPTORS">ENUMERATE-METHOD-DESCRIPTORS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(NAME ARGS)</span>
                     </code>
                   </header>
@@ -796,7 +919,7 @@ Examples:
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:EQT-CLASS-NAME">EQT-CLASS-NAME</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(DESIGNATOR)</span>
                     </code>
                   </header>
@@ -812,7 +935,7 @@ be found through that, an error is signalled.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:EQT-TYPE-OF">EQT-TYPE-OF</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
@@ -825,7 +948,7 @@ be found through that, an error is signalled.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:FIND-QT-CLASS-NAME">FIND-QT-CLASS-NAME</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(DESIGNATOR)</span>
                     </code>
                   </header>
@@ -841,7 +964,7 @@ See *QT-CLASS-MAP*</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:FUSE-ALISTS">FUSE-ALISTS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(&amp;REST ALISTS-LISTS)</span>
                     </code>
                   </header>
@@ -854,7 +977,7 @@ See *QT-CLASS-MAP*</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:FUSE-PLISTS">FUSE-PLISTS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(&amp;REST PLISTS-LISTS)</span>
                     </code>
                   </header>
@@ -867,7 +990,7 @@ See *QT-CLASS-MAP*</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:GENERIC-SIGNAL">GENERIC-SIGNAL</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT FUNCTION &amp;REST ARGS)</span>
                     </code>
                   </header>
@@ -891,7 +1014,7 @@ so GENERIC-SIGNAL is save to use for static values.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:LOAD-ALL-SMOKE-MODULES">LOAD-ALL-SMOKE-MODULES</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(&amp;REST MODS)</span>
                     </code>
                   </header>
@@ -906,8 +1029,8 @@ See QT:ENSURE-SMOKE</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:LOADED-SMOKE-MODULES">LOADED-SMOKE-MODULES</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Returns a fresh list of currently loaded smoke modules.
@@ -922,7 +1045,7 @@ See QT:NAMED-MODULE-NUMBER</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:MAKE-CHORD">MAKE-CHORD</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CHORD)</span>
                     </code>
                   </header>
@@ -935,7 +1058,7 @@ See QT:NAMED-MODULE-NUMBER</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:MAKE-GC-FINALIZED">MAKE-GC-FINALIZED</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
@@ -948,7 +1071,7 @@ See QT:NAMED-MODULE-NUMBER</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:MAP-COMPILE-ALL">MAP-COMPILE-ALL</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(FUNCTION)</span>
                     </code>
                   </header>
@@ -958,45 +1081,30 @@ See QTOOLS:COMPILE-WRAPPER
 See QTOOLS:*QMETHODS*</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:MAP-LAYOUT"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:MAP-LAYOUT">MAP-LAYOUT</a></h4>
+                      <span></span>
+                      <span>(FUNCTION LAYOUT)</span>
+                    </code>
+                  </header>
+                  <pre>Map all widgets on LAYOUT onto FUNCTION.</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:MAYBE-DELETE-QOBJECT"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:MAYBE-DELETE-QOBJECT">MAYBE-DELETE-QOBJECT</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
                   <pre>Deletes the object if possible.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:MENU-CONTENT-TYPE"/>
-                <article>
-                  <header>
-                    <span>FUNCTION</span>
-                    <code>
-                      <h4><a href="#QTOOLS:MENU-CONTENT-TYPE">MENU-CONTENT-TYPE</a></h4>
-                      <span/>
-                      <span>(NAME)</span>
-                    </code>
-                  </header>
-                  <pre>Returns the function to process a menu content type NAME, if any.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:METHOD-DECLARATION"/>
-                <article>
-                  <header>
-                    <span>FUNCTION</span>
-                    <code>
-                      <h4><a href="#QTOOLS:METHOD-DECLARATION">METHOD-DECLARATION</a></h4>
-                      <span/>
-                      <span>(NAME)</span>
-                    </code>
-                  </header>
-                  <pre>Returns a function to process the method declaration NAME, if one exists.
-
-See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:METHOD-SYMBOL"/>
@@ -1005,7 +1113,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:METHOD-SYMBOL">METHOD-SYMBOL</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(METHOD)</span>
                     </code>
                   </header>
@@ -1029,8 +1137,8 @@ See QTOOLS:CL-METHOD-NAME</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:PROCESS-ALL-METHODS">PROCESS-ALL-METHODS</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Clears the method table and generates all possible data for the currently available methods.
@@ -1049,7 +1157,7 @@ See QTOOLS:LOADED-SMOKE-MODULES</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:PROCESS-METHOD">PROCESS-METHOD</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(METHOD)</span>
                     </code>
                   </header>
@@ -1066,8 +1174,8 @@ See QTOOLS:*QMETHODS*</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:Q+-COMPILE-AND-LOAD">Q+-COMPILE-AND-LOAD</a></h4>
-                      <span/>
-                      <span>(&amp;KEY MODULES (FILE (MERGE-PATHNAMES q+.lisp (TEMPORARY-DIRECTORY))))</span>
+                      <span></span>
+                      <span>(&amp;KEY MODULES (FILE (MERGE-PATHNAMES &quot;q+.lisp&quot; (TEMPORARY-DIRECTORY))))</span>
                     </code>
                   </header>
                   <pre>Writes, compiles, and loads the file for all generated Qt wrapper functions.
@@ -1082,7 +1190,7 @@ See WRITE-EVERYTHING-TO-FILE</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:QOBJECT-ALIVE-P">QOBJECT-ALIVE-P</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
@@ -1095,7 +1203,7 @@ See WRITE-EVERYTHING-TO-FILE</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:QT-TYPE-FOR">QT-TYPE-FOR</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CL-TYPE)</span>
                     </code>
                   </header>
@@ -1110,7 +1218,7 @@ Look at the source to see the mappings.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:QT-TYPE-OF">QT-TYPE-OF</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
@@ -1125,7 +1233,7 @@ Look at the source to see the mappings.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-FINALIZER">REMOVE-FINALIZER</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(WIDGET-CLASS FINALIZER)</span>
                     </code>
                   </header>
@@ -1143,7 +1251,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-INITIALIZER">REMOVE-INITIALIZER</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(WIDGET-CLASS INITIALIZER)</span>
                     </code>
                   </header>
@@ -1161,7 +1269,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-MENU-CONTENT-TYPE">REMOVE-MENU-CONTENT-TYPE</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(NAME)</span>
                     </code>
                   </header>
@@ -1174,7 +1282,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-METHOD-DECLARATION">REMOVE-METHOD-DECLARATION</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(NAME)</span>
                     </code>
                   </header>
@@ -1187,7 +1295,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-OVERRIDE">REMOVE-OVERRIDE</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(WIDGET-CLASS OVERRIDE)</span>
                     </code>
                   </header>
@@ -1205,7 +1313,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-SIGNAL">REMOVE-SIGNAL</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(WIDGET-CLASS SIGNAL)</span>
                     </code>
                   </header>
@@ -1223,7 +1331,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-SLOT">REMOVE-SLOT</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(WIDGET-CLASS SLOT)</span>
                     </code>
                   </header>
@@ -1241,7 +1349,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-SUBWIDGET">REMOVE-SUBWIDGET</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(WIDGET-CLASS SUBWIDGET)</span>
                     </code>
                   </header>
@@ -1260,8 +1368,8 @@ See QTOOLS:ENSURE-CLASS</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:REMOVE-WIDGET-CLASS-OPTION">REMOVE-WIDGET-CLASS-OPTION</a></h4>
-                      <span/>
-                      <span>(CLASS OPTION IDENTIFIER &amp;KEY (KEY #'FIRST) (TEST #'EQUAL))</span>
+                      <span></span>
+                      <span>(CLASS OPTION IDENTIFIER &amp;KEY (KEY (FUNCTION FIRST)) (TEST (FUNCTION EQUAL)))</span>
                     </code>
                   </header>
                   <pre>Removes a CLASS OPTION value.
@@ -1280,8 +1388,8 @@ See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:SET-WIDGET-CLASS-OPTION">SET-WIDGET-CLASS-OPTION</a></h4>
-                      <span/>
-                      <span>(CLASS OPTION VALUE &amp;KEY (KEY #'FIRST) (TEST #'EQUAL))</span>
+                      <span></span>
+                      <span>(CLASS OPTION VALUE &amp;KEY (KEY (FUNCTION FIRST)) (TEST (FUNCTION EQUAL)))</span>
                     </code>
                   </header>
                   <pre>Sets a CLASS OPTION VALUE.
@@ -1301,7 +1409,7 @@ See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS">SOFTLY-REDEFINE-WIDGET-CLASS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CLASS)</span>
                     </code>
                   </header>
@@ -1318,8 +1426,8 @@ FINALIZE-INHERITANCE call on the class.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:SPECIFIED-TYPE-METHOD-NAME">SPECIFIED-TYPE-METHOD-NAME</a></h4>
-                      <span/>
-                      <span>#'ARGS</span>
+                      <span></span>
+                      <span>(FUNCTION ARGS)</span>
                     </code>
                   </header>
                   <pre>Returns a method designator for the FUNCTION and ARGS.
@@ -1334,8 +1442,8 @@ determined as by TO-TYPE-NAME.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:SPLIT">SPLIT</a></h4>
-                      <span/>
-                      <span>(LIST ITEMS &amp;KEY (KEY #'IDENTITY) (TEST #'EQL))</span>
+                      <span></span>
+                      <span>(LIST ITEMS &amp;KEY (KEY (FUNCTION IDENTITY)) (TEST (FUNCTION EQL)))</span>
                     </code>
                   </header>
                   <pre>Segregates items in LIST into separate lists if they mach an item in ITEMS.
@@ -1352,7 +1460,7 @@ Example:
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:TO-METHOD-NAME">TO-METHOD-NAME</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(THING)</span>
                     </code>
                   </header>
@@ -1369,7 +1477,7 @@ and dropping the hyphen. Therefore: foo-bar fooBar</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:TO-TYPE-NAME">TO-TYPE-NAME</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(THING)</span>
                     </code>
                   </header>
@@ -1380,17 +1488,20 @@ If it is a symbol, either QT-TYPE-FOR for THING is
 returned, or the STRING-DOWNCASE of THING.</pre>
                 </article>
               </li><li>
-                <a name="QTOOLS:WIDGET-ACTIONS"/>
+                <a name="QTOOLS:WIDGET-CLASS-OPTION-P"/>
                 <article>
                   <header>
                     <span>FUNCTION</span>
                     <code>
-                      <h4><a href="#QTOOLS:WIDGET-ACTIONS">WIDGET-ACTIONS</a></h4>
-                      <span/>
-                      <span>(CLASS)</span>
+                      <h4><a href="#QTOOLS:WIDGET-CLASS-OPTION-P">WIDGET-CLASS-OPTION-P</a></h4>
+                      <span></span>
+                      <span>(CLASS OPTION VALUE &amp;KEY (KEY (FUNCTION FIRST)) (TEST (FUNCTION EQUAL)))</span>
                     </code>
                   </header>
-                  <pre>Returns a list of QAction instances that are active on the given CLASS.</pre>
+                  <pre>Tests if OPTION VALUE is already present on CLASS.
+Returns the full option value if it can be found.
+
+See QTOOLS:SET-WIDGET-CLASS-OPTION</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:WRITE-EVERYTHING-TO-FILE"/>
@@ -1399,8 +1510,8 @@ returned, or the STRING-DOWNCASE of THING.</pre>
                     <span>FUNCTION</span>
                     <code>
                       <h4><a href="#QTOOLS:WRITE-EVERYTHING-TO-FILE">WRITE-EVERYTHING-TO-FILE</a></h4>
-                      <span/>
-                      <span>(PATHNAME &amp;KEY (PACKAGE *TARGET-PACKAGE*) (IF-EXISTS SUPERSEDE))</span>
+                      <span></span>
+                      <span>(PATHNAME &amp;KEY (PACKAGE *TARGET-PACKAGE*) (IF-EXISTS :SUPERSEDE))</span>
                     </code>
                   </header>
                   <pre>Writes all compileable Qt method wrappers to PATHNAME.
@@ -1415,13 +1526,29 @@ See QTOOLS:WRITE-FORMS
 See QTOOLS:*TARGET-PACKAGE*</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:WRITE-SMOKE-MODULE-SYSTEM-FILE"/>
+                <article>
+                  <header>
+                    <span>FUNCTION</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WRITE-SMOKE-MODULE-SYSTEM-FILE">WRITE-SMOKE-MODULE-SYSTEM-FILE</a></h4>
+                      <span></span>
+                      <span>(MODULE &amp;OPTIONAL
+ (PATH (SYSTEM-RELATIVE-PATHNAME :QTOOLS (FORMAT NIL &quot;smoke/~(~a~).asd&quot; MODULE))))</span>
+                    </code>
+                  </header>
+                  <pre>Writes a SMOKE-MODULE-SYSTEM form to the given PATH.
+
+See QTOOLS:COMPILE-SMOKE-MODULE-SYSTEM-DEFINITION</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:COPY"/>
                 <article>
                   <header>
                     <span>GENERIC</span>
                     <code>
                       <h4><a href="#QTOOLS:COPY">COPY</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(INSTANCE)</span>
                     </code>
                   </header>
@@ -1443,7 +1570,7 @@ Uses COPY-QOBJECT-USING-CLASS and determines the class by QT::QOBJECT-CLASS.</pr
                     <span>GENERIC</span>
                     <code>
                       <h4><a href="#QTOOLS:COPY-USING-CLASS">COPY-USING-CLASS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(QCLASS INSTANCE)</span>
                     </code>
                   </header>
@@ -1459,7 +1586,7 @@ See COPY</pre>
                     <span>GENERIC</span>
                     <code>
                       <h4><a href="#QTOOLS:FINALIZE">FINALIZE</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
@@ -1478,7 +1605,7 @@ memory, as lingering QOBJECTs would.</pre>
                     <span>GENERIC</span>
                     <code>
                       <h4><a href="#QTOOLS:FINALIZE-USING-CLASS">FINALIZE-USING-CLASS</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(CLASS OBJECT)</span>
                     </code>
                   </header>
@@ -1499,7 +1626,7 @@ See FINALIZE</pre>
                     <span>GENERIC</span>
                     <code>
                       <h4><a href="#QTOOLS:FINALIZED">FINALIZED</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
@@ -1512,85 +1639,24 @@ See FINALIZE</pre>
                     <span>GENERIC</span>
                     <code>
                       <h4><a href="#QTOOLS:UNBOX">UNBOX</a></h4>
-                      <span/>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
                   <pre/>
                 </article>
               </li><li>
-                <a name="QTOOLS:VALUE"/>
+                <a name="QTOOLS:WIDGET"/>
                 <article>
                   <header>
                     <span>GENERIC</span>
                     <code>
-                      <h4><a href="#QTOOLS:VALUE">VALUE</a></h4>
-                      <span/>
+                      <h4><a href="#QTOOLS:WIDGET">WIDGET</a></h4>
+                      <span></span>
                       <span>(OBJECT)</span>
                     </code>
                   </header>
-                  <pre>Returns the VALUE of object. This usually translates to (#_value object) unless overriden.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:WIDGET-CLASS-DIRECT-OPTIONS"/>
-                <article>
-                  <header>
-                    <span>GENERIC</span>
-                    <code>
-                      <h4><a href="#QTOOLS:WIDGET-CLASS-DIRECT-OPTIONS">WIDGET-CLASS-DIRECT-OPTIONS</a></h4>
-                      <span/>
-                      <span>(OBJECT)</span>
-                    </code>
-                  </header>
-                  <pre>Contains all the options passed to RE/INITIALIZE-INSTANCE when
-the class is re/initialized directly through a DEFCLASS form.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS"/>
-                <article>
-                  <header>
-                    <span>GENERIC</span>
-                    <code>
-                      <h4><a href="#QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS">WIDGET-CLASS-EXTERN-OPTIONS</a></h4>
-                      <span/>
-                      <span>(OBJECT)</span>
-                    </code>
-                  </header>
-                  <pre>Contains all the options that are added to the class definition
-through external forms and thus need to be included and kept separate
-from options directly specified in the class definition.</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:WIDGET-CLASS-FINALIZERS"/>
-                <article>
-                  <header>
-                    <span>GENERIC</span>
-                    <code>
-                      <h4><a href="#QTOOLS:WIDGET-CLASS-FINALIZERS">WIDGET-CLASS-FINALIZERS</a></h4>
-                      <span/>
-                      <span>(OBJECT)</span>
-                    </code>
-                  </header>
-                  <pre>A sorted list of functions to be called upon finalization.
-This list is overwritten completely whenever the class is re/initialized.
-
-See QTOOLS:CALL-FINALIZERS</pre>
-                </article>
-              </li><li>
-                <a name="QTOOLS:WIDGET-CLASS-INITIALIZERS"/>
-                <article>
-                  <header>
-                    <span>GENERIC</span>
-                    <code>
-                      <h4><a href="#QTOOLS:WIDGET-CLASS-INITIALIZERS">WIDGET-CLASS-INITIALIZERS</a></h4>
-                      <span/>
-                      <span>(OBJECT)</span>
-                    </code>
-                  </header>
-                  <pre>A sorted list of functions to be called upon initialization.
-This list is overwritten completely whenever the class is re/initialized.
-
-See QTOOLS:CALL-INITIALIZERS</pre>
+                  <pre/>
                 </article>
               </li><li>
                 <a name="QTOOLS:CONNECT!"/>
@@ -1599,8 +1665,8 @@ See QTOOLS:CALL-INITIALIZERS</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:CONNECT!">CONNECT!</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(ORIGIN ORIGIN-FUNCTION TARGET TARGET-FUNCTION)</span>
                     </code>
                   </header>
                   <pre>Macro for a more lisp-y writing of CONNECT.
@@ -1615,8 +1681,8 @@ SPECIFIED-TYPE-METHOD-NAME.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-COPY-METHOD">DEFINE-COPY-METHOD</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Defines a method to copy an object of CLASS.
@@ -1639,8 +1705,8 @@ See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-FINALIZABLE">DEFINE-FINALIZABLE</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(NAME DIRECT-SUPERCLASSES DIRECT-SLOTS &amp;REST OPTIONS)</span>
                     </code>
                   </header>
                   <pre>Shorthand around DEFCLASS to create a finalizable class.
@@ -1655,8 +1721,8 @@ FINALIZABLE-CLASS as metaclass.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-FINALIZE-METHOD">DEFINE-FINALIZE-METHOD</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Defines a method to finalize an object of CLASS.
@@ -1679,8 +1745,8 @@ See FINALIZE, FINALIZE-USING-CLASS</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-FINALIZER">DEFINE-FINALIZER</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Defines a new finalizer of METHOD-NAME on WIDGET-CLASS.
@@ -1704,8 +1770,8 @@ See QTOOLS:FINALIZE</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-INITIALIZER">DEFINE-INITIALIZER</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Defines a new initializer of METHOD-NAME on WIDGET-CLASS.
@@ -1727,8 +1793,8 @@ See QTOOLS:WITH-SLOTS-BOUND</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-MENU">DEFINE-MENU</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WIDGET-CLASS NAME) &amp;BODY CONTENTS)</span>
                     </code>
                   </header>
                   <pre>Defines a menu on WIDGET-CLASS with NAME and CONTENTS.
@@ -1758,8 +1824,8 @@ See QTOOLS:MAKE-CHORD.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">DEFINE-MENU-CONTENT-TYPE</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(TYPE (PARENT &amp;REST ARGS) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Defines a new menu content type processor NAME.
@@ -1773,8 +1839,8 @@ See (SETF QTOOLS:MENU-CONTENT-TYPE).</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">DEFINE-METHOD-DECLARATION</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(NAME ARGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Define a new method declaration function of NAME.
@@ -1788,8 +1854,8 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-OVERRIDE">DEFINE-OVERRIDE</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WIDGET-CLASS OVERRIDE &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Define a new OVERRIDE on WIDGET-CLASS with ARGS.
@@ -1810,8 +1876,8 @@ See CommonQt/override</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SIGNAL">DEFINE-SIGNAL</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WIDGET-CLASS SIGNAL) ARGS &amp;BODY OPTIONS)</span>
                     </code>
                   </header>
                   <pre>Define a new SIGNAL on WIDGET-CLASS with ARGS.
@@ -1829,8 +1895,8 @@ See CommonQt/signals</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SIGNAL-METHOD">DEFINE-SIGNAL-METHOD</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(NAME ARGS)</span>
                     </code>
                   </header>
                   <pre>Shorthand to define wrapper methods for the given signal.
@@ -1853,8 +1919,8 @@ method to call is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SLOT">DEFINE-SLOT</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WIDGET-CLASS SLOT &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Define a new SLOT on WIDGET-CLASS with ARGS.
@@ -1883,8 +1949,8 @@ See CommonQt/slots</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-SUBWIDGET">DEFINE-SUBWIDGET</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WIDGET-CLASS NAME) INITFORM &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Defines a new sub-widget of NAME on WIDGET-CLASS.
@@ -1903,8 +1969,8 @@ See QTOOLS:DEFINE-INITIALIZER</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:DEFINE-WIDGET">DEFINE-WIDGET</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(NAME (QT-CLASS &amp;REST DIRECT-SUPERCLASSES) DIRECT-SLOTS &amp;REST OPTIONS)</span>
                     </code>
                   </header>
                   <pre>Shorthand over DEFCLASS.
@@ -1918,14 +1984,27 @@ All options are fused as per FUSE-ALISTS. You may therefore use
 the same form multiple times.</pre>
                 </article>
               </li><li>
+                <a name="QTOOLS:DO-LAYOUT"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:DO-LAYOUT">DO-LAYOUT</a></h4>
+                      <span></span>
+                      <span>((WIDGET LAYOUT) &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Iterate over all WIDGETs on LAYOUT.</pre>
+                </article>
+              </li><li>
                 <a name="QTOOLS:Q+"/>
                 <article>
                   <header>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:Q+">Q+</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(FUNCTION &amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Emits a function call to the Q+ FUNCTION with ARGS.
@@ -1951,8 +2030,8 @@ See QTOOLS:ENSURE-Q+-METHOD</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:Q+FUN">Q+FUN</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(FUNCTION)</span>
                     </code>
                   </header>
                   <pre>Emits a form that evaluates to the function object of FUNCTION.
@@ -1970,8 +2049,8 @@ See QTOOLS:ENSURE-Q+-METHOD</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:QTENUMCASE">QTENUMCASE</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(KEYFORM &amp;BODY FORMS)</span>
                     </code>
                   </header>
                   <pre>Just like CASE, but for Qt enums using QT:ENUM=.</pre>
@@ -1983,13 +2062,27 @@ See QTOOLS:ENSURE-Q+-METHOD</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:SIGNAL!">SIGNAL!</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(OBJECT FUNCTION &amp;REST ARGS)</span>
                     </code>
                   </header>
                   <pre>Macro for a more lisp-y writing of EMIT-SIGNAL.
 Function should be a list of the METHOD-NAME followed by Qt argument types.
 The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
+                </article>
+              </li><li>
+                <a name="QTOOLS:WITH-ALL-SLOTS-BOUND"/>
+                <article>
+                  <header>
+                    <span>MACRO</span>
+                    <code>
+                      <h4><a href="#QTOOLS:WITH-ALL-SLOTS-BOUND">WITH-ALL-SLOTS-BOUND</a></h4>
+                      <span></span>
+                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
+                    </code>
+                  </header>
+                  <pre>Turns into a WITH-SLOTS with all slots of CLASS.
+Class is resolved as per ENSURE-CLASS.</pre>
                 </article>
               </li><li>
                 <a name="QTOOLS:WITH-FINALIZING"/>
@@ -1998,8 +2091,8 @@ The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:WITH-FINALIZING">WITH-FINALIZING</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(BINDINGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Executes the body as by LET and calls FINALIZE on all the objects introduced by
@@ -2013,8 +2106,8 @@ all objects bound up until that point are still finalized.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:WITH-FINALIZING*">WITH-FINALIZING*</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(BINDINGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Executes the body as by LET* and calls FINALIZE on all the objects introduced by
@@ -2028,8 +2121,8 @@ all objects bound up until that point are still finalized.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:WITH-GC-FINALIZED">WITH-GC-FINALIZED</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>(BINDINGS &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Creates bindings as per LET with the special note that each value of a binding is wrapped
@@ -2046,8 +2139,8 @@ automatically ensured to be GC-ed and FINALIZEd once the body exits.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:WITH-MAIN-WINDOW">WITH-MAIN-WINDOW</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((WINDOW INSTANTIATOR) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Identical to QT:WITH-MAIN-WINDOW with the exception of using FINALIZE to clean up
@@ -2060,8 +2153,8 @@ the main window.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:WITH-SLOTS-BOUND">WITH-SLOTS-BOUND</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((INSTANCE CLASS) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Turns into a WITH-SLOTS with all direct-slots of CLASS.
@@ -2074,8 +2167,8 @@ Class is resolved as per ENSURE-CLASS.</pre>
                     <span>MACRO</span>
                     <code>
                       <h4><a href="#QTOOLS:WITH-WIDGET-CLASS">WITH-WIDGET-CLASS</a></h4>
-                      <span/>
-                      <span>(&amp;REST ARGS)</span>
+                      <span></span>
+                      <span>((VARIABLE &amp;OPTIONAL (METHOD '*METHOD*)) &amp;BODY BODY)</span>
                     </code>
                   </header>
                   <pre>Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.
@@ -2088,8 +2181,8 @@ This also signals errors if there is no such specializer or if it is invalid.</p
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*GENERATED-MODULES*">*GENERATED-MODULES*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>A list of loaded smoke modules when PROCESS-ALL-METHODS is called.
@@ -2103,8 +2196,8 @@ actually available for compilation.</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*METHOD*">*METHOD*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Contains the whole DEFMETHOD form that is currently being processed.
@@ -2119,8 +2212,8 @@ processed by method-declarations will ever appear in the output.</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*OPERATOR-MAP*">*OPERATOR-MAP*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>A hash-table of C++ operators to CL function names.</pre>
@@ -2132,8 +2225,8 @@ processed by method-declarations will ever appear in the output.</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*QMETHODS*">*QMETHODS*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Table mapping a *TARGET-PACKAGE* symbol to a list of
@@ -2154,8 +2247,8 @@ See QTOOLS:COMPILE-WRAPPER</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*QT-CLASS-MAP*">*QT-CLASS-MAP*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>An EQUALP hash-table of all Qt4.8 class names to themselves as strings.</pre>
@@ -2167,8 +2260,8 @@ See QTOOLS:COMPILE-WRAPPER</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*QT-CLASS-VECTOR*">*QT-CLASS-VECTOR*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>A vector of all Qt4.8 class names as strings.</pre>
@@ -2180,8 +2273,8 @@ See QTOOLS:COMPILE-WRAPPER</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*SMOKE-MODULES*">*SMOKE-MODULES*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>A list of all possible smoke modules.
@@ -2199,8 +2292,8 @@ the PHONON module.</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*TARGET-PACKAGE*">*TARGET-PACKAGE*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>The package used to store Qt wrapper functions that the Q+ system uses.
@@ -2214,8 +2307,8 @@ any systems except for those generated by Qtools.</pre>
                     <span>SPECIAL</span>
                     <code>
                       <h4><a href="#QTOOLS:*WIDGET*">*WIDGET*</a></h4>
-                      <span/>
-                      <span/>
+                      <span></span>
+                      <span>()</span>
                     </code>
                   </header>
                   <pre>Bound to the class-name of the widget during component expansion and
