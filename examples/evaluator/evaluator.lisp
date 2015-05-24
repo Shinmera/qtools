@@ -19,12 +19,12 @@
 
 (define-override (repl key-press-event) (ev)
   (cond ;; Signal return pressed.
-        ((or (= (q+:key ev) (q+:qt.key-enter))
-             (= (q+:key ev) (q+:qt.key-return)))
+        ((or (= (q+:key ev) (q+:qt.key_enter))
+             (= (q+:key ev) (q+:qt.key_return)))
          (call-next-qmethod)
          (signal! repl (return-pressed)))
         ;; Catch escape to forbid removing text before input.
-        ((= (q+:key ev) (q+:qt.key-backspace))
+        ((= (q+:key ev) (q+:qt.key_backspace))
          (when (< (input-begin repl) (cursor repl))
            (call-next-qmethod)))
         ;; Delegate standard.

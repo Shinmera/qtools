@@ -46,12 +46,12 @@
     (setf (q+:flat button) T)
     button))
 
-(define-subwidget (player play) (make-button player (q+:qstyle.sp-media-play) "Play"))
+(define-subwidget (player play) (make-button player (q+:qstyle.sp_media-play) "Play"))
 
-(define-subwidget (player pause) (make-button player (q+:qstyle.sp-media-pause) "Pause")
+(define-subwidget (player pause) (make-button player (q+:qstyle.sp_media-pause) "Pause")
   (q+:hide pause))
 
-(define-subwidget (player stop) (make-button player (q+:qstyle.sp-media-stop) "Stop"))
+(define-subwidget (player stop) (make-button player (q+:qstyle.sp_media-stop) "Stop"))
 
 (define-subwidget (player layout) (q+:make-qvboxlayout)
   (setf (q+:window-title player) "Melody")

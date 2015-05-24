@@ -64,7 +64,7 @@
 (defun (cl:setf playing) (bool track)
   (with-slots-bound (track track)
     (if bool
-        (setf (q+:icon playing) (q+:standard-icon (q+:style track) (q+:qstyle.sp-media-play)))
+        (setf (q+:icon playing) (q+:standard-icon (q+:style track) (q+:qstyle.sp_media-play)))
         (setf (q+:icon playing) (q+:make-qicon)))))
 
 (defun playing (track)

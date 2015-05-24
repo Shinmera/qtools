@@ -29,9 +29,9 @@
   (setf (q+:fixed-size opengl) (values 500 500)))
 
 (define-override (opengl key-release-event) (ev)
-  (cond ((= (q+:key ev) (q+:qt.key-left))
+  (cond ((= (q+:key ev) (q+:qt.key_left))
          (decf angle-delta))
-        ((= (q+:key ev) (q+:qt.key-right))
+        ((= (q+:key ev) (q+:qt.key_right))
          (incf angle-delta)))
   (stop-overriding))
 
