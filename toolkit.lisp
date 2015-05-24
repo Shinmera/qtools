@@ -50,6 +50,17 @@
                                  `(T ,@form)
                                  `((qt:enum= ,key ,comp) ,@form)))))))
 
+(defun map-layout (function layout)
+  "Map all widgets on LAYOUT onto FUNCTION."
+  (loop for i from 0
+        for item = (q+:item-at layout i)
+        until (typep item 'null-qobject)
+        do (funcall function (q+:widget item))))
+
+(defmacro do-layout ((widget layout) &body body)
+  "Iterate over all WIDGETs on LAYOUT."
+  `(map-layout (lambda (,widget) ,@body) ,layout))
+
 (defun clear-layout (layout)
   "Removes all widgets from the layout and finalizes them."
   (loop for item = (#_takeAt layout 0)

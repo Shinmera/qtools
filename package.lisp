@@ -94,6 +94,8 @@
    #:qobject-alive-p
    #:maybe-delete-qobject
    #:qtenumcase
+   #:map-layout
+   #:do-layout
    #:clear-layout
    #:enumerate-method-descriptors
    #:ensure-class
