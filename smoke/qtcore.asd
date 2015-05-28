@@ -1,9 +1,19 @@
 
-(IN-PACKAGE #:CL-USER) 
-(ASDF/PARSE-DEFSYSTEM:DEFSYSTEM #:QTCORE
-  :DEFSYSTEM-DEPENDS-ON
-  (:QTOOLS)
-  :CLASS
+(in-package #:cl-user) 
+(asdf/parse-defsystem:defsystem #:qtcore
+  :defsystem-depends-on
+  (:qtools)
+  :class
   "qtools::smoke-module-system"
-  :MODULE
-  "QTCORE") 
+  :module
+  "QTCORE"
+  :version
+  "1.0.0"
+  :license
+  "Artistic"
+  :author
+  "Nicolas Hafner <shinmera@tymoon.eu>"
+  :maintainer
+  "Nicolas Hafner <shinmera@tymoon.eu>"
+  :description
+  "ASDF System wrapper around the qtcore smoke module. Ensures that it is present during compilation and loading of a system.") 

@@ -100,14 +100,22 @@ See QTOOLS:SMOKE-MODULE-SYSTEM"
   `(asdf:defsystem ,(make-symbol (string-upcase module))
      :defsystem-depends-on (:qtools)
      :class "qtools::smoke-module-system"
-     :module ,(string-upcase module)))
+     :module ,(string-upcase module)
+     :version "1.0.0"
+     :license "Artistic"
+     :author "Nicolas Hafner <shinmera@tymoon.eu>"
+     :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
+     :description ,(format NIL "ASDF System wrapper around the ~a smoke module. Ensures that it is present during compilation and loading of a system."
+                           module)))
 
 (defun write-smoke-module-system-file (module &optional (path (asdf:system-relative-pathname :qtools (format NIL "smoke/~(~a~).asd" module))))
   "Writes a SMOKE-MODULE-SYSTEM form to the given PATH.
 
 See QTOOLS:COMPILE-SMOKE-MODULE-SYSTEM-DEFINITION"
   (with-open-file (stream path :direction :output :if-exists :supersede)
-    (let ((*package* (find-package :cl-user)))
+    (let ((*package* (find-package :cl-user))
+          (*print-case* :downcase)
+          (*print-pretty* T))
       (print '(in-package #:cl-user) stream)
       (print (compile-smoke-module-system-definition module) stream)))
   path)
