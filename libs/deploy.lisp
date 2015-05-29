@@ -49,6 +49,9 @@
     (pushnew *standalone-libs-dir* cffi:*foreign-library-directories*)
     (ensure-libcommonqt)
     (ensure-standalone-libs)
+    ;; See QT::LOAD-LIBCOMMONQT for an explanation of this.
+    #+(and sbcl (not windows)) (sb-sys:enable-interrupt sb-unix:sigchld :default)
+    ;; Do the loading.
     (cffi:use-foreign-library libsmokebase)
     (cffi:use-foreign-library libcommonqt)
     (when (find-package :qt) (setf (symbol-value (find-symbol "*LIBRARY-LOADED-P*" :QT)) T))
