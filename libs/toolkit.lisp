@@ -49,7 +49,7 @@
 
 (defun extract-tar-archive (from to &key (strip-folder))
   (test-prerequisite "tar" "tar")
-  (status 2 "Extracting ~a" from)
+  (status 2 "Extracting ~a" (uiop:native-namestring from))
   (run-here "tar ~@[--strip-components=1 ~*~] -xpf ~s -C ~s" strip-folder from to))
 
 (defun relative-dir (relative &rest subdirs)
