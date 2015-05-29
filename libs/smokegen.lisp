@@ -43,6 +43,7 @@
   (status 3 "Packaging smokegen")
   (with-chdir (compile-dir)
     (run-here "make install"))
+  (ensure-standalone-libs)
   package-dir)
 
 (defun clean-smokegen (&key (build-dir *smokegen-build-dir*))

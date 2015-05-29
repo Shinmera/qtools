@@ -16,10 +16,12 @@
   :serial T
   :components ((:file "package")
                (:file "toolkit")
+               (:file "deploy")
                (:file "qt4")
                (:file "smokegen")
                (:file "smokeqt")
                (:file "commonqt"))
   :depends-on (:drakma
                :uiop
-               :trivial-features))
+               :trivial-features
+               :cffi))

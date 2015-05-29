@@ -29,8 +29,8 @@
                              (compile-dir (compile-dir build-dir))
                              (package-dir *bin-dir*))
   (test-compile-prerequisites)
-  (status 3 "Compiling smokeqt")
   (let ((smoke-dir (ensure-smokegen-available)))
+    (status 3 "Compiling smokeqt")
     (with-chdir (compile-dir)
       (run-here "cmake ~s -DCMAKE_BUILD_TYPE=Release ~
                           -DCMAKE_INSTALL_PREFIX=~s ~
@@ -49,6 +49,7 @@
   (status 3 "Packaging smokeqt")
   (with-chdir (compile-dir)
     (run-here "make install"))
+  (ensure-standalone-libs)
   package-dir)
 
 (defun clean-smokeqt (&key (build-dir *smokeqt-build-dir*))
