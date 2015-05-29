@@ -7,6 +7,8 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
+(define-qclass-dispatch-function copy copy-using-qclass (instance))
+
 (defgeneric copy-using-class (qclass instance)
   (:documentation "Creates a copy of the given instance by using methods
 appropriate for the given qclass.
@@ -14,7 +16,9 @@ appropriate for the given qclass.
 See COPY")
   #+:verbose
   (:method :before (qclass instance)
-    (v:trace :qtools "Copying: ~a" instance)))
+    (v:trace :qtools "Copying: ~a" instance))
+  (:method ((class integer) instance)
+    (copy-using-qclass class instance)))
 
 (defgeneric copy (instance)
   (:documentation "Generates a copy of the object.
@@ -44,11 +48,9 @@ In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on COPY-QOBJECT.
 
 See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS"
-  (let ((qclass (gensym "QCLASS"))
-        (qt-class-name (find-qt-class-name class)))
+  (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
-        `(defmethod copy-using-class ((,qclass (eql (find-qclass ,qt-class-name))) ,instance)
-           (declare (ignore ,qclass))
+        `(define-qclass-copy-function ,qt-class-name (,instance)
            ,@body)
         `(defmethod copy ((,instance ,class))
            ,@body))))

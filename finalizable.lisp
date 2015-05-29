@@ -78,19 +78,21 @@ FINALIZABLE-CLASS as metaclass."
        (:metaclass finalizable-class)
        ,@options)))
 
+(define-qclass-dispatch-function finalize finalize-using-qclass (instance))
+
 (defgeneric finalize-using-class (class object)
   (:documentation "Extension to the FINALIZE generic function to support differentiating by the
-classes of an object, mostly used for native QObjects as they don't integrate into CLOS directly.
-You need to use EQL specializers on the class, as a Qt class is represented as an integer.
-
-E.g: (defmethod finalize-using-class ((class (eql (find-class \"QWidget\"))) object) ..)
+classes of an object. Previously used to specialise on QClass instances. Please use
+DEFINE-QCLASS-FINALIZE-FUNCTION for this mechanism now.
 
 This method should not be called directly.
 
 See FINALIZE")
   (:method (class object)
     (declare (ignore class))
-    object))
+    object)
+  (:method ((class integer) object)
+    (finalize-using-qclass class object)))
 
 (defgeneric finalize (object)
   (:documentation "Finalizes the object. The effects thereof may vary and even result in nothing at all.
@@ -122,12 +124,11 @@ In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on FINALIZE.
 
 See FINALIZE, FINALIZE-USING-CLASS"
-  (let ((qclass (gensym "QCLASS"))
-        (qt-class-name (find-qt-class-name class)))
+  (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
-        `(defmethod finalize-using-class ((,qclass (eql (find-qclass ,qt-class-name))) ,instance)
-           (declare (ignore ,qclass))
-           ,@body)
+        `(define-qclass-finalize-function ,qt-class-name (,instance)
+           (flet ((call-next-method ()))
+             ,@body))
         `(defmethod finalize ((,instance ,class))
            ,@body))))
 

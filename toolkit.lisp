@@ -7,11 +7,6 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  ;; We need this here so that we can use FIND-QCLASS.
-  (ensure-smoke :qtcore)
-  (ensure-smoke :qtgui))
-
 ;;;;;
 ;; Qt Related Utils
 
@@ -88,6 +83,12 @@ Examples:
 
 ;;;;;
 ;; General utils
+
+(defun ensure-qclass (thing)
+  (etypecase thing
+    (fixnum thing)
+    (string (find-qclass thing))
+    (symbol (ensure-qclass (eqt-class-name thing)))))
 
 (defun ensure-class (thing)
   "Ensures to return a CLASS.
@@ -198,3 +199,43 @@ Example:
   (if (and (listp name) (eql (first name) 'cl+qt:setf))
       `(cl:setf ,(second name))
       name))
+
+(defun ensure-completable-qclass (thing)
+  (etypecase thing
+    (fixnum thing)
+    ((or string symbol)
+     (or (find-qt-class-name thing)
+         (error "No corresponding Qt class found for ~a" thing)))))
+
+(defmacro define-qclass-dispatch-function (basename dispatcher args)
+  (let ((var (intern (format NIL "*QCLASS-~a-FUNCTIONS*" (string-upcase basename))))
+        (fun (intern (format NIL "QCLASS-~a-FUNCTION" (string-upcase basename))))
+        (rem (intern (format NIL "REMOVE-QCLASS-~a-FUNCTION" (string-upcase basename))))
+        (def (intern (format NIL "DEFINE-QCLASS-~a-FUNCTION" (string-upcase basename)))))
+    `(progn
+       (defvar ,var (make-hash-table :test 'eql))
+
+       (defun ,fun (qclass)
+         (etypecase qclass
+           (fixnum
+            ;; Speed up lookup
+            (or (gethash qclass ,var)
+                (setf (gethash qclass ,var)
+                      (gethash (qclass-name qclass) ,var))))
+           ((or symbol string)
+            (gethash (ensure-completable-qclass qclass) ,var))))
+
+       (defun (setf ,fun) (function qclass)
+         (setf (gethash (ensure-completable-qclass qclass) ,var) function))
+
+       (defun ,rem (qclass)
+         (remhash (ensure-qclass qclass) ,var))
+
+       (defmacro ,def (qclass args &body body)
+         `(setf (,',fun ,qclass)
+                (lambda ,args
+                  ,@body)))
+
+       (defun ,dispatcher (qclass ,@args)
+         (let ((func (,fun qclass)))
+           (when func (funcall func ,@args)))))))
