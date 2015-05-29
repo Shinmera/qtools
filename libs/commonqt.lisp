@@ -7,7 +7,7 @@
 (in-package #:org.shirakumo.qtools.libs)
 
 (defun ensure-commonqt-downloaded ()
-  #+quicklisp (ql-dist:ensure-installed (ql-dist:find-system :qt))
+  #+quicklisp (ql-dist:ensure-installed (ql-dist:find-system "qt"))
   (asdf:system-source-directory
    (asdf:find-system :qt T)))
 
@@ -33,4 +33,5 @@
                            :package-dir package-dir)
     #+quicklisp (ql:quickload :qt)
     #-quicklisp (asdf:load-system :qt)
+    (ensure-standalone-libs)
     T))
