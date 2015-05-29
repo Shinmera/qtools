@@ -213,7 +213,7 @@ Example:
         (rem (intern (format NIL "REMOVE-QCLASS-~a-FUNCTION" (string-upcase basename))))
         (def (intern (format NIL "DEFINE-QCLASS-~a-FUNCTION" (string-upcase basename)))))
     `(progn
-       (defvar ,var (make-hash-table :test 'eql))
+       (defvar ,var (make-hash-table :test 'equal))
 
        (defun ,fun (qclass)
          (etypecase qclass
