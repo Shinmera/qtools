@@ -4,7 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:org.shirakumo.qtools.libs)
+(in-package #:org.shirakumo.qtools.libs.generator)
 
 (defvar *smokegen-origin* "git://anongit.kde.org/smokegen")
 (defvar *smokegen-stable-version* "4.14.3")
@@ -13,49 +13,56 @@
 
 (defun download-smokegen (&key (version :stable)
                                (build-dir *smokegen-build-dir*)
-                               (sources-dir (sources-dir build-dir)))
-  (status 3 "Downloading smokegen")
-  (case version
-    (:stable
-     (let ((archive (make-pathname :name "smokegen" :type "tar.xz" :defaults build-dir)))
-       (download-file *smokegen-stable-archive* archive)
-       (extract-tar-archive archive sources-dir :strip-folder T)))
-    (:git
-     (clone *smokegen-origin* sources-dir)))
+                               (sources-dir (sources-dir build-dir))
+                               force)
+  (when (or force (not (uiop:file-exists-p (merge-pathnames "README" sources-dir))))
+    (status 3 "Downloading smokegen")
+    (case version
+      (:stable
+       (let ((archive (make-pathname :name "smokegen" :type "tar.xz" :defaults build-dir)))
+         (download-file *smokegen-stable-archive* archive)
+         (extract-tar-archive archive sources-dir :strip-folder T)))
+      (:git
+       (clone *smokegen-origin* sources-dir))))
   sources-dir)
 
 (defun compile-smokegen (&key (build-dir *smokegen-build-dir*)
                               (sources-dir (sources-dir build-dir))
                               (compile-dir (compile-dir build-dir))
-                              (package-dir *bin-dir*))
-  (test-compile-prerequisites)
-  (status 3 "Compiling smokegen")
-  (with-chdir (compile-dir)
-    (run-here "cmake ~s -DCMAKE_BUILD_TYPE=Release ~
-                        -DCMAKE_INSTALL_PREFIX=~s"
-              sources-dir package-dir)
-    (run-here "make"))
+                              (package-dir *bin-dir*)
+                              force)
+  (when (or force (not (uiop:file-exists-p (relative-dir compile-dir "bin"))))
+    (test-compile-prerequisites)
+    (status 3 "Compiling smokegen")
+    (with-chdir (compile-dir)
+      (run-here "cmake ~s -DCMAKE_BUILD_TYPE=Release ~
+                          -DCMAKE_INSTALL_PREFIX=~s"
+                sources-dir package-dir)
+      (run-here "make")))
   compile-dir)
 
 (defun package-smokegen (&key (build-dir *smokegen-build-dir*)
                               (compile-dir (compile-dir build-dir))
-                              (package-dir *bin-dir*))
-  (status 3 "Packaging smokegen")
-  (with-chdir (compile-dir)
-    (run-here "make install"))
-  (ensure-standalone-libs)
+                              (package-dir *bin-dir*)
+                              force)
+  (when (or force (not (uiop:file-exists-p (relative-dir package-dir "bin"))))
+    (status 3 "Packaging smokegen")
+    (with-chdir (compile-dir)
+      (run-here "make install"))
+    (ensure-standalone-libs))
   package-dir)
 
 (defun clean-smokegen (&key (build-dir *smokegen-build-dir*))
-  (status 3 "Cleaning smokegen")
-  (uiop:delete-directory-tree build-dir :validate (constantly T)))
+  (when (uiop:file-exists-p build-dir)
+    (status 3 "Cleaning smokegen")
+    (uiop:delete-directory-tree build-dir :validate (constantly T))))
 
 (defun build-smokegen (&key (version :stable) (build-dir *smokegen-build-dir*) force)
   (when (and (not force) (smokegen-path))
     (error "smokegen is already installed."))
-  (let* ((sources (download-smokegen :version version :build-dir build-dir))
-         (compile (compile-smokegen :build-dir build-dir :sources-dir sources))
-         (package (package-smokegen :build-dir build-dir :compile-dir compile)))
+  (let* ((sources (download-smokegen :version version :build-dir build-dir :force force))
+         (compile (compile-smokegen :build-dir build-dir :sources-dir sources :force force))
+         (package (package-smokegen :build-dir build-dir :compile-dir compile :force force)))
     (clean-smokegen)
     package))
 
@@ -69,8 +76,8 @@
                      #+:unix #p"/usr/local"
                      #+:windows #p"C:/Program Files/KDE/smokegen/")
         when (smokegen-on-path-p dir)
-        do (return dir)))
+        return dir))
 
-(defun ensure-smokegen-available ()
+(defun ensure-smokegen ()
   (or (smokegen-path)
       (build-smokegen)))

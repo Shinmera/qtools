@@ -4,6 +4,6 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:org.shirakumo.qtools.libs)
+(in-package #:org.shirakumo.qtools.libs.generator)
 
 ;; Nothing here yet.

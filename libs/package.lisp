@@ -5,12 +5,25 @@
 |#
 
 (in-package #:cl-user)
-(defpackage #:qtools-libs
+(defpackage #:qtools-lib-generator
   (:use #:cl)
-  (:nicknames #:org.shirakumo.qtools.libs)
+  (:nicknames #:org.shirakumo.qtools.libs.generator)
   ;; commonqt.lisp
   (:export 
-   #:safely-load-commonqt)
+   #:download-libcommonqt
+   #:compile-libcommonqt
+   #:package-libcommonqt
+   #:clean-libcommonqt
+   #:build-libcommonqt
+   #:libcommonqt-path
+   #:ensure-libcommonqt)
+  ;; deploy.lisp
+  (:export
+   #:*standalone-libs-dir*
+   #:ensure-standalone-libs
+   #:libsmokebase
+   #:libcommonqt
+   #:load-libcommonqt)
   ;; qt4.lisp
   (:export)
   ;; smokegen.lisp
@@ -25,7 +38,7 @@
    #:clean-smokegen
    #:build-smokegen
    #:smokegen-path
-   #:ensure-smokegen-available)
+   #:ensure-smokegen)
   ;; smokeqt.lisp
   (:export
    #:*smokeqt-origin*
@@ -38,7 +51,7 @@
    #:clean-smokeqt
    #:build-smokeqt
    #:smokeqt-path
-   #:ensure-smokeqt-available)
+   #:ensure-smokeqt)
   ;; toolkit.lisp
   (:export
    #:*bin-dir*

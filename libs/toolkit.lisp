@@ -4,10 +4,10 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:org.shirakumo.qtools.libs)
+(in-package #:org.shirakumo.qtools.libs.generator)
 
 (defvar *bin-dir* (ensure-directories-exist
-                   (asdf:system-relative-pathname :qtools-libs "built" :type :directory)))
+                   (asdf:system-relative-pathname :qtools-lib-generator "built" :type :directory)))
 
 (defun externalize (thing)
   (typecase thing
@@ -97,3 +97,17 @@
   (test-prerequisite "Qt4.8" "qmake-qt4" "qmake")
   (test-prerequisite "tar" "tar")
   T)
+
+(defun determine-so-type (pathname)
+  (cond ((search ".so." (pathname-name pathname))
+         "so")
+        (T (pathname-type pathname))))
+
+(defun determine-so-name (pathname)
+  (Cond ((search ".so." (pathname-name pathname))
+         (subseq (pathname-name pathname) 0 (search ".so." (pathname-name pathname))))
+        (T (pathname-name pathname))))
+
+(defun so-file (name &optional defaults)
+  (make-pathname :type #+darwin "dylib" #+windows "dll" #-(or darwin windows) "so"
+                 :name name :defaults defaults))

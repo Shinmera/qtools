@@ -5,8 +5,8 @@
 |#
 
 (in-package #:cl-user)
-(asdf:defsystem qtools-libs
-  :name "qtools-libs"
+(asdf:defsystem qtools-lib-generator
+  :name "qtools-lib-generator"
   :version "0.1.0"
   :license "Artistic"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
