@@ -8,7 +8,8 @@
 
 (defun ensure-commonqt-downloaded ()
   #+quicklisp (ql-dist:ensure-installed (ql-dist:find-system :qt))
-  #+quicklisp (ql:where-is-system :qt))
+  (asdf:system-source-directory
+   (asdf:find-system :qt T)))
 
 (defun fix-commonqt-pro-file (&key (file (asdf:system-relative-pathname :qt "commonqt.pro"))
                                    (package-dir *bin-dir*))
