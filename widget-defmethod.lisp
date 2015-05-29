@@ -86,26 +86,6 @@ See QTOOLS:METHOD-DECLARATION."
              ,@declaration-forms)
            ,*method*)))))
 
-(defmacro cl+qt:defgeneric (name args &body options)
-  "Defines a new generic function.
-
-Identical to CL:DEFGENERIC, but takes care of translating
-function-names with SETF to use CL:SETF instead of CL+QT:SETF.
-
-See CL:DEFGENERIC."
-  `(cl:defgeneric ,(ensure-cl-function-name name) ,args
-     ,@options))
-
-(defmacro cl+qt:defun (name args &body body)
-  "Defines a new function.
-
-Identical to CL:DEFUN, but takes care of translating function-names
-with SETF to use CL:SETF instead of CL+QT:SETF.
-
-See CL:DEFUN."
-  `(cl:defun ,(ensure-cl-function-name name) ,args
-     ,@body))
-
 (defmacro with-widget-class ((variable &optional (method '*method*)) &body body)
   "Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.
 This also signals errors if there is no such specializer or if it is invalid."

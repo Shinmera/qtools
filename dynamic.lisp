@@ -121,6 +121,53 @@ See QTOOLS:*TARGET-PACKAGE*"
              else
              collect `(cl:setf ,place ,value))))
 
+(defmacro cl+qt:defgeneric (name args &body options)
+  "Defines a new generic function.
+
+Identical to CL:DEFGENERIC, but takes care of translating
+function-names with SETF to use CL:SETF instead of CL+QT:SETF.
+
+See CL:DEFGENERIC."
+  `(cl:defgeneric ,(ensure-cl-function-name name) ,args
+     ,@options))
+
+(defmacro cl+qt:defun (name args &body body)
+  "Defines a new function.
+
+Identical to CL:DEFUN, but takes care of translating function-names
+with SETF to use CL:SETF instead of CL+QT:SETF.
+
+See CL:DEFUN."
+  `(cl:defun ,(ensure-cl-function-name name) ,args
+     ,@body))
+
+(defun cl+qt:fdefinition (name)
+  "Accesses the current global function definition named by NAME.
+
+Identical to CL:FDEFINITION, but takes care of translating function-names
+with SETF to use CL:SETF instead of CL+QT:SETF.
+
+See CL:FDEFINITION."
+  (cl:fdefinition (ensure-cl-function-name name)))
+
+(defun (setf cl+qt:fdefinition) (function name)
+  "Accesses the current global function definition named by NAME.
+
+Identical to CL:FDEFINITION, but takes care of translating function-names
+with SETF to use CL:SETF instead of CL+QT:SETF.
+
+See CL:FDEFINITION."
+  (setf (cl:fdefinition (ensure-cl-function-name name)) function))
+
+(defmacro cl+qt:function (name)
+  "Returns the functional value of NAME in the current lexical environment.
+
+Identical to CL:FUNCTION, but takes care of translating function-names
+with SETF to use CL:SETF instead of CL+QT:SETF.
+
+See CL:FUNCTION."
+  `(cl:function ,(ensure-cl-function-name name)))
+
 ;;;;;
 ;; Reader
 
@@ -224,6 +271,6 @@ If such a symbol is noticed, it instead emits a call to the Q+FUN"
     (if (q+-symbol-p stream)
         (let ((name (q+-symbol-name (read-name stream))))
           `(q+fun ,name))
-        (funcall *standard-function-reader* stream subchar arg)))
+        `(cl+qt:function ,(second (funcall *standard-function-reader* stream subchar arg)))))
 
   (set-dispatch-macro-character #\# #\' #'read-function (named-readtables:find-readtable :qtools)))

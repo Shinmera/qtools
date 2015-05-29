@@ -164,7 +164,7 @@
   (:use #:cl #:qt #:qtools)
   (:import-from #:named-readtables #:in-readtable)
   (:shadowing-import-from #:qtools #:with-main-window)
-  (:shadow #:setf #:defun #:defgeneric #:defmethod))
+  (:shadow #:setf #:defun #:defgeneric #:defmethod #:fdefinition #:function))
 
 (do-symbols (symbol '#:cl+qt)
   (export (list symbol) '#:cl+qt))
