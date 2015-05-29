@@ -4,7 +4,13 @@ This file is a part of QTools
 Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:org.shirakumo.qtools)
+(in-package #:cl-user)
+(defpackage #:org.shirakumo.qtools.keychord-editor
+  (:nicknames #:keychord-editor)
+  (:use #:cl+qt)
+  (:export
+   #:keychord-editor))
+(in-package #:org.shirakumo.qtools.keychord-editor)
 (named-readtables:in-readtable :qt)
 
 (define-widget keychord-editor (QDialog)

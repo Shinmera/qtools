@@ -26,7 +26,6 @@
                (:file "widget-defmethod")
                (:file "widget-convenience")
                (:file "widget-menu")
-               (:file "keychord-editor")
                (:file "readtable")
                (:file "generate")
                (:file "dynamic")
