@@ -29,8 +29,9 @@
                (:file "readtable")
                (:file "generate")
                (:file "dynamic")
-               (:file "precompile"))
-  :depends-on (:qt
+               (:file "precompile")
+               (:file "deploy"))
+  :depends-on (:qt-libs
                :trivial-garbage
                :closer-mop
                :named-readtables
