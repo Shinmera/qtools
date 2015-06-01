@@ -104,7 +104,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (ensure-system-libs c (uiop:pathname-directory-pathname (asdf:output-file o c)))
   (setf *loaded-libs* (cffi:list-foreign-libraries))
   (prune-image)
-  (call-next-method))
+  (apply #'uiop:dump-image (asdf:output-file o c) :executable T
+         (append #+:sb-core-compression '(:compression T))))
 
 (defun build-qt-system (system &rest keys &key force force-not verbose version &allow-other-keys)
   "Shorthand for `(operate 'asdf:qt-program-op system)`. See OPERATE for details."
