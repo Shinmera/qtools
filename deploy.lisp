@@ -69,7 +69,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (when (uiop:argv0)
     (pushnew (uiop:pathname-directory-pathname (uiop:argv0))
              cffi:*foreign-library-directories*))
-  (let ((*error-output* (make-broadcast-stream)))
+  (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
     (qt-libs:load-libcommonqt :force T :ensure-libs NIL)
     (qt::reload)
     (qt:make-qapplication)
@@ -91,8 +91,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
           (lambda (&rest args)
             (declare (ignore args))
             (restart-case
-                (locally
-                    (declare #+sbcl(sb-ext:muffle-conditions style-warning))
+                (progn
                   (warmly-boot)
                   (format T "~&[QTOOLS] Launching application.~%")
                   (funcall entry))
