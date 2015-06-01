@@ -5,8 +5,7 @@
 |#
 
 (in-package #:cl-user)
-(asdf:defsystem qtools-lib-generator
-  :name "qtools-lib-generator"
+(asdf:defsystem qt-lib-generator
   :version "0.1.0"
   :license "Artistic"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
@@ -16,12 +15,9 @@
   :serial T
   :components ((:file "package")
                (:file "toolkit")
-               (:file "deploy")
                (:file "qt4")
                (:file "smokegen")
                (:file "smokeqt")
                (:file "commonqt"))
   :depends-on (:drakma
-               :uiop
-               :trivial-features
-               :cffi))
+               :trivial-features))
