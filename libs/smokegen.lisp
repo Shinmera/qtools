@@ -48,8 +48,7 @@
   (when (or force (not (uiop:file-exists-p (relative-dir package-dir "bin"))))
     (status 3 "Packaging smokegen")
     (with-chdir (compile-dir)
-      (run-here "make install"))
-    (ensure-standalone-libs))
+      (run-here "make install")))
   package-dir)
 
 (defun clean-smokegen (&key (build-dir *smokegen-build-dir*))

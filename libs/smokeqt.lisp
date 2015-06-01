@@ -54,8 +54,7 @@
   (when (or force (not (uiop:file-exists-p (relative-dir package-dir "bin"))))
     (status 3 "Packaging smokeqt")
     (with-chdir (compile-dir)
-      (run-here "make install"))
-    (ensure-standalone-libs))
+      (run-here "make install")))
   package-dir)
 
 (defun clean-smokeqt (&key (build-dir *smokeqt-build-dir*))

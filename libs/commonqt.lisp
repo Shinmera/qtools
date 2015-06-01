@@ -42,7 +42,6 @@
 
 (defun package-libcommonqt ()
   (status 3 "Packaging libcommonqt")
-  (ensure-standalone-libs)
   (asdf:system-source-directory :qt))
 
 (defun clean-libcommonqt ()
