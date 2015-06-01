@@ -6,6 +6,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (in-package #:org.shirakumo.qtools)
 
+(defvar *loaded-libs* ())
+
 (defun clean-symbol (symbol)
   (dolist (type '(function compiler-macro setf type variable))
     (when (documentation symbol type)
@@ -17,15 +19,20 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defun prune-package (package)
   (do-symbols (symbol package)
-    (clean-symbol symbol)
-    (prune-symbol symbol))
+    (when (eql (symbol-package symbol) package)
+      (clean-symbol symbol)
+      (prune-symbol symbol)))
   (delete-package package))
 
 (defun prune-image ()
   (do-all-symbols (symbol)
     (clean-symbol symbol))
+  (setf cffi:*foreign-library-directories*
+        (delete qt-libs:*standalone-libs-dir* cffi:*foreign-library-directories*
+                :test #'uiop:pathname-equal))
+  (dolist (lib *loaded-libs*)
+    (cffi:close-foreign-library lib))
   (tg:gc :full T))
-
 
 (defclass qt-program-op (asdf:program-op)
   ())
@@ -57,6 +64,19 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (unless (uiop:file-exists-p target)
         (uiop:copy-file lib (ensure-directories-exist target))))))
 
+(defun warmly-boot ()
+  (format T "~&[QTOOLS] Performing warm boot.~%")
+  (when (uiop:argv0)
+    (pushnew (uiop:pathname-directory-pathname (uiop:argv0))
+             cffi:*foreign-library-directories*))
+  (let ((*error-output* (make-broadcast-stream)))
+    (qt-libs:load-libcommonqt :force T :ensure-libs NIL)
+    (qt::reload)
+    (qt:make-qapplication)
+    (dolist (lib *loaded-libs*)
+      (unless (cffi:foreign-library-loaded-p lib)
+        (cffi:load-foreign-library (cffi:foreign-library-name lib))))))
+
 (defmethod asdf:output-files ((o qt-program-op) (c asdf:system))
   (values (mapcar (lambda (file)
                     (ensure-directories-exist
@@ -70,14 +90,19 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (setf (asdf/system:component-entry-point c)
           (lambda (&rest args)
             (declare (ignore args))
-            (format T "~&Loading shared libraries...~%")
-            (qt-libs:load-libcommonqt :force T)
-            (qt::reload)
-            (format T "~&Launching application.~%")
-            (funcall entry)))))
+            (restart-case
+                (locally
+                    (declare #+sbcl(sb-ext:muffle-conditions style-warning))
+                  (warmly-boot)
+                  (format T "~&[QTOOLS] Launching application.~%")
+                  (funcall entry))
+              (exit ()
+                :report "Exit."
+                (uiop:quit)))))))
 
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
   (ensure-system-libs c (uiop:pathname-directory-pathname (asdf:output-file o c)))
+  (setf *loaded-libs* (cffi:list-foreign-libraries))
   (prune-image)
   (call-next-method))
 
