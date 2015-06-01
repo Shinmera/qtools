@@ -5,7 +5,7 @@
 |#
 
 (in-package #:cl-user)
-(defpackage #:qtools-lib-generator
+(defpackage #:qt-lib-generator
   (:use #:cl)
   (:nicknames #:org.shirakumo.qtools.libs.generator)
   ;; commonqt.lisp
@@ -17,13 +17,6 @@
    #:build-libcommonqt
    #:libcommonqt-path
    #:ensure-libcommonqt)
-  ;; deploy.lisp
-  (:export
-   #:*standalone-libs-dir*
-   #:ensure-standalone-libs
-   #:libsmokebase
-   #:libcommonqt
-   #:load-libcommonqt)
   ;; qt4.lisp
   (:export)
   ;; smokegen.lisp
