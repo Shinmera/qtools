@@ -47,10 +47,10 @@
                                     (commonqt-dir (qt-lib-generator:libcommonqt-path))
                                     (standalone-dir *standalone-libs-dir*))
   (unless (uiop:file-exists-p (so-file "libsmokebase" standalone-dir))
-    (copy-libs (relative-dir smokegen-dir "lib") standalone-dir
+    (copy-libs (qt-lib-generator::relative-dir smokegen-dir "lib") standalone-dir
                :test (lambda (file) (search "smokebase" (pathname-name file)))))
   (unless (uiop:file-exists-p (so-file "libsmokeqtgui" standalone-dir))
-    (copy-libs (relative-dir smokeqt-dir "lib") standalone-dir
+    (copy-libs (qt-lib-generator::relative-dir smokeqt-dir "lib") standalone-dir
                :test (lambda (file) (search "smokeqt" (pathname-name file)))))
   (unless (uiop:file-exists-p (so-file "libcommonqt" standalone-dir))
     (copy-libs (uiop:pathname-directory-pathname commonqt-dir) standalone-dir
