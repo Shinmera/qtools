@@ -32,8 +32,10 @@
                  :name name :defaults defaults))
 
 (defun copy-libs (from to &key (test (constantly T)))
-  (dolist (input (uiop:directory-files from))
-    (when (and (or (find (pathname-type from) '("dylib" "dll" "so") :test #'string=)
+  (dolist (input (etypecase from
+                   (list from)
+                   (pathname (uiop:directory-files from))))
+    (when (and (or (find (pathname-type input) '("dylib" "dll" "so") :test #'string=)
                    (search ".so." (pathname-name input)))
                (funcall test input))
       (let ((output (make-pathname :defaults to
@@ -42,18 +44,15 @@
         (unless (uiop:file-exists-p output)
           (uiop:copy-file input output))))))
 
-(defun ensure-standalone-libs (&key (smokegen-dir (qt-lib-generator:smokegen-path))
-                                    (smokeqt-dir (qt-lib-generator:smokeqt-path))
-                                    (commonqt-dir (qt-lib-generator:libcommonqt-path))
-                                    (standalone-dir *standalone-libs-dir*))
+(defun ensure-standalone-libs (&key (standalone-dir *standalone-libs-dir*))
   (unless (uiop:file-exists-p (so-file "libsmokebase" standalone-dir))
-    (copy-libs (qt-lib-generator::relative-dir smokegen-dir "lib") standalone-dir
+    (copy-libs (qt-lib-generator:shared-library-files (asdf:find-system :smokegen)) standalone-dir
                :test (lambda (file) (search "smokebase" (pathname-name file)))))
   (unless (uiop:file-exists-p (so-file "libsmokeqtgui" standalone-dir))
-    (copy-libs (qt-lib-generator::relative-dir smokeqt-dir "lib") standalone-dir
+    (copy-libs (qt-lib-generator:shared-library-files (asdf:find-system :smokeqt)) standalone-dir
                :test (lambda (file) (search "smokeqt" (pathname-name file)))))
-  (unless (uiop:file-exists-p (so-file "libcommonqt" standalone-dir))
-    (copy-libs (uiop:pathname-directory-pathname commonqt-dir) standalone-dir
+  (unless (uiop:file-exists-p (so-file "commonqt" standalone-dir))
+    (copy-libs (qt-lib-generator:shared-library-files (asdf:find-system :libcommonqt)) standalone-dir
                :test (lambda (file) (search "commonqt" (pathname-name file)))))
   standalone-dir)
 
@@ -70,7 +69,7 @@
   (when (or (not *libs-loaded*) force)
     (when ensure-libs
       (pushnew *standalone-libs-dir* cffi:*foreign-library-directories*)
-      (qt-lib-generator:ensure-libcommonqt)
+      (asdf:load-system :libcommonqt)
       (ensure-standalone-libs))
     ;; See QT::LOAD-LIBCOMMONQT for an explanation of this.
     #+(and sbcl (not windows)) (sb-sys:enable-interrupt sb-unix:sigchld :default)

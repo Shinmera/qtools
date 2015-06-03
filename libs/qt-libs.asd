@@ -22,9 +22,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
        ((setf symbf) (function package name)
          (setf (fdefinition (find-symbol (string name) package)) function)))
   (defmethod asdf:perform :after ((op asdf:compile-op) (c (eql (asdf:find-system :qt-libs))))
-    (funcall (symbf :qt-lib-generator :ensure-smokegen))
-    (funcall (symbf :qt-lib-generator :ensure-smokeqt))
-    (funcall (symbf :qt-lib-generator :ensure-libcommonqt))
+    (asdf:compile-system :smokegen)
+    (asdf:compile-system :smokeqt)
+    (asdf:compile-system :libcommonqt)
     (funcall (symbf :qt-libs :ensure-standalone-libs)))
 
   (defmethod asdf:perform :after ((op asdf:load-op) (c (eql (asdf:find-system :qt-libs))))
