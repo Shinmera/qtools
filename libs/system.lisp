@@ -17,8 +17,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defmethod asdf:perform ((op download-op) c)
   NIL)
 
-(defclass generate-op (asdf:selfward-operation)
-  ((asdf:selfward-operation :initform 'download-op :allocation :class)))
+(defclass generate-op (asdf:selfward-operation asdf:sideway-operation)
+  ((asdf:selfward-operation :initform 'download-op :allocation :class)
+   (asdf:sideway-operation :initform 'install-op :allocation :class)))
 
 (defmethod asdf:action-description ((op generate-op) c)
   (format nil "~@<generating ~3i~_~A~@:>" c))
@@ -79,6 +80,12 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defmethod asdf:output-files ((op install-op) (system build-system))
   (list (uiop:ensure-directory-pathname "install")))
 
+(defmethod asdf/plan:traverse-action (plan op (c build-system) niip)
+  (let ((files (asdf:output-files op c)))
+    (when (or (null files)
+              (not (probe-file (first files))))
+      (call-next-method))))
+
 (defmethod asdf:component-depends-on ((op asdf:compile-op) (system build-system))
   `(,@(call-next-method)
     (install-op ,system)))
@@ -91,8 +98,12 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (test-prerequisite "C Compiler" "cc" "gcc")
   (test-prerequisite "tar" "tar"))
 
-(defmethod asdf:needed-in-image-p ((op download-op) (c (eql (asdf:find-system :build-prerequisites))))
-  NIL)
+(defun show-plan (op system)
+  (loop for (operation . component) in (asdf/plan:plan-actions (asdf:make-plan 'asdf:sequential-plan op (asdf:find-system system)))
+        do (format T "~&~15a ~a~%" (type-of operation) (asdf:component-name component))))
 
-(defmethod asdf:needed-in-image-p ((op install-op) (c (eql (asdf:find-system :build-prerequisites))))
-  T)
+;; We /really/ only want the install-op for this.
+(defmethod asdf/plan:traverse-action (plan op (c (eql (asdf:find-system :build-prerequisites))) niip)
+  (typecase op
+    (install-op (call-next-method))
+    (T NIL)))

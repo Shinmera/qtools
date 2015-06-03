@@ -28,7 +28,7 @@
 (defmethod asdf:perform ((op generate-op) (system (eql (asdf:find-system :libcommonqt))))
   (fix-commonqt-pro-file :file (make-pathname :name "commonqt" :type "pro" :defaults (asdf:output-file 'download-op system))
                          :package-dir (asdf:output-file 'install-op (asdf:find-system :smokeqt)))
-  (asdf:compile-system :qt))
+  (asdf:compile-system :qt :force T))
 
 (defmethod asdf:perform ((op install-op) (system (eql (asdf:find-system :libcommonqt))))
   T)
