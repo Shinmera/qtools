@@ -13,6 +13,21 @@
                :smokegen
                :smokeqt))
 
+(defun fix-commonqt-pro-file (file &rest basepaths)
+  (let ((contents (uiop:read-file-string file)))
+    (unless (search "Qtools Fix" contents)
+      (with-open-file (stream file :direction :output
+                                   :if-exists :supersede
+                                   :if-does-not-exist :error)
+        (format stream "~&# Qtools fix~%")
+        (dolist (base basepaths)
+          (format stream "~&LIBS += -L~s~
+                          ~&INCLUDEPATH += ~s"
+                  (uiop:native-namestring (relative-dir base "lib/"))
+                  (uiop:native-namestring (relative-dir base "include/"))))
+        (format stream "~&~a" contents))
+      file)))
+
 (defmethod asdf:perform ((op download-op) (system (eql (asdf:find-system :libcommonqt))))
   #+quicklisp
   (unless (ql-dist:installedp (ql-dist:find-system "qt"))
@@ -25,28 +40,24 @@
   (values (list (asdf:system-source-directory :qt))
           T))
 
+(defmethod asdf:input-files ((op generate-op) (system (eql (asdf:find-system :libcommonqt))))
+  (list (make-pathname :name "commonqt" :type "pro" :defaults (asdf:output-file 'download-op system))))
+
 (defmethod asdf:perform ((op generate-op) (system (eql (asdf:find-system :libcommonqt))))
-  (fix-commonqt-pro-file :file (make-pathname :name "commonqt" :type "pro" :defaults (asdf:output-file 'download-op system))
-                         :package-dir (asdf:output-file 'install-op (asdf:find-system :smokeqt)))
-  (asdf:compile-system :qt :force T))
+  (let ((project-file (first (asdf:input-files op system))))
+    (fix-commonqt-pro-file project-file
+                           (asdf:output-file 'install-op (asdf:find-system :smokeqt))
+                           (asdf:output-file 'install-op (asdf:find-system :smokegen)))
+    (let ((makefile (make-pathname :name "Makefile" :type NIL :defaults project-file)))
+      (run-here "`command -v qmake-qt4 || command -v qmake` ~a~s -o ~s"
+                #+darwin "-spec macx-g++ " #-darwin ""
+                (uiop:native-namestring project-file)
+                (uiop:native-namestring makefile))
+      (run-here "make -C ~s"
+                (uiop:native-namestring (uiop:pathname-directory-pathname makefile))))))
 
 (defmethod asdf:perform ((op install-op) (system (eql (asdf:find-system :libcommonqt))))
   T)
-
-(defun fix-commonqt-pro-file (&key (file (asdf:system-relative-pathname :qt "commonqt.pro"))
-                                   (package-dir *bin-dir*))
-  (let ((contents (uiop:read-file-string file)))
-    (unless (search "Qtools Fix" contents)
-      (with-open-file (stream file :direction :output
-                                   :if-exists :supersede
-                                   :if-does-not-exist :error)
-        (format stream "# Qtools Fix~
-                        ~&LIBS += -L~s~
-                        ~&INCLUDEPATH += ~s~%~%~a"
-                (uiop:native-namestring (relative-dir package-dir "lib/"))
-                (uiop:native-namestring (relative-dir package-dir "include/"))
-                contents))
-      file)))
 
 (defmethod asdf:output-files ((op generate-op) (system (eql (asdf:find-system :libcommonqt))))
   (values (list (make-pathname :name #-windows "libcommonqt"
@@ -57,5 +68,8 @@
                                :defaults (asdf:output-file 'download-op system)))
           T))
 
-(defmethod shared-library-files ((system build-system))
+(defmethod asdf:output-files ((op install-op) (system (eql (asdf:find-system :libcommonqt))))
+  (asdf:output-files 'generate-op system))
+
+(defmethod shared-library-files ((system (eql (asdf:find-system :libcommonqt))))
   (mapcar #'uiop:resolve-symlinks (asdf:output-files 'generate-op system)))
