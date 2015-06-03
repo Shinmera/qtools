@@ -6,8 +6,6 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (in-package #:org.shirakumo.qtools.libs.generator)
 
-(defgeneric origin (system))
-
 (defclass download-op (asdf:non-propagating-operation)
   ())
 
@@ -40,6 +38,16 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defclass build-system (asdf:system)
   ())
+
+(defgeneric origin (system))
+
+(defgeneric shared-library-files (system))
+
+(defmethod shared-library-files ((system build-system))
+  (mapcar #'uiop:resolve-symlinks
+          (uiop:directory-files (relative-dir (asdf:output-file 'install-op system) "lib")
+                                (make-pathname :type #+darwin "dylib" #+windows "dll" #-(or windows darwin) "so"
+                                               :defaults uiop:*wild-file*))))
 
 (defmethod asdf:component-pathname ((system build-system))
   (relative-dir (call-next-method) (asdf:component-name system)))

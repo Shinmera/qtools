@@ -56,3 +56,6 @@
                                      #-(or darwin windows) "so"
                                :defaults (asdf:output-file 'download-op system)))
           T))
+
+(defmethod shared-library-files ((system build-system))
+  (mapcar #'uiop:resolve-symlinks (asdf:output-files 'generate-op system)))
