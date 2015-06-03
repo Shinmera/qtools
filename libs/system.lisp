@@ -19,7 +19,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defgeneric generate (system &key force))
 
-(defgeneric package (system &key force))
+(defgeneric install (system &key force))
 
 (defgeneric clean (system &key))
 
