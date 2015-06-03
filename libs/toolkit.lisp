@@ -34,7 +34,8 @@
 (defun download-file (url target)
   (status 2 "Downloading ~a" url)
   (unless (find-package :drakma)
-    (asdf:load-system :drakma))
+    (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning))
+      (asdf:load-system :drakma)))
   (with-open-file (output target :direction :output
                                  :if-exists :supersede
                                  :if-does-not-exist :create
@@ -61,26 +62,20 @@
         then (merge-pathnames (uiop:ensure-directory-pathname sub) dir)
         finally (return dir)))
 
-(defun build-dir (name)
-  (ensure-directories-exist
-   (relative-dir (uiop:temporary-directory) name)))
-
-(defun sources-dir (build-dir)
-  (ensure-directories-exist
-   (relative-dir build-dir "source")))
-
-(defun compile-dir (build-dir)
-  (ensure-directories-exist
-   (relative-dir build-dir "compile")))
-
 (defmacro with-chdir ((to) &body body)
   (let ((current (gensym "CURRENT")))
     `(let ((,current (uiop:getcwd)))
        (unwind-protect
             (progn
-              (uiop:chdir ,to)
+              (uiop:chdir (ensure-directories-exist ,to))
               ,@body)
          (uiop:chdir ,current)))))
+
+(defmacro with-temp-file ((name pathname) &body body)
+  `(let ((,name ,pathname))
+     (unwind-protect
+          (progn ,@body)
+       (uiop:delete-file-if-exists ,name))))
 
 (defun application-available-p (&rest alternatives)
   (zerop (nth-value 2 (uiop:run-program (format NIL "~{command -v ~s~^ || ~}" alternatives) :ignore-error-status T))))
@@ -91,11 +86,3 @@
                     T
                     (with-simple-restart (retry "I installed it now, test again.")
                       (error "~a is required, but could not be found. Please ensure it is installed properly." name))))))
-
-(defun test-compile-prerequisites ()
-  (test-prerequisite "CMake" "cmake")
-  (test-prerequisite "Make" "make")
-  (test-prerequisite "C Compiler" "cc" "gcc")
-  (test-prerequisite "Qt4.8" "qmake-qt4" "qmake")
-  (test-prerequisite "tar" "tar")
-  T)
