@@ -15,6 +15,7 @@
   :serial T
   :components ((:file "package")
                (:file "toolkit")
+               (:file "system")
                (:file "qt4")
                (:file "smokegen")
                (:file "smokeqt")
