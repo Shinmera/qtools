@@ -17,6 +17,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   :depends-on (:qt-lib-generator
                :cffi))
 
+#+quicklisp (ql-dist:ensure-installed (ql-dist:find-system :qt))
+
 (flet ((symbf (package name)
          (fdefinition (find-symbol (string name) package)))
        ((setf symbf) (function package name)
@@ -28,7 +30,6 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (funcall (symbf :qt-libs :ensure-standalone-libs)))
 
   (defmethod asdf:perform :after ((op asdf:load-op) (c (eql (asdf:find-system :qt-libs))))
-    #+quicklisp (ql-dist:ensure-installed (ql-dist:find-system :qt))
     (asdf:load-system :qt))
 
   (defmethod asdf:perform :after ((op asdf:load-op) (c (eql (asdf:find-system :qt))))
