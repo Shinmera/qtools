@@ -26,7 +26,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
                  of ~[January~;February~;March~;April~;May~;June~;July~;August~;September~;October~;November~;December~] ~
                  ~d, ~
                  ~2,'0d:~2,'0d:~2,'0d"
-            day dd (1- (mod dd 10)) mm yy h m s)))
+            day dd (1- (mod dd 10)) (1- mm) yy h m s)))
 
 (define-slot (main button-pressed) ()
   (declare (connected button (released)))
