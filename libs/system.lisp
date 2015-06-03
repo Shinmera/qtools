@@ -6,7 +6,13 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (in-package #:org.shirakumo.qtools.libs.generator)
 
-(defclass download-op (asdf:non-propagating-operation)
+(defclass build-system-op (asdf:operation)
+  ())
+
+(defmethod asdf:perform :before ((op build-system-op) c)
+  (status 2 (asdf:action-description op c)))
+
+(defclass download-op (build-system-op asdf:non-propagating-operation)
   ())
 
 (defmethod asdf:action-description ((op download-op) c)
@@ -15,7 +21,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defmethod asdf:perform ((op download-op) c)
   NIL)
 
-(defclass generate-op (asdf:selfward-operation asdf:sideway-operation)
+(defclass generate-op (build-system-op asdf:selfward-operation asdf:sideway-operation)
   ((asdf:selfward-operation :initform 'download-op :allocation :class)
    (asdf:sideway-operation :initform 'install-op :allocation :class)))
 
@@ -25,7 +31,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defmethod asdf:perform ((op generate-op) c)
   NIL)
 
-(defclass install-op (asdf:selfward-operation)
+(defclass install-op (build-system-op asdf:selfward-operation)
   ((asdf:selfward-operation :initform 'generate-op :allocation :class)))
 
 (defmethod asdf:action-description ((op install-op) c)
@@ -33,7 +39,6 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defmethod asdf:perform ((op install-op) c)
   NIL)
-
 
 
 (defclass build-system (asdf:system)

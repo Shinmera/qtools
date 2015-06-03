@@ -18,6 +18,7 @@
   (:export)
   ;; system.lisp
   (:export
+   #:build-system-op
    #:download-op
    #:generate-op
    #:install-op
