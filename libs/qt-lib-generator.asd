@@ -19,5 +19,4 @@
                (:file "smokegen")
                (:file "smokeqt")
                (:file "commonqt"))
-  :depends-on (:drakma
-               :trivial-features))
+  :depends-on (:trivial-features))

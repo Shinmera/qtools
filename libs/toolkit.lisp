@@ -33,11 +33,13 @@
 
 (defun download-file (url target)
   (status 2 "Downloading ~a" url)
+  (unless (find-package :drakma)
+    (asdf:load-system :drakma))
   (with-open-file (output target :direction :output
                                  :if-exists :supersede
                                  :if-does-not-exist :create
                                  :element-type '(unsigned-byte 8))
-    (multiple-value-bind (input status) (drakma:http-request url :want-stream T)
+    (multiple-value-bind (input status) (funcall (find-symbol (string :http-request) :drakma) url :want-stream T)
       (unwind-protect
            (progn
              (unless (= status 200)
