@@ -9,7 +9,7 @@
 (asdf:defsystem :smokeqt
   :class build-system
   :version "4.14.3"
-  :depends-on (:build-prerequisites
+  :depends-on (:qt-build-prerequisites
                :smokegen))
 
 (defmethod origin ((system (eql (asdf:find-system :smokeqt))))

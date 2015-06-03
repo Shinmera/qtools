@@ -6,10 +6,10 @@
 
 (in-package #:org.shirakumo.qtools.libs.generator)
 
-(asdf:defsystem smokegen
+(asdf:defsystem :smokegen
   :class build-system
   :version "4.14.3"
-  :depends-on (:build-prerequisites))
+  :depends-on (:qt-build-prerequisites))
 
 (defmethod origin ((system (eql (asdf:find-system :smokegen))))
   (let ((version (asdf:component-version system)))

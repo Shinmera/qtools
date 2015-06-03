@@ -8,7 +8,7 @@
 
 (asdf:defsystem :libcommonqt
   :class build-system
-  :depends-on (:build-prerequisites
+  :depends-on (:qt-build-prerequisites
                :qt4
                :smokegen
                :smokeqt))

@@ -98,9 +98,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   `(,@(call-next-method)
     (install-op ,system)))
 
-(asdf:defsystem :build-prerequisites)
+(asdf:defsystem :qt-build-prerequisites)
 
-(defmethod asdf:perform ((op install-op) (c (eql (asdf:find-system :build-prerequisites))))
+(defmethod asdf:perform ((op install-op) (c (eql (asdf:find-system :qt-build-prerequisites))))
   (test-prerequisite "CMake" "cmake")
   (test-prerequisite "Make" "make")
   (test-prerequisite "C Compiler" "cc" "gcc")
@@ -111,7 +111,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         do (format T "~&~15a ~a~%" (type-of operation) (asdf:component-name component))))
 
 ;; We /really/ only want the install-op for this.
-(defmethod asdf/plan:traverse-action (plan op (c (eql (asdf:find-system :build-prerequisites))) niip)
+(defmethod asdf/plan:traverse-action (plan op (c (eql (asdf:find-system :qt-build-prerequisites))) niip)
   (typecase op
     (install-op (call-next-method))
     (T NIL)))
