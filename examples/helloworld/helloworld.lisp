@@ -41,3 +41,6 @@ It is now ~a."
            (lisp-implementation-version)
            (machine-type)
            (timestamp))))
+
+(defun main ()
+  (with-main-window (window (make-instance 'main))))
