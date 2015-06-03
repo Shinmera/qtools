@@ -31,7 +31,10 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 ;; we need to hook manually here as well and ensure that the system
 ;; is installed somewhere. Otherwise, asdf:find-system is going to
 ;; throw up in the following method definitions.
-#+quicklisp (ql-dist:ensure-installed (ql-dist:find-system :qt))
+#+quicklisp
+(progn
+  (ql-dist:ensure-installed (ql-dist:find-system :trivial-features))
+  (ql-dist:ensure-installed (ql-dist:find-system :qt)))
 
 (flet ((symbf (package name)
          (fdefinition (find-symbol (string name) package)))
