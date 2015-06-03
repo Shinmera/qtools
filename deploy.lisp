@@ -43,8 +43,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
          (func (ignore-errors (uiop:ensure-function entry))))
     (cond ((not entry)
            (error "~a does not specify an entry point." c))
-          (class (lambda () (with-main-window (window (make-instance class)))))
           (func func)
+          (class (lambda () (with-main-window (window (make-instance class)))))
           (T (error "~a's  entry point ~a is not coercable to a widget class or function!" c entry)))))
 
 (defun system-required-libs (system &key (standalone-dir qt-libs:*standalone-libs-dir*))
