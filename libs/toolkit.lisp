@@ -6,9 +6,6 @@
 
 (in-package #:org.shirakumo.qtools.libs.generator)
 
-(defvar *bin-dir* (ensure-directories-exist
-                   (asdf:system-relative-pathname :qt-lib-generator "built" :type :directory)))
-
 (defun externalize (thing)
   (typecase thing
     (list thing)
