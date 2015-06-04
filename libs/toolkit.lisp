@@ -32,7 +32,8 @@
   (status 2 "Downloading ~a" url)
   (unless (find-package :drakma)
     (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning))
-      (asdf:load-system :drakma)))
+      #-quicklisp (asdf:load-system :drakma)
+      #+quicklisp (ql:quickload :drakma)))
   (with-open-file (output target :direction :output
                                  :if-exists :supersede
                                  :if-does-not-exist :create
