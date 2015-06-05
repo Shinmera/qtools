@@ -50,7 +50,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defmethod shared-library-files ((system build-system))
   (mapcar #'uiop:resolve-symlinks
-          (uiop:directory-files (relative-dir (asdf:output-file 'install-op system) "lib")
+          (uiop:directory-files (relative-dir (first (asdf:output-files 'install-op system)) "lib")
                                 (make-pathname :type #+darwin "dylib" #+windows "dll" #-(or windows darwin) "so"
                                                :defaults uiop:*wild-file*))))
 
@@ -65,11 +65,12 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         (origin (origin system)))
     (when origin
       (if (eql version :git)
-          (clone origin (asdf:output-file op system))
+          (clone origin (first (asdf:output-files op system)))
           (with-temp-file (archive (make-pathname :name (format NIL "~a-archive" (asdf:component-name system))
                                                   :type "tar.xz" :defaults (uiop:temporary-directory)))
             (download-file origin archive)
-            (extract-tar-archive archive (uiop:pathname-directory-pathname (asdf:output-file op system))
+            (extract-tar-archive archive (uiop:pathname-directory-pathname
+                                          (first (asdf:output-files op system)))
                                  :strip-folder T))))))
 
 (defmethod asdf:output-files ((op download-op) (system build-system))

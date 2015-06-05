@@ -100,10 +100,11 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
                 (uiop:quit)))))))
 
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
-  (ensure-system-libs c (uiop:pathname-directory-pathname (asdf:output-file o c)))
+  (ensure-system-libs c (uiop:pathname-directory-pathname
+                         (first (asdf:output-files o c))))
   (setf *loaded-libs* (cffi:list-foreign-libraries))
   (prune-image)
-  (apply #'uiop:dump-image (asdf:output-file o c) :executable T
+  (apply #'uiop:dump-image (first (asdf:output-files o c)) :executable T
          (append #+:sb-core-compression '(:compression T))))
 
 (defun build-qt-system (system &rest keys &key force force-not verbose version &allow-other-keys)
