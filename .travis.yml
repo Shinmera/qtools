@@ -6,8 +6,8 @@ env:
     - LISP=ccl
 
 install:
-  - sudo apt-get update
-  - sudo apt-get install libqt4-dev qt4-qmake
+  - sudo apt-get update -qq
+  - sudo apt-get install -y libqt4-dev qt4-qmake
   - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
 
 script:
