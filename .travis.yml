@@ -1,0 +1,18 @@
+language: common-lisp
+
+env:
+  matrix:
+    - LISP=sbcl
+    - LISP=ccl
+
+install:
+  - sudo apt-get update
+  - sudo apt-get install libqt4-dev qt4-qmake
+  - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
+
+script:
+  - cl -e '(ql:quickload :qtools)'
+
+notifications:
+  email:
+    - shinmera@tymoon.eu
