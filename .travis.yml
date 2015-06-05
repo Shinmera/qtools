@@ -6,13 +6,19 @@ env:
     - LISP=ccl
 
 install:
+  # Qt
   - sudo apt-get update -qq
-  - sudo apt-get install -y libqt4-dev qt4-qmake
+  - sudo apt-get install -y libqt4-dev qt4-qmake libsmokeqtgui4-3 libsmokeqt4-dev
+  # X server
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+  # CL
   - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
 
 script:
   - cl -e '(ql:quickload :qtools)'
-       -e '(qt:ensure-smoke :qtcore)'
+       -e '(qt:make-qapplication)'
+       -e '(format T "~&~%!!! WOAH IT WORKS !!!~&~%")'
 
 notifications:
   email:
