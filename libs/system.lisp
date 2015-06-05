@@ -116,9 +116,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
                             (if env (list env) ())))
 (defmethod asdf:perform ((op generate-op) (system make-build-system))
   (let ((makefile (first (asdf:input-files op system))))
-    (run-here "env LD_LIBRARY_PATH=\"~{~a~^:~}\" make -j ~d -C ~a -f ~a~@[.~a~]~@[ ~a~]"
-              *ld-library-path* (cpu-count)
-              (uiop:pathname-directory-pathname makefile) (pathname-name makefile) (pathname-type makefile)
+    (run-here "env LD_LIBRARY_PATH=\"~{~a~^:~}\" make -j ~d -C ~s -f ~s~@[ ~a~]"
+              *ld-library-path* (cpu-count) (uiop:pathname-directory-pathname makefile)
+              (format NIL "~a~@[.~a~]" (pathname-name makefile) (pathname-type makefile))
               (make-flags system))))
 
 (defmethod asdf:perform ((op install-op) (system make-build-system))
