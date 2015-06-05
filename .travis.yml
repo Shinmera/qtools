@@ -12,6 +12,7 @@ install:
 
 script:
   - cl -e '(ql:quickload :qtools)'
+       -e '(qt:ensure-smoke :qtcore)'
 
 notifications:
   email:
