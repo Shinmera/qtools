@@ -7,7 +7,7 @@
 (in-package #:org.shirakumo.qtools.libs.generator)
 
 (asdf:defsystem :smokeqt
-  :class build-system
+  :class cmake-build-system
   :version "4.14.3"
   :depends-on (:qt-build-prerequisites
                :smokegen))
@@ -18,27 +18,30 @@
         "git://anongit.kde.org/smokeqt"
         (format NIL "http://download.kde.org/stable/~a/src/smokeqt-~:*~a.tar.xz" version))))
 
-(defmethod asdf:perform ((op generate-op) (system (eql (asdf:find-system :smokeqt))))
-  (with-chdir ((asdf:output-file op system))
-    (let ((smoke-dir (asdf:output-file 'install-op (asdf:find-system :smokegen))))
-      (run-here "cmake ~s -DCMAKE_BUILD_TYPE=Release ~
-                        -DCMAKE_INSTALL_PREFIX=~s ~
-                        -DWITH_Qwt5=OFF ~
-                        -DSMOKE_INSTALL_PREFIX=~s ~
-                        -DSmoke_DIR=~s ~
-                        -Wno-dev"
-                (first (asdf:input-files op system))
-                (asdf:output-file 'install-op system)
-                smoke-dir
-                (relative-dir smoke-dir "share" "smoke" "cmake"))
-      (run-here "env LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH:~a:~a\" make"
-                (relative-dir smoke-dir "lib")
-                (relative-dir smoke-dir "lib" "smokeqt")))))
+(defmethod cmake-flags ((system (eql (asdf:find-system :smokeqt))))
+  (let ((smoke-dir (first (asdf:output-files 'install-op (asdf:find-system :smokegen)))))
+    (format NIL "-DCMAKE_BUILD_TYPE=Release ~
+                 -DCMAKE_INSTALL_PREFIX=~s ~
+                 -DWITH_Qwt5=OFF ~
+                 -DSmoke_DIR=~s ~
+                 -Wno-dev"
+            (uiop:native-namestring (first (asdf:output-files 'install-op system)))
+            (uiop:native-namestring (relative-dir smoke-dir "share" "smoke" "cmake")))))
+
+(defmethod asdf:perform :around ((op generate-op) (system (eql (asdf:find-system :smokeqt))))
+  (let* ((smoke-dir (first (asdf:output-files 'install-op (asdf:find-system :smokegen))))
+         (*ld-library-path* (list* (uiop:native-namestring (relative-dir smoke-dir "lib"))
+                                   (uiop:native-namestring (relative-dir smoke-dir "lib" "smokeqt"))
+                                   *ld-library-path*)))
+    (call-next-method)))
+
+(defmethod asdf:output-files ((op generate-op) (system (eql (asdf:find-system :smokegen))))
+  (list* (shared-library-file :name "libsmokeqtcore" :defaults (relative-dir "generate" "bin"))
+         (call-next-method)))
 
 (defun smokeqt-on-path-p (path)
   (uiop:file-exists-p
-   (make-pathname :name "libsmokeqtcore" :type #+:linux "so" #+:darwin "dylib" #+:windows "dll"
-                  :defaults (relative-dir path "lib"))))
+   (shared-library-file :name "libsmokeqtcore" :defaults (relative-dir path "lib"))))
 
 (defmethod asdf:output-files ((op install-op) (system (eql (asdf:find-system :smokeqt))))
   (loop for dir in '(#+:unix #p"/usr"
@@ -46,4 +49,5 @@
                      #+:windows #p"C:/Program Files/KDE/smokeqt/")
         when (smokeqt-on-path-p dir)
         return (values (list dir) T)
-        finally (return (call-next-method))))
+        finally (return (append (call-next-method)
+                                (list (shared-library-file :name "libsmokeqtcore" :defaults (relative-dir "install" "lib")))))))

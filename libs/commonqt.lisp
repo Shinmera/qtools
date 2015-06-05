@@ -41,13 +41,13 @@
           T))
 
 (defmethod asdf:input-files ((op generate-op) (system (eql (asdf:find-system :libcommonqt))))
-  (list (make-pathname :name "commonqt" :type "pro" :defaults (asdf:output-file 'download-op system))))
+  (list (make-pathname :name "commonqt" :type "pro" :defaults (first (asdf:output-files 'download-op system)))))
 
 (defmethod asdf:perform ((op generate-op) (system (eql (asdf:find-system :libcommonqt))))
   (let ((project-file (first (asdf:input-files op system))))
     (fix-commonqt-pro-file project-file
-                           (asdf:output-file 'install-op (asdf:find-system :smokeqt))
-                           (asdf:output-file 'install-op (asdf:find-system :smokegen)))
+                           (first (asdf:output-files 'install-op (asdf:find-system :smokeqt)))
+                           (first (asdf:output-files 'install-op (asdf:find-system :smokegen))))
     (let ((makefile (make-pathname :name "Makefile" :type NIL :defaults project-file)))
       (run-here "`command -v qmake-qt4 || command -v qmake` ~a~s -o ~s"
                 #+darwin "-spec macx-g++ " #-darwin ""
@@ -60,12 +60,8 @@
   T)
 
 (defmethod asdf:output-files ((op generate-op) (system (eql (asdf:find-system :libcommonqt))))
-  (values (list (make-pathname :name #-windows "libcommonqt"
-                                     #+windows "commonqt"
-                               :type #+darwin "dylib"
-                                     #+windows "dll"
-                                     #-(or darwin windows) "so"
-                               :defaults (asdf:output-file 'download-op system)))
+  (values (list (shared-library-file :name #-windows "libcommonqt" #+windows "commonqt"
+                                     :defaults (first (asdf:output-files 'download-op system))))
           T))
 
 (defmethod asdf:output-files ((op install-op) (system (eql (asdf:find-system :libcommonqt))))

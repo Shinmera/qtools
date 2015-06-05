@@ -29,7 +29,7 @@
   (run-here "git clone ~s ~s" origin target))
 
 (defun download-file (url target)
-  (status 2 "Downloading ~a" url)
+  (status 1 "Downloading ~a" url)
   (unless (find-package :drakma)
     (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning))
       #-quicklisp (asdf:load-system :drakma)
@@ -65,7 +65,9 @@
     `(let ((,current (uiop:getcwd)))
        (unwind-protect
             (progn
-              (uiop:chdir (ensure-directories-exist ,to))
+              (uiop:chdir
+               (uiop:pathname-directory-pathname
+                (ensure-directories-exist ,to)))
               ,@body)
          (uiop:chdir ,current)))))
 
@@ -84,3 +86,11 @@
                     T
                     (with-simple-restart (retry "I installed it now, test again.")
                       (error "~a is required, but could not be found. Please ensure it is installed properly." name))))))
+
+(defun cpu-count ()
+  (or (parse-integer (uiop:run-program "nproc" :ignore-error-status T :output :string) :junk-allowed T)
+      2))
+
+(defun shared-library-file (&rest args &key host device directory name version defaults)
+  (declare (ignore host device directory name version defaults))
+  (apply #'make-pathname :type #+windows "dll" #+darwin "dylib" #-(or windows darwin) "so" args))
