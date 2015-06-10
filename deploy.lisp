@@ -6,7 +6,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (in-package #:org.shirakumo.qtools)
 
-(defvar *loaded-libs* ())
+(defvar *loaded-foreign-libs* ())
+(defvar *loaded-smoke-modules* ())
 
 (defun clean-symbol (symbol)
   (dolist (type '(function compiler-macro setf type variable))
@@ -24,38 +25,39 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (prune-symbol symbol)))
   (delete-package package))
 
+(defun prune-foreign-libraries ()
+  (dolist (lib (cffi:list-foreign-libraries))
+    (cffi:close-foreign-library lib)))
+
 (defun prune-image ()
   (do-all-symbols (symbol)
     (clean-symbol symbol))
   (setf cffi:*foreign-library-directories*
         (delete qt-libs:*standalone-libs-dir* cffi:*foreign-library-directories*
                 :test #'uiop:pathname-equal))
-  (dolist (lib *loaded-libs*)
-    (cffi:close-foreign-library lib))
-  (tg:gc :full T))
+  (prune-foreign-libraries))
 
-(defclass qt-program-op (asdf:program-op)
-  ())
+(defun smoke-library-p (lib)
+  (flet ((lib-matches-p (libname)
+           (eql 0 (search (format NIL #+windows "~a" #-windows "lib~a" libname)
+                          (string (cffi:foreign-library-name lib))
+                          :test #'char-equal))))
+    (or (loop for module in (list* :base *smoke-modules*)
+              thereis (lib-matches-p (format NIL "smoke~a" module)))
+        (lib-matches-p "commonqt"))))
 
-(defun qt-entry-point (c)
-  (let* ((entry (asdf/system:component-entry-point c))
-         (class (ignore-errors (uiop:coerce-class entry :super 'qtools:widget :error NIL)))
-         (func (ignore-errors (uiop:ensure-function entry))))
-    (cond ((not entry)
-           (error "~a does not specify an entry point." c))
-          (func func)
-          (class (lambda () (with-main-window (window (make-instance class)))))
-          (T (error "~a's  entry point ~a is not coercable to a widget class or function!" c entry)))))
+(defun loaded-foreign-libraries ()
+  ;; Remove smoke libraries as we will reload them ourselves later.
+  (remove-if #'smoke-library-p (cffi:list-foreign-libraries)))
 
 (defun system-required-libs (system &key (standalone-dir qt-libs:*standalone-libs-dir*))
   (qt-libs:ensure-standalone-libs :standalone-dir standalone-dir)
   (loop for lib in (uiop:directory-files standalone-dir)
-        when (flet ((matches (string) (search string (pathname-name lib) :test #'char-equal)))
-               (or (matches "smokebase")
-                   (matches "commonqt")
-                   (loop for dep in (asdf:system-depends-on system)
-                         thereis (and (typep (asdf:find-system dep) 'smoke-module-system)
-                                      (matches dep)))))
+        when (flet ((matches (string) (search (string string) (pathname-name lib) :test #'char-equal)))
+               (or "smokebase"
+                   "commonqt"
+                   (loop for module in (qtools:loaded-smoke-modules)
+                         thereis (matches module))))
         collect lib))
 
 (defun ensure-system-libs (system target)
@@ -73,16 +75,24 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (qt-libs:load-libcommonqt :force T :ensure-libs NIL)
     (qt::reload)
     (qt:make-qapplication)
-    (dolist (lib *loaded-libs*)
-      (unless (cffi:foreign-library-loaded-p lib)
-        (cffi:load-foreign-library (cffi:foreign-library-name lib))))))
+    ;; Reload our modules
+    (dolist (mod *loaded-smoke-modules*)
+      (format T "~&[QTOOLS] (Re-)loading smoke module ~a" mod)
+      (qt:ensure-smoke mod))
+    ;; Reload Q+
+    (process-all-methods)
+    ;; Reload other libraries
+    (dolist (lib *loaded-foreign-libs*)
+      (let ((name (cffi:foreign-library-name lib)))
+        (unless (or (cffi:foreign-library-loaded-p lib))
+          (format T "~&[QTOOLS] (Re-)loading foreign library ~a" name)
+          (cffi:load-foreign-library name))))))
 
-(defmethod asdf:output-files ((o qt-program-op) (c asdf:system))
-  (values (mapcar (lambda (file)
-                    (ensure-directories-exist
-                     (merge-pathnames (uiop:ensure-directory-pathname "bin") file)))
-                  (call-next-method))
-          T))
+(defun quit ()
+  (prune-foreign-libraries)
+  (uiop:finish-outputs)
+  #+sbcl (sb-ext:exit :timeout 0)
+  #-sbcl (uiop:quit :finish-output NIL))
 
 (defun call-entry-prepared (entry-point)
   ;; We don't handle anything here as that should be up to
@@ -93,14 +103,36 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (progn
         (warmly-boot)
         (format T "~&[QTOOLS] Launching application.~%")
-        (funcall entry-point))
+        (funcall entry-point)
+        (format T "~&[QTOOLS] Epilogue.~%")
+        (quit))
     (exit ()
       :report "Exit."
-      (uiop:quit))))
+      (quit))))
+
+(defun discover-entry-point (c)
+  (let* ((entry (asdf/system:component-entry-point c))
+         (class (ignore-errors (uiop:coerce-class entry :super 'qtools:widget :error NIL)))
+         (func (ignore-errors (uiop:ensure-function entry))))
+    (cond ((not entry)
+           (error "~a does not specify an entry point." c))
+          (func func)
+          (class (lambda () (with-main-window (window (make-instance class)))))
+          (T (error "~a's  entry point ~a is not coercable to a widget class or function!" c entry)))))
+
+(defclass qt-program-op (asdf:program-op)
+  ())
+
+(defmethod asdf:output-files ((o qt-program-op) (c asdf:system))
+  (values (mapcar (lambda (file)
+                    (ensure-directories-exist
+                     (merge-pathnames (uiop:ensure-directory-pathname "bin") file)))
+                  (call-next-method))
+          T))
 
 ;; Do this before to trick ASDF's subsequent usage of UIOP:ENSURE-FUNCTION on the entry-point slot.
 (defmethod asdf:perform :before ((o qt-program-op) (c asdf:system))
-  (let ((entry (qt-entry-point c)))
+  (let ((entry (discover-entry-point c)))
     (setf (asdf/system:component-entry-point c)
           (lambda (&rest args)
             (declare (ignore args))
@@ -109,7 +141,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
   (ensure-system-libs c (uiop:pathname-directory-pathname
                          (first (asdf:output-files o c))))
-  (setf *loaded-libs* (cffi:list-foreign-libraries))
+  (setf *loaded-foreign-libs* (loaded-foreign-libraries))
+  (setf *loaded-smoke-modules* (loaded-smoke-modules))
   (prune-image)
   (apply #'uiop:dump-image (first (asdf:output-files o c)) :executable T
          (append #+:sb-core-compression '(:compression T))))
