@@ -84,20 +84,27 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
                   (call-next-method))
           T))
 
+(defun call-entry-prepared (entry-point)
+  ;; We don't handle anything here as that should be up to
+  ;; the user. Maybe someone will want a debugger in the end
+  ;; application. I can't decide that for them, so we leave
+  ;; the possibility open.
+  (restart-case
+      (progn
+        (warmly-boot)
+        (format T "~&[QTOOLS] Launching application.~%")
+        (funcall entry-point))
+    (exit ()
+      :report "Exit."
+      (uiop:quit))))
+
 ;; Do this before to trick ASDF's subsequent usage of UIOP:ENSURE-FUNCTION on the entry-point slot.
 (defmethod asdf:perform :before ((o qt-program-op) (c asdf:system))
   (let ((entry (qt-entry-point c)))
     (setf (asdf/system:component-entry-point c)
           (lambda (&rest args)
             (declare (ignore args))
-            (restart-case
-                (progn
-                  (warmly-boot)
-                  (format T "~&[QTOOLS] Launching application.~%")
-                  (funcall entry))
-              (exit ()
-                :report "Exit."
-                (uiop:quit)))))))
+            (call-entry-prepared entry)))))
 
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
   (ensure-system-libs c (uiop:pathname-directory-pathname
