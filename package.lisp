@@ -37,8 +37,7 @@
    #:define-finalize-method
    #:describe-finalize-method
    #:with-finalizing
-   #:with-finalizing*
-   #:with-main-window)
+   #:with-finalizing*)
   (:shadow #:with-main-window)
   ;; gc-finalized.lisp
   (:export
@@ -106,7 +105,11 @@
    #:split
    #:capitalize-on
    #:compilation-note
-   #:emit-compilation-note)
+   #:emit-compilation-note
+   #:default-application-name
+   #:ensure-qapplication
+   #:ensure-qobject
+   #:with-main-window)
   ;; widget.lisp
   (:export
    #:widget-class

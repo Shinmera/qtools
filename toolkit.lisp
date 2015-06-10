@@ -239,3 +239,53 @@ Example:
        (defun ,dispatcher (qclass ,@args)
          (let ((func (,fun qclass)))
            (when func (funcall func ,@args)))))))
+
+(defun default-application-name ()
+  "Attempts to find and return a default name to use for the application."
+  (package-name *package*))
+
+(defun ensure-qapplication (&key (name (default-application-name)) args)
+  "Ensures that the QT:*QAPPLICATION* is available, potentially using NAME and ARGS to initialize it.
+
+See QT:*QAPPLICATION*
+See QT:ENSURE-SMOKE"
+  (cond (qt:*qapplication*
+         qt:*qapplication*)
+        (T
+         (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning))
+           (ensure-smoke :qtcore)
+           (ensure-smoke :qtgui)
+           (let ((instance (#_QCoreApplication::instance)))
+             (setf qt:*qapplication*
+                   (if (null-qobject-p instance)
+                       (qt::%make-qapplication (list* (or name "Qtools App") args))
+                       instance)))))))
+
+(defun ensure-qobject (thing)
+  "Makes sure that THING is a usable qobject.
+
+If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
+  (etypecase thing
+    (qt:qobject thing)
+    (widget thing)
+    (symbol (make-instance thing))))
+
+(defmacro with-main-window ((window instantiator &key name qapplication-args) &body body)
+  "This is the main macro to start your application with.
+
+It does the following:
+1. Call ENSURE-QAPPLICATION with the provided NAME and QAPPLICATION-ARGS
+2. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
+   (This means you can also just use the main window class' name)
+3. Evaluate BODY
+4. Call Q+:SHOW on WINDOW
+5. Call Q+:EXEC on *QAPPLICATION*
+   This will enter the Qt application's main loop that won't exit until your
+   application terminates.
+6. Upon termination, call FINALIZE on WINDOW."
+  `(progn
+     (ensure-qapplication :name ,name :args ,qapplication-args)
+     (with-finalizing ((,window (ensure-qobject ,instantiator)))
+       ,@body
+       (#_show ,window)
+       (#_exec *qapplication*))))
