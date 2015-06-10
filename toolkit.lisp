@@ -244,7 +244,7 @@ Example:
   "Attempts to find and return a default name to use for the application."
   (package-name *package*))
 
-(defun ensure-qapplication (&key (name (default-application-name)) args)
+(defun ensure-qapplication (&key name args)
   "Ensures that the QT:*QAPPLICATION* is available, potentially using NAME and ARGS to initialize it.
 
 See QT:*QAPPLICATION*
@@ -255,10 +255,11 @@ See QT:ENSURE-SMOKE"
          (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning))
            (ensure-smoke :qtcore)
            (ensure-smoke :qtgui)
-           (let ((instance (#_QCoreApplication::instance)))
+           (let ((instance (#_QCoreApplication::instance))
+                 (name (or name (default-application-name))))
              (setf qt:*qapplication*
                    (if (null-qobject-p instance)
-                       (qt::%make-qapplication (list* (or name "Qtools App") args))
+                       (qt::%make-qapplication (list* name args))
                        instance)))))))
 
 (defun ensure-qobject (thing)
