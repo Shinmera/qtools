@@ -54,8 +54,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (qt-libs:ensure-standalone-libs :standalone-dir standalone-dir)
   (loop for lib in (uiop:directory-files standalone-dir)
         when (flet ((matches (string) (search (string string) (pathname-name lib) :test #'char-equal)))
-               (or "smokebase"
-                   "commonqt"
+               (or (matches "smokebase")
+                   (matches "commonqt")
                    (loop for module in (qtools:loaded-smoke-modules)
                          thereis (matches module))))
         collect lib))
