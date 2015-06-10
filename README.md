@@ -1,4 +1,4 @@
-## About Qtools
+## About Qtools <a href="https://travis-ci.org/Shinmera/qtools"><img src="https://travis-ci.org/Shinmera/qtools.svg?branch=master" alt="Build Status" align="right" /></a>
 Qtools is a collection of utilities to help development with CommonQt. There are a lot of things in there, from name mapping over garbage handling to widget class definition. Some tools are straightforward, others are quite complex. I'll try to explain everything as best I can.
 
 ## Fundamentals
