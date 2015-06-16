@@ -11,7 +11,7 @@
   :license "Artistic"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
-  :description "An example combinging Qt and OpenGL."
+  :description "An example combining Qt and OpenGL."
   :homepage "https://github.com/Shinmera/qtools"
   :serial T
   :components ((:file "opengl"))

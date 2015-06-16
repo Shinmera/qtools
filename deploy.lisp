@@ -95,8 +95,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   #-sbcl (uiop:quit :finish-output NIL))
 
 (defun call-entry-prepared (entry-point)
-  ;; We don't handle anything here as that should be up to
-  ;; the user. Maybe someone will want a debugger in the end
+  ;; We don't handle anything here unless we have no other
+  ;; choice, as that should otherwise be up to the user.
+  ;; Maybe someone will want a debugger in the end
   ;; application. I can't decide that for them, so we leave
   ;; the possibility open.
   (restart-case
