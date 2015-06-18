@@ -14,6 +14,10 @@ install:
   - sh -e /etc/init.d/xvfb start
   # CL
   - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
+  # Stubs
+  - git clone https://github.com/Shinmera/dissect ~/quicklisp/dissect
+  - git clone https://github.com/Shinmera/simple-tasks ~/quicklisp/simple-tasks
+  - git clone https://github.com/Shinmera/trivial-main-thread ~/quicklisp/trivial-main-thread
 
 script:
   - cl -e '(ql:quickload :qtools)'
