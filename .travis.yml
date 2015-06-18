@@ -15,9 +15,9 @@ install:
   # CL
   - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
   # Stubs
-  - git clone https://github.com/Shinmera/dissect ~/quicklisp/dissect
-  - git clone https://github.com/Shinmera/simple-tasks ~/quicklisp/simple-tasks
-  - git clone https://github.com/Shinmera/trivial-main-thread ~/quicklisp/trivial-main-thread
+  - git clone https://github.com/Shinmera/dissect ~/quicklisp/local-projects/dissect
+  - git clone https://github.com/Shinmera/simple-tasks ~/quicklisp/local-projects/simple-tasks
+  - git clone https://github.com/Shinmera/trivial-main-thread ~/quicklisp/local-projects/trivial-main-thread
 
 script:
   - cl -e '(ql:quickload :qtools)'
