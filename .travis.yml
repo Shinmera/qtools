@@ -17,7 +17,7 @@ install:
 
 script:
   - cl -e '(ql:quickload :qtools)'
-       -e '(qt:make-qapplication)'
+       -e '(qtools:ensure-qapplication)'
        -e '(format T "~&~%!!! WOAH IT WORKS !!!~&~%")'
 
 notifications:
