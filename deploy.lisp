@@ -35,6 +35,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (setf cffi:*foreign-library-directories*
         (delete qt-libs:*standalone-libs-dir* cffi:*foreign-library-directories*
                 :test #'uiop:pathname-equal))
+  (setf qt-libs:*standalone-libs-dir* ".")
   (prune-foreign-libraries))
 
 (defun smoke-library-p (lib)
@@ -69,10 +70,10 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defun warmly-boot ()
   (format T "~&[QTOOLS] Performing warm boot.~%")
   (when (uiop:argv0)
-    (pushnew (uiop:pathname-directory-pathname (uiop:argv0))
-             cffi:*foreign-library-directories*))
+    (setf qt-libs:*standalone-libs-dir*
+          (uiop:pathname-directory-pathname (uiop:argv0))))
   (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
-    (qt-libs:load-libcommonqt :force T :ensure-libs NIL)
+    (qt-libs:load-libcommonqt :force T)
     (qt::reload)
     (qt:make-qapplication)
     ;; Reload our modules
@@ -90,8 +91,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defun quit ()
   (prune-foreign-libraries)
+  (qt:optimized-delete qt:*qapplication*)
   (uiop:finish-outputs)
-  #+sbcl (sb-ext:exit :timeout 0)
+  #+sbcl (sb-ext:exit :timeout 1)
   #-sbcl (uiop:quit :finish-output NIL))
 
 (defun call-entry-prepared (entry-point)
