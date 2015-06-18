@@ -32,9 +32,10 @@
                (:file "precompile")
                (:file "deploy"))
   :depends-on (:qt-libs
-               :trivial-garbage
+               :cl-ppcre
                :closer-mop
+               :form-fiddle
                :named-readtables
                :trivial-indent
-               :form-fiddle
-               :cl-ppcre))
+               :trivial-garbage
+               :trivial-main-thread))

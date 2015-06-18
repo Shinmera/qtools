@@ -255,12 +255,13 @@ See QT:ENSURE-SMOKE"
          (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning))
            (ensure-smoke :qtcore)
            (ensure-smoke :qtgui)
-           (let ((instance (#_QCoreApplication::instance))
-                 (name (or name (default-application-name))))
-             (setf qt:*qapplication*
-                   (if (null-qobject-p instance)
-                       (qt::%make-qapplication (list* name args))
-                       instance)))))))
+           (tmt:with-body-in-main-thread (:blocking T)
+             (let ((instance (#_QCoreApplication::instance))
+                   (name (or name (default-application-name))))
+               (setf qt:*qapplication*
+                     (if (null-qobject-p instance)
+                         (qt::%make-qapplication (list* name args))
+                         instance))))))))
 
 (defun ensure-qobject (thing)
   "Makes sure that THING is a usable qobject.
@@ -271,22 +272,24 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
     (widget thing)
     (symbol (make-instance thing))))
 
-(defmacro with-main-window ((window instantiator &key name qapplication-args) &body body)
+(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T)) &body body)
   "This is the main macro to start your application with.
 
 It does the following:
 1. Call ENSURE-QAPPLICATION with the provided NAME and QAPPLICATION-ARGS
-2. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
+2. Run the following in the main thread through TMT:WITH-BODY-IN-MAIN-THREAD
+3. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
    (This means you can also just use the main window class' name)
-3. Evaluate BODY
-4. Call Q+:SHOW on WINDOW
-5. Call Q+:EXEC on *QAPPLICATION*
+4. Evaluate BODY
+5. Call Q+:SHOW on WINDOW
+6. Call Q+:EXEC on *QAPPLICATION*
    This will enter the Qt application's main loop that won't exit until your
    application terminates.
-6. Upon termination, call FINALIZE on WINDOW."
+7. Upon termination, call FINALIZE on WINDOW."
   `(progn
      (ensure-qapplication :name ,name :args ,qapplication-args)
-     (with-finalizing ((,window (ensure-qobject ,instantiator)))
-       ,@body
-       (#_show ,window)
-       (#_exec *qapplication*))))
+     (tmt:with-body-in-main-thread (:blocking ,blocking)
+       (with-finalizing ((,window (ensure-qobject ,instantiator)))
+         ,@body
+         (#_show ,window)
+         (#_exec *qapplication*)))))
