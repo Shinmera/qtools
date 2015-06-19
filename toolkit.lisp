@@ -289,7 +289,9 @@ It does the following:
   `(progn
      (ensure-qapplication :name ,name :args ,qapplication-args)
      (tmt:with-body-in-main-thread (:blocking ,blocking)
-       (with-finalizing ((,window (ensure-qobject ,instantiator)))
-         ,@body
-         (#_show ,window)
-         (#_exec *qapplication*)))))
+       (#+sbcl sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
+        #-sbcl progn
+         (with-finalizing ((,window (ensure-qobject ,instantiator)))
+           ,@body
+           (#_show ,window)
+           (#_exec *qapplication*))))))
