@@ -286,12 +286,15 @@ It does the following:
    This will enter the Qt application's main loop that won't exit until your
    application terminates.
 7. Upon termination, call FINALIZE on WINDOW."
-  `(progn
-     (ensure-qapplication :name ,name :args ,qapplication-args)
-     (tmt:with-body-in-main-thread (:blocking ,blocking)
-       (#+sbcl sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
-        #-sbcl progn
-         (with-finalizing ((,window (ensure-qobject ,instantiator)))
-           ,@body
-           (#_show ,window)
-           (#_exec *qapplication*))))))
+  (let ((bodyfunc (gensym "BODY")))
+    `(progn
+       (ensure-qapplication :name ,name :args ,qapplication-args)
+       (tmt:with-body-in-main-thread (:blocking ,blocking)
+         (flet ((,bodyfunc ()
+                  (with-finalizing ((,window (ensure-qobject ,instantiator)))
+                    ,@body
+                    (#_show ,window)
+                    (#_exec *qapplication*))))
+           #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
+                    (,bodyfunc))
+           #-sbcl (,bodyfunc))))))
