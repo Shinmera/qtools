@@ -54,9 +54,15 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defun system-required-libs (system &key (standalone-dir qt-libs:*standalone-libs-dir*))
   (qt-libs:ensure-standalone-libs :standalone-dir standalone-dir)
   (loop for lib in (uiop:directory-files standalone-dir)
-        when (flet ((matches (string) (search (string string) (pathname-name lib) :test #'char-equal)))
+        when (flet ((matches (string) (search (string string) (file-namestring lib) :test #'char-equal)))
                (or (matches "smokebase")
                    (matches "commonqt")
+                   ;; Extra requirements for OS X
+                   #+darwin (and (matches "z") (find :qtcore (qtools:loaded-smoke-modules)))
+                   #+darwin (and (matches "png") (find :qtgui (qtools:loaded-smoke-modules)))
+                   #+darwin (and (matches "crypto") (find :qtnetwork (qtools:loaded-smoke-modules)))
+                   #+darwin (and (matches "ssl") (find :qtnetwork (qtools:loaded-smoke-modules)))
+                   #+darwin (and (matches "dbus") (find :qtdbus (qtools:loaded-smoke-modules)))
                    (loop for module in (qtools:loaded-smoke-modules)
                          thereis (matches module))))
         collect lib))
@@ -142,11 +148,14 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
             (call-entry-prepared entry)))))
 
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
+  (format T "~&Copying necessary libraries...")
   (ensure-system-libs c (uiop:pathname-directory-pathname
                          (first (asdf:output-files o c))))
   (setf *loaded-foreign-libs* (loaded-foreign-libraries))
   (setf *loaded-smoke-modules* (loaded-smoke-modules))
+  (format T "~&Pruning the image...")
   (prune-image)
+  (format T "~&Dumping image...")
   (apply #'uiop:dump-image (first (asdf:output-files o c)) :executable T
          (append #+:sb-core-compression '(:compression T))))
 
