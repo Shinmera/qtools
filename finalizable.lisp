@@ -205,8 +205,7 @@ See FINALIZE, FINALIZE-USING-CLASS"
        (unwind-protect
             (,binder ,(loop for (var val) in bindings
                          for temp in temporaries
-                         append `((,temp ,val)
-                                  (,var ,temp)))
+                         append `((,var (setf ,temp ,val))))
               ,@body)
          ,@(loop for temp in (reverse temporaries)
                  collect `(finalize ,temp))))))
