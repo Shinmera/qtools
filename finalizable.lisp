@@ -189,30 +189,38 @@ See FINALIZE, FINALIZE-USING-CLASS"
                 qt-class-name class (documentation method T))
         (format T "No finalize method for the given class found.~%"))))
 
+
+(defun normalize-bindings (bindings)
+  (loop for bind in bindings
+        collect (etypecase bind
+                  (symbol (list bind NIL))
+                  (list (if (cddr bind)
+                            (error "Invalid binding spec: ~s" bind)
+                            bind)))))
+
+(defun %build-with-finalizing-construct (binder bindings body)
+  (let* ((bindings (normalize-bindings bindings))
+         (temporaries (mapcar (lambda (a) (gensym (string (car a)))) bindings)))
+    `(let ,temporaries
+       (unwind-protect
+            (,binder ,(loop for (var val) in bindings
+                         for temp in temporaries
+                         append `((,temp ,val)
+                                  (,var ,temp)))
+              ,@body)
+         ,@(loop for temp in (reverse temporaries)
+                 collect `(finalize ,temp))))))
+
 (defmacro with-finalizing (bindings &body body)
   "Executes the body as by LET and calls FINALIZE on all the objects introduced by
 the bindings on completion of the body. If an error occurs during the binding phase,
-all objects bound up until that point are still finalized."
-  (let ((values (gensym "VALUES")))
-    `(let ((,values ()))
-       (unwind-protect
-            (let ,(loop for (var def) in bindings
-                        collect `(,var (let ((,var ,def))
-                                         (push ,var ,values)
-                                         ,var)))
-              ,@body)
-         (mapc #'finalize ,values)))))
+all objects bound up until that point are still finalized. Finalizing happens in
+reverse order of the bindings specified."
+  (%build-with-finalizing-construct 'let bindings body))
 
 (defmacro with-finalizing* (bindings &body body)
   "Executes the body as by LET* and calls FINALIZE on all the objects introduced by
 the bindings on completion of the body. If an error occurs during the binding phase,
-all objects bound up until that point are still finalized."
-  (let ((values (gensym "VALUES")))
-    `(let ((,values ()))
-       (unwind-protect
-            (let* ,(loop for (var def) in bindings
-                         collect `(,var (let ((,var ,def))
-                                          (push ,var ,values)
-                                          ,var)))
-              ,@body)
-         (mapc #'finalize ,values)))))
+all objects bound up until that point are still finalized. Finalizing happens in
+reverse order of the bindings specified."
+  (%build-with-finalizing-construct 'let* bindings body))
