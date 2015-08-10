@@ -211,7 +211,8 @@ all objects bound up until that point are still finalized."
     `(let ((,values ()))
        (unwind-protect
             (let* ,(loop for (var def) in bindings
-                         append `((,var ,def)
-                                  (,values (push ,var ,values))))
+                         collect `(,var (let ((,var ,def))
+                                          (push ,var ,values)
+                                          ,var)))
               ,@body)
          (mapc #'finalize ,values)))))
