@@ -272,29 +272,31 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
     (widget thing)
     (symbol (make-instance thing))))
 
-(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T)) &body body)
+(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T) (on-error '#'invoke-debugger)) &body body)
   "This is the main macro to start your application with.
 
 It does the following:
 1. Call ENSURE-QAPPLICATION with the provided NAME and QAPPLICATION-ARGS
 2. Run the following in the main thread through TMT:WITH-BODY-IN-MAIN-THREAD
-3. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
+3. Establish a handler for ERROR that calls the ON-ERROR function if hit.
+4. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
    (This means you can also just use the main window class' name)
-4. Evaluate BODY
-5. Call Q+:SHOW on WINDOW
-6. Call Q+:EXEC on *QAPPLICATION*
+5. Evaluate BODY
+6. Call Q+:SHOW on WINDOW
+7. Call Q+:EXEC on *QAPPLICATION*
    This will enter the Qt application's main loop that won't exit until your
    application terminates.
-7. Upon termination, call FINALIZE on WINDOW."
+8. Upon termination, call FINALIZE on WINDOW."
   (let ((bodyfunc (gensym "BODY")))
     `(progn
        (ensure-qapplication :name ,name :args ,qapplication-args)
        (tmt:with-body-in-main-thread (:blocking ,blocking)
          (flet ((,bodyfunc ()
-                  (with-finalizing ((,window (ensure-qobject ,instantiator)))
-                    ,@body
-                    (#_show ,window)
-                    (#_exec *qapplication*))))
+                  (handler-bind ((error ,on-error))
+                    (with-finalizing ((,window (ensure-qobject ,instantiator)))
+                      ,@body
+                      (#_show ,window)
+                      (#_exec *qapplication*)))))
            #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
                     (,bodyfunc))
            #-sbcl (,bodyfunc))))))
