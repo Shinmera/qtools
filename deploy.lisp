@@ -36,6 +36,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         (delete qt-libs:*standalone-libs-dir* cffi:*foreign-library-directories*
                 :test #'uiop:pathname-equal))
   (setf qt-libs:*standalone-libs-dir* ".")
+  #+:verbose (v:remove-global-controller)
   (prune-foreign-libraries))
 
 (defun smoke-library-p (lib)
