@@ -157,8 +157,10 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (format T "~&Pruning the image...")
   (prune-image)
   (format T "~&Dumping image...")
-  (apply #'uiop:dump-image (first (asdf:output-files o c)) :executable T
-         (append #+:sb-core-compression '(:compression T))))
+  (uiop:dump-image (first (asdf:output-files o c))
+                   :executable T
+                   #+sb-core-compression :compression #+sb-core-compression T
+                   #+(and sbcl os-windows) :application-type #+(and sbcl os-windows) :gui))
 
 (defun build-qt-system (system &rest keys &key force force-not verbose version &allow-other-keys)
   "Shorthand for `(operate 'asdf:qt-program-op system)`. See OPERATE for details."
