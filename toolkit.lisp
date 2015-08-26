@@ -240,6 +240,8 @@ Example:
          (let ((func (,fun qclass)))
            (when func (funcall func ,@args)))))))
 
+(defvar *application-name* NIL)
+
 (defun default-application-name ()
   "Attempts to find and return a default name to use for the application."
   (package-name *package*))
@@ -249,19 +251,21 @@ Example:
 
 See QT:*QAPPLICATION*
 See QT:ENSURE-SMOKE"
-  (cond (qt:*qapplication*
-         qt:*qapplication*)
-        (T
-         (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning))
-           (ensure-smoke :qtcore)
-           (ensure-smoke :qtgui)
-           (tmt:with-body-in-main-thread (:blocking T)
-             (let ((instance (#_QCoreApplication::instance))
-                   (name (or name (default-application-name))))
-               (setf qt:*qapplication*
-                     (if (null-qobject-p instance)
-                         (qt::%make-qapplication (list* name args))
-                         instance))))))))
+  (unless qt:*qapplication*
+    (setf *application-name* (or name *application-name* (default-application-name)))
+    (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning)
+          (name *application-name*))
+      (ensure-smoke :qtcore)
+      (ensure-smoke :qtgui)
+      (tmt:with-body-in-main-thread (:blocking T)
+        (let ((instance (#_QCoreApplication::instance)))
+          (setf qt:*qapplication*
+                (if (null-qobject-p instance)
+                    (qt::%make-qapplication (list* name args))
+                    instance))
+          (qt-libs:set-qt-plugin-paths
+           qt-libs:*standalone-libs-dir*)))))
+  qt:*qapplication*)
 
 (defun ensure-qobject (thing)
   "Makes sure that THING is a usable qobject.
