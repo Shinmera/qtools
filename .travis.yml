@@ -18,6 +18,7 @@ install:
   - git clone https://github.com/Shinmera/dissect ~/quicklisp/local-projects/dissect
   - git clone https://github.com/Shinmera/simple-tasks ~/quicklisp/local-projects/simple-tasks
   - git clone https://github.com/Shinmera/trivial-main-thread ~/quicklisp/local-projects/trivial-main-thread
+  - git clone https://github.com/Shinmera/qt-libs ~/quicklisp/local-projects/qt-libs
 
 script:
   - cl -e '(ql:quickload :qtools)'
