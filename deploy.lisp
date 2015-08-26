@@ -36,6 +36,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         (delete qt-libs:*standalone-libs-dir* cffi:*foreign-library-directories*
                 :test #'uiop:pathname-equal))
   (setf qt-libs:*standalone-libs-dir* ".")
+  (setf qt:*qapplication* NIL)
+  ;; Force CommonQt to forget all prior information it might have had.
+  (qt::reload)
   #+:verbose (v:remove-global-controller)
   (prune-foreign-libraries))
 
@@ -80,9 +83,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (setf qt-libs:*standalone-libs-dir*
           (uiop:pathname-directory-pathname (uiop:argv0))))
   (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
+    ;; Reload libcommonqt core safely
     (qt-libs:load-libcommonqt :force T)
-    (qt::reload)
-    (qt:make-qapplication)
     ;; Reload our modules
     (dolist (mod *loaded-smoke-modules*)
       (format T "~&[QTOOLS] (Re-)loading smoke module ~a" mod)
