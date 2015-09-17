@@ -223,13 +223,12 @@ as per the hyperspec. An alternative solution to this
 problem should be found as it will break on various
 conforming implementations."
   (let ((buffer ()))
-    (prog1
-        (loop for char across (target-package-symbol-string)
-              for read = (read-char stream)
-              do (push read buffer)
-              always (string= char (to-readtable-case (string read))))
-      (dolist (char buffer)
-        (unread-char char stream)))))
+    (values
+     (loop for char across (target-package-symbol-string)
+        for read = (read-char stream)
+        do (push read buffer)
+        always (string= char (to-readtable-case (string read))))
+     (make-string-input-stream (coerce (reverse buffer) 'string)))))
 
 (defun q+-symbol-name (string)
   "Returns the symbol name of a *TARGET-PACKAGE* symbol in printed, string form.
@@ -253,12 +252,14 @@ See QTOOLS:Q+-SYMBOL-P
 See QTOOLS:Q+-SYMBOL-NAME
 See QTOOLS:Q+
 See QTOOLS:*STANDARD-PAREN-READER*"
-    (if (q+-symbol-p stream)
-        (let* ((name (q+-symbol-name (read-name stream)))
-               (contents (read-list-until #\) stream)))
-          (read-char stream) ;consume closing ).
-          `(q+ ,name ,@contents))
-        (funcall *standard-paren-reader* stream char)))
+    (multiple-value-bind (q+-symbol-p consumed-stream) (q+-symbol-p stream)
+      (let ((stream (make-concatenated-stream consumed-stream stream)))
+        (if q+-symbol-p
+            (let* ((name (q+-symbol-name (read-name stream)))
+                   (contents (read-list-until #\) stream)))
+              (read-char stream) ;consume closing ).
+              `(q+ ,name ,@contents))
+            (funcall *standard-paren-reader* stream char)))))
 
   (set-macro-character #\( #'read-paren NIL (named-readtables:find-readtable :qtools)))
 
@@ -268,9 +269,11 @@ See QTOOLS:*STANDARD-PAREN-READER*"
   (defun read-function (stream subchar arg)
     "Special #' reader macro that dispatches if a reference to a Q+ function is noticed.
 If such a symbol is noticed, it instead emits a call to the Q+FUN"
-    (if (q+-symbol-p stream)
-        (let ((name (q+-symbol-name (read-name stream))))
-          `(q+fun ,name))
-        `(cl+qt:function ,(second (funcall *standard-function-reader* stream subchar arg)))))
+    (multiple-value-bind (q+-symbol-p consumed-stream) (q+-symbol-p stream)
+      (let ((stream (make-concatenated-stream consumed-stream stream)))
+        (if q+-symbol-p
+            (let ((name (q+-symbol-name (read-name stream))))
+              `(q+fun ,name))
+            `(cl+qt:function ,(second (funcall *standard-function-reader* stream subchar arg)))))))
 
   (set-dispatch-macro-character #\# #\' #'read-function (named-readtables:find-readtable :qtools)))
