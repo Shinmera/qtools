@@ -20,6 +20,7 @@
                (:file "world")
                (:file "editor")
                (:file "keyboard")
+               (:file "player")
                (:file "game"))
   :depends-on (:qtools :qtcore :qtgui :qtopengl
                :closer-mop))

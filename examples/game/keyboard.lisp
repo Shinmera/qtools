@@ -30,5 +30,5 @@
              for tests = (if (listp test) test `(or ,test))
              collect `(when (,(car tests)
                              ,@(loop for key in (cdr tests)
-                                     collect `(key-p (q+ ,(format NIL "QT.KEY-~a" key)))))
+                                     collect `(key-p (q+ ,(format NIL "QT.KEY_~a" key)))))
                         ,@body))))
