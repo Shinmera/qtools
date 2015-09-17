@@ -19,6 +19,7 @@
                (:file "chunk")
                (:file "world")
                (:file "editor")
+               (:file "keyboard")
                (:file "game"))
   :depends-on (:qtools :qtcore :qtgui :qtopengl
                :closer-mop))
