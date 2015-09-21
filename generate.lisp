@@ -537,9 +537,9 @@ See QTOOLS:*QMETHODS*"
   `(progn
      (defvar ,name)
      (define-extern-inline-fun ,name ()
-       (cond ((boundp ',name) ,name)
+       (cond ((boundp ',name) (symbol-value ',name))
              ((find-qclass ,class)
-              (setf ,name (enum-value (optimized-call T ,class ,method))))
+              (setf (symbol-value ',name) (enum-value (optimized-call T ,class ,method))))
              (T (error ,(format NIL "Cannot fetch enum value ~a::~a. Does the class exist?"
                                 class method)))))
      ,@(when documentation
