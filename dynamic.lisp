@@ -121,6 +121,19 @@ See QTOOLS:*TARGET-PACKAGE*"
              else
              collect `(cl:setf ,place ,value))))
 
+(defmacro fsetf (&rest pairs)
+  "Finalizing SETF. The same as CL+QT:SETF, but performs a FINALIZE on the place first.
+The finalize is performed before the place is set, but after the new value is evaluated."
+  (flet ((transform (place value)
+           (let* ((values (if (and (listp value) (eq (car value) 'values)) (cdr value) (list value)))
+                  (gensyms (loop for v in values collect (gensym))))
+             `(let ,(loop for v in values for g in gensyms collect `(,g ,v))
+                (finalize ,place)
+                (cl+qt:setf ,place ,(if (cdr gensyms) `(values ,@gensyms) (first gensyms)))))))
+    `(progn
+       ,@(loop for (place value) on pairs by #'cddr
+               collect (transform place value)))))
+
 (defmacro cl+qt:defgeneric (name args &body options)
   "Defines a new generic function.
 

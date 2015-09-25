@@ -24,7 +24,8 @@
   (:export
    #:ensure-q+-method
    #:q+
-   #:q+fun)
+   #:q+fun
+   #:fsetf)
   ;; finalizable.lisp
   (:export
    #:finalizable-class
