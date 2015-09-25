@@ -100,6 +100,8 @@ While this kind of system takes care of a lot of cases, it's still not perfect a
 
 Another occasional task is to copy an object instance. Qtools offers a `copy` and `copy-using-class` methods which handle proper copying for a couple of Qt objects, but sadly by far not all. If you want to use the copying system for a class that isn't handled by Qtools by default, you can define your own using `define-copy-method`.
 
+Qtools will handle the printing of QObject instances as well and provides you with a mechanism of defining print methods for a qclass, just like you normally would for CL classes by `print-object`. Simply use `define-print-method`.
+
 ### Widgets
 Qt deals with widgets. As such, making everything associated with them simple and easy to use should be a primary objective. Qtools' widget system attempts to do exactly that. The central part to this is the `define-widget` macro. This expands to a `defclass` with the following effects: It sets `widget-class` as the metaclass, sets the first item of the superclass list as the qt-superclass, and injects `widget` as a superclass, if it isn't one already. This means that essentially you can use anything you could in a standard `defclass` without having to worry about the necessary default options.
 

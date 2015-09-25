@@ -68,6 +68,11 @@
    #:q+-compile-and-load
    #:smoke-module-system
    #:write-smoke-module-system-file)
+  ;; printing.lisp
+  (:export
+   #:print-object-using-class
+   #:define-print-method
+   #:describe-print-method)
   ;; keychord-editor.lisp
   (:export
    #:keychord-editor)

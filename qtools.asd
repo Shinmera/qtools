@@ -21,6 +21,7 @@
                (:file "finalizable")
                (:file "gc-finalized")
                (:file "copying")
+               (:file "printing")
                (:file "signal")
                (:file "widget")
                (:file "widget-defmethod")
