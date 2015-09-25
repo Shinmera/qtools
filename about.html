@@ -20,7 +20,7 @@
   <body>
     <header>
       <h1><img src="qtools-logo.png" alt="qtools"/></h1>
-      <span>0.6.0</span>
+      <span>0.6.5</span>
       <p>A collection of tools to aid in development with CommonQt.</p>
     </header>
     <div id="content">
@@ -144,6 +144,8 @@
 <p>While this kind of system takes care of a lot of cases, it's still not perfect and it may happen that you accidentally create a memory leak somewhere. I wish there was an easier way, but alas, life is difficult. You can try to solve this kind of situation by debugging Qtools and keeping track of which objects get finalized and which don't.</p>
 
 <p>Another occasional task is to copy an object instance. Qtools offers a <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:COPY-USING-CLASS">copy-using-class</a></code> methods which handle proper copying for a couple of Qt objects, but sadly by far not all. If you want to use the copying system for a class that isn't handled by Qtools by default, you can define your own using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code>.</p>
+
+<p>Qtools will handle the printing of QObject instances as well and provides you with a mechanism of defining print methods for a qclass, just like you normally would for CL classes by <code><a href="http://l1sp.org/cl/print-object">print-object</a></code>. Simply use <code><a href="#QTOOLS:DEFINE-PRINT-METHOD">define-print-method</a></code>.</p>
 
 <h3>Widgets</h3>
 
@@ -940,6 +942,19 @@ See QTOOLS:COMPILE-METHOD</pre>
                       </code>
                     </header>
                     <pre class="docstring">Prints information about the finalize method for the given class if possible.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:DESCRIBE-PRINT-METHOD"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:DESCRIBE-PRINT-METHOD" class="name">DESCRIBE-PRINT-METHOD</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(CLASS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Prints information about the print method for the specified class if possible.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DETERMINED-TYPE-METHOD-NAME"/>
@@ -1808,6 +1823,22 @@ See FINALIZE</pre>
                     <pre class="docstring"/>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:PRINT-OBJECT-USING-CLASS"/>
+                  <article>
+                    <header class="generic">
+                      <span class="type">generic</span>
+                      <code>
+                        <h4><a href="#QTOOLS:PRINT-OBJECT-USING-CLASS" class="name">PRINT-OBJECT-USING-CLASS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(QCLASS INSTANCE STREAM)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Prints a representation of the given instance by using methods
+appropriate for the given qclass.
+
+See PRINT-OBJECT</pre>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:UNBOX"/>
                   <article>
                     <header class="generic">
@@ -2032,6 +2063,30 @@ See QTOOLS:WITH-SLOTS-BOUND
 See CommonQt/override</pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:DEFINE-PRINT-METHOD"/>
+                  <article>
+                    <header class="macro">
+                      <span class="type">macro</span>
+                      <code>
+                        <h4><a href="#QTOOLS:DEFINE-PRINT-METHOD" class="name">DEFINE-PRINT-METHOD</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">((INSTANCE CLASS STREAM) &amp;BODY BODY)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Defines a method to print an object of CLASS.
+CLASS can be either a common-lisp class type or a Qt class name.
+
+Qt class names will take precedence, meaning that if CLASS resolves
+to a name using FIND-QT-CLASS-NAME a PRINT-OBJECT-USING-CLASS method
+is defined on the respective qt-class. Otherwise a PRINT-OBJECT method
+is defined with the CLASS directly as specializer for the instance.
+
+In cases where you need to define a method on a same-named CL class,
+directly use DEFMETHOD on PRINT-OBJECT.
+
+See PRINT-OBJECT, PRINT-OBJECT-USING-CLASS</pre>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:DEFINE-SIGNAL"/>
                   <article>
                     <header class="macro">
@@ -2157,6 +2212,20 @@ the same form multiple times.</pre>
                       </code>
                     </header>
                     <pre class="docstring">Iterate over all WIDGETs on LAYOUT.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:FSETF"/>
+                  <article>
+                    <header class="macro">
+                      <span class="type">macro</span>
+                      <code>
+                        <h4><a href="#QTOOLS:FSETF" class="name">FSETF</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(&amp;REST PAIRS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Finalizing SETF. The same as CL+QT:SETF, but performs a FINALIZE on the place first.
+The finalize is performed before the place is set, but after the new value is evaluated.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:Q+"/>
