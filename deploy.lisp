@@ -103,7 +103,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (qt:optimized-delete qt:*qapplication*)
   (uiop:finish-outputs)
   #+sbcl (sb-ext:exit :timeout 1)
-  #-sbcl (uiop:quit :finish-output NIL))
+  #-sbcl (uiop:quit 0 NIL))
 
 (defun call-entry-prepared (entry-point)
   ;; We don't handle anything here unless we have no other
