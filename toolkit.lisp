@@ -276,6 +276,29 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
     (widget thing)
     (symbol (make-instance thing))))
 
+;; Slime bug on windows. See https://common-lisp.net/project/commonqt/#known-issues
+#+(and swank windows)
+(progn
+  (defvar *slime-fix-applied* NIL)
+
+  (defclass slime-fix-helper ()
+    ()
+    (:metaclass qt:qt-class)
+    (:qt-superclass "QWidget")
+    (:override ("event" (lambda (this ev)
+                          (declare (ignore ev))
+                          (#_close this)))))
+
+  (defmethod initialize-instance :after ((helper slime-fix-helper) &key)
+    (qt:new helper))
+  
+  (defun fix-slime ()
+    (unless *slime-fix-applied*
+      (qt:with-main-window (helper (make-instance 'slime-fix-helper))
+        (#_show helper)
+        (#_hide helper))
+      (setf *slime-fix-applied* T))))
+
 (defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T) (on-error '#'invoke-debugger)) &body body)
   "This is the main macro to start your application with.
 
@@ -292,15 +315,17 @@ It does the following:
    application terminates.
 8. Upon termination, call FINALIZE on WINDOW."
   (let ((bodyfunc (gensym "BODY")))
-    `(progn
-       (ensure-qapplication :name ,name :args ,qapplication-args)
+    `(let ((out *standard-output*))
        (tmt:with-body-in-main-thread (:blocking ,blocking)
-         (flet ((,bodyfunc ()
-                  (handler-bind ((error ,on-error))
-                    (with-finalizing ((,window (ensure-qobject ,instantiator)))
-                      ,@body
-                      (#_show ,window)
-                      (#_exec *qapplication*)))))
-           #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
-                    (,bodyfunc))
-           #-sbcl (,bodyfunc))))))
+         (let ((*standard-output* out))
+           (ensure-qapplication :name ,name :args ,qapplication-args)
+           (flet ((,bodyfunc ()
+                    (handler-bind ((error ,on-error))
+                      #+(and swank windows) (fix-slime)
+                      (with-finalizing ((,window (ensure-qobject ,instantiator)))
+                        ,@body
+                        (#_show ,window)
+                        (#_exec *qapplication*)))))
+             #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
+                      (,bodyfunc))
+             #-sbcl (,bodyfunc)))))))
