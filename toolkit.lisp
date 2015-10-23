@@ -277,6 +277,10 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
     (symbol (make-instance thing))))
 
 ;; Slime bug on windows. See https://common-lisp.net/project/commonqt/#known-issues
+;; We just create a helper widget that immediately closes itself again.
+;; That way we can execute the qapplication and ensure the weird workaround
+;; is automatically performed. Hopefully it'll work fast enough on most
+;; machines that the window is barely visible.
 #+(and swank windows)
 (progn
   (defvar *slime-fix-applied* NIL)

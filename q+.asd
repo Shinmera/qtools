@@ -26,7 +26,6 @@
           (print (qtools 'loaded-smoke-modules) stream))))))
 
 (asdf:defsystem #:q+
-  :name "q+"
   :version "0.2.1"
   :license "Artistic"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
