@@ -11,16 +11,29 @@
 ;; Qt Related Utils
 
 (defgeneric value (object)
-  (:documentation "Returns the VALUE of object. This usually translates to (#_value object) unless overriden."))
+  (:documentation "Returns the VALUE of object. This usually translates to (#_value object) unless overridden."))
 
 (defmethod value ((object qobject))
   (#_value object))
 
 (defgeneric (setf value) (value object)
-  (:documentation "Sets the VALUE of object. This usually translates to (#_setValue object) unless overriden."))
+  (:documentation "Sets the VALUE of object. This usually translates to (#_setValue object) unless overridden."))
 
 (defmethod (setf value) (value (object qobject))
   (#_setValue object value))
+
+(defgeneric parent (object)
+  (:documentation "Returns the PARENT object. This usually translates to (#_parent object) unless overridden."))
+
+(defmethod parent ((object qobject))
+  (#_parent object))
+
+(defmethod (setf parent) (value (object qobject))
+  (#_setParent object value)
+  (#_show object))
+
+(defmethod (setf parent) ((value null) (object qobject))
+  (setf (parent object) (null-qobject "QWidget")))
 
 (defun qobject-alive-p (object)
   "Returns T if the object is not null and not deleted."

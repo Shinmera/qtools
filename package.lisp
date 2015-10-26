@@ -96,6 +96,7 @@
   ;; toolkit.lisp
   (:export
    #:value
+   #:parent
    #:qobject-alive-p
    #:maybe-delete-qobject
    #:qtenumcase
