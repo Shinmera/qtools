@@ -202,6 +202,10 @@ Example:
                    (T
                     (write-char char stream))))))
 
+(defmacro named-lambda (name args &body body)
+  #+sbcl `(sb-int:named-lambda ,name ,args ,@body)
+  #-sbcl `(lambda ,args ,@body))
+
 (define-condition compilation-note (#+:sbcl sb-ext:compiler-note #-:sbcl condition)
   ((message :initarg :message :initform (error "MESSAGE required.") :accessor message))
   (:report (lambda (c s) (write-string (message c) s))))
@@ -293,8 +297,8 @@ Example:
         for method = (funcall method-locator class)
         when method return (apply method object args)))
 
-(defun generate-qclass-dispatch-lambda (fun basename args body)
-  `(lambda ,args
+(defun generate-qclass-dispatch-lambda (qclass fun basename args body)
+  `(named-lambda ,qclass ,args
      (flet ((next-method-p ()
               (loop for class in (rest *qclass-precedence-list*)
                     thereis (,fun class)))
@@ -334,7 +338,7 @@ Example:
 
        (defmacro ,def (qclass args &body body)
          `(setf (,',fun ,qclass)
-                ,(generate-qclass-dispatch-lambda ',fun ',basename args body)))
+                ,(generate-qclass-dispatch-lambda qclass ',fun ',basename args body)))
 
        (defmethod no-next-method ((fun (eql ',basename)) func &rest args)
          (error "There is no next method for the qclass dispatch function~&~a~&when called from method~&~a~&with arguments~&~a."
