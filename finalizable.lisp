@@ -122,13 +122,15 @@ See FINALIZE"
   (when (and (qobject-alive-p object)
              (#_paintingActive object))
     (error "Cannot finalize ~a, there are active painters!" object))
-  (call-next-method))
+  (when (next-method-p)
+    (call-next-method)))
 
 (define-finalize-method (object QPainter)
   "Calls the next method and then invokes QPainter::end."
   (when (qobject-alive-p object)
     (#_end object))
-  (call-next-method))
+  (when (next-method-p)
+    (call-next-method)))
 
 (define-finalize-method (object abstract-qobject)
   "Calls the next method and then invokes MAYBE-DELETE-QOBJECT."
