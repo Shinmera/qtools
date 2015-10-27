@@ -12,17 +12,7 @@
      ,@(when type `((format ,stream "Qt::~a " (qt:qclass-name (qt::qobject-class ,instance)))))
      ,@body))
 
-(define-qclass-dispatch-function print print-object-using-qclass (instance stream))
-
-(defgeneric print-object-using-class (qclass instance stream)
-  (:documentation "Prints a representation of the given instance by using methods
-appropriate for the given qclass.
-
-See PRINT-OBJECT")
-  (:method ((class integer) instance stream)
-    (if (qclass-print-function class)
-        (print-object-using-qclass class instance stream)
-        (print-unreadable-qobject (instance stream :type T :identity T)))))
+(define-qclass-dispatch-function print print-qobject (instance stream))
 
 (defmethod print-object ((instance qobject) stream)
   "Prints the qobject.
@@ -30,21 +20,21 @@ See PRINT-OBJECT")
 Use DESCRIBE-PRINT-METHOD for information on a specific printing mechanism.
 
 Uses PRINT-OBJECT-USING-QCLASS and determines the class by QT::QOBJECT-CLASS."
-  (print-object-using-class (qt::qobject-class instance) instance stream))
+  (print-qobject instance stream))
 
 (defmacro define-print-method ((instance class stream) &body body)
   "Defines a method to print an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.
 
 Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a PRINT-OBJECT-USING-CLASS method
+to a name using FIND-QT-CLASS-NAME a QCLASS-PRINT method
 is defined on the respective qt-class. Otherwise a PRINT-OBJECT method
 is defined with the CLASS directly as specializer for the instance.
 
 In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on PRINT-OBJECT.
 
-See PRINT-OBJECT, PRINT-OBJECT-USING-CLASS"
+See PRINT-OBJECT"
   (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
         `(define-qclass-print-function ,qt-class-name (,instance ,stream)
@@ -73,7 +63,7 @@ See PRINT-OBJECT, PRINT-OBJECT-USING-CLASS"
   "Prints information about the print method for the specified class if possible."
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
-                     (find-method #'print-object-using-qclass () `((eql ,(find-qclass qt-class-name)) T))
+                     (qclass-print-function qt-class-name)
                      (find-method #'print-object () `(,(ensure-class class))))))
     (if method
         (format T "Print method for ~:[CL class~;Qt class~] ~a.~%~:[No docstring specified.~;~:*~s~]~%"

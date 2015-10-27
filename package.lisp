@@ -16,8 +16,8 @@
    #:eqt-class-name)
   ;; copying.lisp
   (:export
-   #:copy-using-class
    #:copy
+   #:copy-qobject
    #:define-copy-method
    #:describe-copy-method)
   ;; dynamic.lisp
@@ -33,8 +33,8 @@
    #:finalized
    #:finalizable
    #:define-finalizable
-   #:finalize-using-class
    #:finalize
+   #:finalize-qobject
    #:define-finalize-method
    #:describe-finalize-method
    #:with-finalizing
@@ -70,7 +70,7 @@
    #:write-smoke-module-system-file)
   ;; printing.lisp
   (:export
-   #:print-object-using-class
+   #:print-qobject
    #:define-print-method
    #:describe-print-method)
   ;; keychord-editor.lisp

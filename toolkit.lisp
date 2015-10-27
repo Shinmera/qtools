@@ -26,7 +26,9 @@
   (:documentation "Returns the PARENT object. This usually translates to (#_parent object) unless overridden."))
 
 (defmethod parent ((object qobject))
-  (#_parent object))
+  (let ((o (#_parent object)))
+    (if (null-qobject-p o)
+        NIL o)))
 
 (defmethod (setf parent) (value (object qobject))
   (#_setParent object value)
@@ -101,7 +103,8 @@ Examples:
   (etypecase thing
     (fixnum thing)
     (string (find-qclass thing))
-    (symbol (ensure-qclass (eqt-class-name thing)))))
+    (symbol (ensure-qclass (eqt-class-name thing)))
+    (qobject (qt::qobject-class thing))))
 
 (defun ensure-class (thing)
   "Ensures to return a CLASS.
@@ -220,6 +223,91 @@ Example:
      (or (find-qt-class-name thing)
          (error "No corresponding Qt class found for ~a" thing)))))
 
+(defun qclass-class-list (qclass)
+  (loop for classes = (list (ensure-qclass qclass))
+        then (let ((new ()))
+               (loop for class in classes
+                     do (qt::map-qclass-direct-superclasses
+                         (lambda (class) (push class new)) class))
+               (nreverse new))
+        while classes
+        nconc classes))
+
+(defun qclass-precedence-set (qclass)
+  (let ((set ()))
+    (labels ((recurse (class)
+               (let ((prev class))
+                 (qt::map-qclass-direct-superclasses
+                  (lambda (class)
+                    (push (cons prev class) set)
+                    (recurse class)
+                    (setf prev class))
+                  class))))
+      (recurse (ensure-qclass qclass)))
+    (nreverse set)))
+
+(defun direct-qsubclass-p (qclass maybe-superclass)
+  (let ((maybe-superclass (ensure-qclass maybe-superclass)))
+    (qt::map-qclass-direct-superclasses
+     (lambda (super)
+       (when (eql super maybe-superclass)
+         (return-from direct-qsubclass-p T)))
+     (ensure-qclass qclass)))
+  NIL)
+
+(defun compute-qclass-precedence-list (qclass)
+  (let ((classes (qclass-class-list qclass))
+        (precedence (qclass-precedence-set qclass))
+        (list ()))
+    (labels ((qclass-order (superclass)
+               (loop for i from 0
+                     for class in list
+                     when (direct-qsubclass-p class superclass)
+                     return i))
+             (find-next-classes ()
+               (loop until (or (not classes)
+                               (find (car classes) precedence :key #'cdr))
+                     for class = (pop classes)
+                     collect (cons class (qclass-order class)))))
+      (loop while classes
+            do (let ((next (find-next-classes)))
+                 ;; Rightmost subclass goes first.
+                 (setf next (sort next #'> :key #'cdr))
+                 ;; Remove from precedence and add to final ordering.
+                 (dolist (n next)
+                   (setf precedence (delete (car n) precedence :key #'car))
+                   (push (car n) list)))))
+    (nreverse list)))
+
+(defvar *qclass-precedence-lists* (make-hash-table :test 'eql))
+(defun qclass-precedence-list (qclass)
+  (let ((qclass (ensure-qclass qclass)))
+    (or (gethash qclass *qclass-precedence-lists*)
+        (setf (gethash qclass *qclass-precedence-lists*)
+              (compute-qclass-precedence-list qclass)))))
+
+(defvar *qclass-precedence-list* ())
+(defun dispatch-by-qclass (method-locator object &rest args)
+  (loop for *qclass-precedence-list* on (qclass-precedence-list object)
+        for class = (first *qclass-precedence-list*)
+        for method = (funcall method-locator class)
+        when method return (apply method object args)))
+
+(defun generate-qclass-dispatch-lambda (fun basename args body)
+  `(lambda ,args
+     (flet ((next-method-p ()
+              (loop for class in (rest *qclass-precedence-list*)
+                    thereis (,fun class)))
+            (call-next-method ()
+              (let ((precedence *qclass-precedence-list*))
+                (loop for *qclass-precedence-list* on (rest precedence)
+                      for class = (first *qclass-precedence-list*)
+                      for method = (,fun class)
+                      when method return (funcall method ,@args)
+                      finally (no-next-method ',basename (,fun (first precedence)) ,@args)))))
+       (declare (ignorable #'next-method-p #'call-next-method))
+       ,@body)))
+
 (defmacro define-qclass-dispatch-function (basename dispatcher args)
   (let ((var (intern (format NIL "*QCLASS-~a-FUNCTIONS*" (string-upcase basename))))
         (fun (intern (format NIL "QCLASS-~a-FUNCTION" (string-upcase basename))))
@@ -246,12 +334,14 @@ Example:
 
        (defmacro ,def (qclass args &body body)
          `(setf (,',fun ,qclass)
-                (lambda ,args
-                  ,@body)))
+                ,(generate-qclass-dispatch-lambda ',fun ',basename args body)))
 
-       (defun ,dispatcher (qclass ,@args)
-         (let ((func (,fun qclass)))
-           (when func (funcall func ,@args)))))))
+       (defmethod no-next-method ((fun (eql ',basename)) func &rest args)
+         (error "There is no next method for the qclass dispatch function~&~a~&when called from method~&~a~&with arguments~&~a."
+                ',basename func args))
+
+       (defun ,dispatcher ,args
+         (dispatch-by-qclass #',fun ,@args)))))
 
 (defvar *application-name* NIL)
 

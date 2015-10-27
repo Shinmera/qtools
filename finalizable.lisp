@@ -78,21 +78,7 @@ FINALIZABLE-CLASS as metaclass."
        (:metaclass finalizable-class)
        ,@options)))
 
-(define-qclass-dispatch-function finalize finalize-using-qclass (instance))
-
-(defgeneric finalize-using-class (class object)
-  (:documentation "Extension to the FINALIZE generic function to support differentiating by the
-classes of an object. Previously used to specialise on QClass instances. Please use
-DEFINE-QCLASS-FINALIZE-FUNCTION for this mechanism now.
-
-This method should not be called directly.
-
-See FINALIZE")
-  (:method (class object)
-    (declare (ignore class))
-    object)
-  (:method ((class integer) object)
-    (finalize-using-qclass class object)))
+(define-qclass-dispatch-function finalize finalize-qobject (instance))
 
 (defgeneric finalize (object)
   (:documentation "Finalizes the object. The effects thereof may vary and even result in nothing at all.
@@ -109,28 +95,34 @@ memory, as lingering QOBJECTs would.")
     object)
   (:method ((object qobject))
     (call-next-method)
-    (finalize-using-class (qt::qobject-class object) object)))
+    (finalize-qobject object)))
 
 (defmacro define-finalize-method ((instance class) &body body)
   "Defines a method to finalize an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.
 
 Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
-is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
+to a name using FIND-QT-CLASS-NAME a FINALIZE-QCLASS method
+is defined on the respective qt-class. Otherwise a FINALIZE method
 is defined with the CLASS directly as specializer for the instance.
 
 In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on FINALIZE.
 
-See FINALIZE, FINALIZE-USING-CLASS"
+See FINALIZE"
   (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
         `(define-qclass-finalize-function ,qt-class-name (,instance)
-           (flet ((call-next-method ()))
-             ,@body))
+           ,@body)
         `(defmethod finalize ((,instance ,class))
            ,@body))))
+
+(define-finalize-method (object QPaintDevice)
+  "Errors if there are still painters active on the paint device."
+  (when (and (qobject-alive-p object)
+             (#_paintingActive object))
+    (error "Cannot finalize ~a, there are active painters!" object))
+  (call-next-method))
 
 (define-finalize-method (object QPainter)
   "Calls the next method and then invokes QPainter::end."
@@ -182,13 +174,12 @@ See FINALIZE, FINALIZE-USING-CLASS"
   "Prints information about the finalize method for the given class if possible."
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
-                     (find-method #'finalize-using-class () `((eql ,(find-qclass qt-class-name)) T))
+                     (qclass-finalize-function qt-class-name)
                      (find-method #'finalize () `(,(ensure-class class))))))
     (if method
         (format T "Finalize method for ~:[CL class~;Qt class~] ~a.~%~:[No docstring specified.~;~:*~s~]~%"
                 qt-class-name class (documentation method T))
         (format T "No finalize method for the given class found.~%"))))
-
 
 (defun normalize-bindings (bindings)
   (loop for bind in bindings

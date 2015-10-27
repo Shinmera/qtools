@@ -7,18 +7,7 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
-(define-qclass-dispatch-function copy copy-using-qclass (instance))
-
-(defgeneric copy-using-class (qclass instance)
-  (:documentation "Creates a copy of the given instance by using methods
-appropriate for the given qclass.
-
-See COPY")
-  #+:verbose
-  (:method :before (qclass instance)
-    (v:trace :qtools "Copying: ~a" instance))
-  (:method ((class integer) instance)
-    (copy-using-qclass class instance)))
+(define-qclass-dispatch-function copy copy-qobject (instance))
 
 (defgeneric copy (instance)
   (:documentation "Generates a copy of the object.
@@ -32,22 +21,21 @@ Use DESCRIBE-COPY-METHOD for information on a specific copying mechanism.
 
 Uses COPY-QOBJECT-USING-CLASS and determines the class by QT::QOBJECT-CLASS.")
   (:method (instance)
-    (copy-using-class
-     (qt::qobject-class instance) instance)))
+    (copy-qobject instance)))
 
 (defmacro define-copy-method ((instance class) &body body)
   "Defines a method to copy an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.
 
 Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
-is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
+to a name using FIND-QT-CLASS-NAME a QCLASS-COPY method
+is defined on the respective qt-class. Otherwise a COPY method
 is defined with the CLASS directly as specializer for the instance.
 
 In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on COPY-QOBJECT.
 
-See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS"
+See COPY-QOBJECT"
   (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
         `(define-qclass-copy-function ,qt-class-name (,instance)
@@ -106,7 +94,7 @@ See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS"
   "Prints information about the copy method for the specified class if possible."
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
-                     (find-method #'copy-using-class () `((eql ,(find-qclass qt-class-name)) T))
+                     (qclass-copy-function qt-class-name)
                      (find-method #'copy () `(,(ensure-class class))))))
     (if method
         (format T "Copy method for ~:[CL class~;Qt class~] ~a.~%~:[No docstring specified.~;~:*~s~]~%"
