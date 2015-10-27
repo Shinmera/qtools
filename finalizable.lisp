@@ -117,20 +117,23 @@ See FINALIZE"
         `(defmethod finalize ((,instance ,class))
            ,@body))))
 
+;; Fall-through as FINALIZE should always have a last "do nothing" method.
+(defmethod no-next-method ((disp (eql 'finalize)) method &rest args)
+  (declare (ignore disp method))
+  (first args))
+
 (define-finalize-method (object QPaintDevice)
   "Errors if there are still painters active on the paint device."
   (when (and (qobject-alive-p object)
              (#_paintingActive object))
     (error "Cannot finalize ~a, there are active painters!" object))
-  (when (next-method-p)
-    (call-next-method)))
+  (call-next-method))
 
 (define-finalize-method (object QPainter)
   "Calls the next method and then invokes QPainter::end."
   (when (qobject-alive-p object)
     (#_end object))
-  (when (next-method-p)
-    (call-next-method)))
+  (call-next-method))
 
 (define-finalize-method (object abstract-qobject)
   "Calls the next method and then invokes MAYBE-DELETE-QOBJECT."
