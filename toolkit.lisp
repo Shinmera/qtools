@@ -353,7 +353,7 @@ Example:
   "Attempts to find and return a default name to use for the application."
   (package-name *package*))
 
-(defun ensure-qapplication (&key name args)
+(defun ensure-qapplication (&key name args (main-thread T))
   "Ensures that the QT:*QAPPLICATION* is available, potentially using NAME and ARGS to initialize it.
 
 See QT:*QAPPLICATION*
@@ -364,14 +364,17 @@ See QT:ENSURE-SMOKE"
           (name *application-name*))
       (ensure-smoke :qtcore)
       (ensure-smoke :qtgui)
-      (tmt:with-body-in-main-thread (:blocking T)
-        (let ((instance (#_QCoreApplication::instance)))
-          (setf qt:*qapplication*
-                (if (null-qobject-p instance)
-                    (qt::%make-qapplication (list* name args))
-                    instance))
-          (qt-libs:set-qt-plugin-paths
-           qt-libs:*standalone-libs-dir*)))))
+      (flet ((inner ()
+               (let ((instance (#_QCoreApplication::instance)))
+                 (setf qt:*qapplication*
+                       (if (null-qobject-p instance)
+                           (qt::%make-qapplication (list* name args))
+                           instance))
+                 (qt-libs:set-qt-plugin-paths
+                  qt-libs:*standalone-libs-dir*))))
+        (if main-thread
+            (tmt:call-in-main-thread #'inner :blocking T)
+            (inner)))))
   qt:*qapplication*)
 
 (defun ensure-qobject (thing)
@@ -410,7 +413,7 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
         (#_hide helper))
       (setf *slime-fix-applied* T))))
 
-(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T) (on-error '#'invoke-debugger)) &body body)
+(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T) (main-thread T) (on-error '#'invoke-debugger)) &body body)
   "This is the main macro to start your application with.
 
 It does the following:
@@ -425,18 +428,24 @@ It does the following:
    This will enter the Qt application's main loop that won't exit until your
    application terminates.
 8. Upon termination, call FINALIZE on WINDOW."
-  (let ((bodyfunc (gensym "BODY")))
-    `(let ((out *standard-output*))
-       (tmt:with-body-in-main-thread (:blocking ,blocking)
-         (let ((*standard-output* out))
-           (ensure-qapplication :name ,name :args ,qapplication-args)
-           (flet ((,bodyfunc ()
-                    (handler-bind ((error ,on-error))
-                      #+(and swank windows) (fix-slime)
-                      (with-finalizing ((,window (ensure-qobject ,instantiator)))
-                        ,@body
-                        (#_show ,window)
-                        (#_exec *qapplication*)))))
-             #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
-                      (,bodyfunc))
-             #-sbcl (,bodyfunc)))))))
+  (let ((bodyfunc (gensym "BODY"))
+        (innerfunc (gensym "INNER"))
+        (out (gensym "OUT")))
+    `(labels ((,bodyfunc ()
+                (ensure-qapplication :name ,name :args ,qapplication-args :main-thread NIL)
+                (handler-bind ((error ,on-error))
+                  #+(and swank windows) (fix-slime)
+                  (with-finalizing ((,window (ensure-qobject ,instantiator)))
+                    ,@body
+                    (#_show ,window)
+                    (#_exec *qapplication*))))
+              (,innerfunc ()
+                #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
+                         (,bodyfunc))
+                #-sbcl (,bodyfunc)))
+       ,(if main-thread
+            `(let ((,out *standard-output*))
+               (tmt:with-body-in-main-thread (:blocking ,blocking)
+                 (let ((*standard-output* ,out))
+                   (,innerfunc))))
+            `(,innerfunc)))))
