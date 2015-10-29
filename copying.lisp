@@ -86,6 +86,19 @@ See COPY-QOBJECT"
   "Creates a copy of the rect preserving x, y, w, and h."
   (#_new QRect (#_x instance) (#_y instance) (#_width instance) (#_height instance)))
 
+(define-copy-method (instance QEvent)
+  "Creates a new event of the same type."
+  (#_new QEvent (#_type instance)))
+
+(define-copy-method (instance QMouseEvent)
+  "Creates a fresh copy of the QMouseEvent"
+  (#_new QMouseEvent (#_type instance)
+         (copy (#_pos instance))
+         (copy (#_globalPos instance))
+         (#_button instance)
+         (#_buttons instance)
+         (#_modifiers instance)))
+
 (define-copy-method (instance gc-finalized)
   "Creates a new GC-Finalized object using the value of COPY on its contained object."
   (make-gc-finalized (copy (unbox instance))))
