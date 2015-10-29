@@ -78,11 +78,27 @@ See COPY-QOBJECT"
          (#_m21 instance) (#_m22 instance) (#_m23 instance)
          (#_m31 instance) (#_m32 instance) (#_m33 instance)))
 
+(define-copy-method (instance QPoint)
+  "Creates a copy of the point."
+  (#_new QPoint (#_x instance) (#_y instance)))
+
+(define-copy-method (instance QPointF)
+  "Creates a copy of the point."
+  (#_new QPoint (#_x instance) (#_y instance)))
+
 (define-copy-method (instance QSize)
   "Creates a copy of the size preserving w and h."
   (#_new QSize (#_width instance) (#_height instance)))
 
+(define-copy-method (instance QSizeF)
+  "Creates a copy of the size preserving w and h."
+  (#_new QSize (#_width instance) (#_height instance)))
+
 (define-copy-method (instance QRect)
+  "Creates a copy of the rect preserving x, y, w, and h."
+  (#_new QRect (#_x instance) (#_y instance) (#_width instance) (#_height instance)))
+
+(define-copy-method (instance QRectF)
   "Creates a copy of the rect preserving x, y, w, and h."
   (#_new QRect (#_x instance) (#_y instance) (#_width instance) (#_height instance)))
 
