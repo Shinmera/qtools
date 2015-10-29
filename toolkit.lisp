@@ -50,15 +50,27 @@
         (optimized-delete object))
       #+:verbose (v:trace :qtools "Deleting QObject: WARN Tried to delete non-qobject ~a" object)))
 
+(defun enum-equal (a b)
+  (= (if (integerp a) a (qt:enum-value a))
+     (if (integerp b) b (qt:enum-value b))))
+
 (defmacro qtenumcase (keyform &body forms)
-  "Just like CASE, but for Qt enums using QT:ENUM=."
+  "Similar to CASE:
+
+KEYFORM  --- A form that evaluates to the key to compare against.
+CASES    ::= CASE*
+CASE     ::= (KEY form*)
+KEY      ::= (OR form*) | FORM | t | otherwise"
   (let ((key (gensym "KEY")))
     `(let ((,key ,keyform))
        (cond ,@(loop for (comp . form) in forms
-                     collect (if (or (eql comp T)
-                                     (eql comp 'otherwise))
-                                 `(T ,@form)
-                                 `((qt:enum= ,key ,comp) ,@form)))))))
+                     collect (cond ((or (eql comp T)
+                                        (eql comp 'otherwise))
+                                    `(T ,@form))
+                                   ((and (listp comp) (eql 'or (car comp)))
+                                    `((or ,@(loop for c in (cdr comp) collect `(enum-equal ,key ,comp))) ,@form))
+                                   (T
+                                    `((enum-equal ,key ,comp) ,@form))))))))
 
 (defun map-layout (function layout)
   "Map all widgets on LAYOUT onto FUNCTION."
