@@ -42,6 +42,9 @@ See PRINT-OBJECT"
         `(defmethod print-object ((,instance ,class) ,stream)
            ,@body))))
 
+(define-print-method (instance QObject stream)
+  (print-unreadable-qobject (instance stream :type T :identity T)))
+
 (define-print-method (instance QSize stream)
   (print-unreadable-qobject (instance stream :type T :identity T)
     (format stream "~s ~s ~s ~s" :width (#_width instance) :height (#_height instance))))
