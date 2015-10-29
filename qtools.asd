@@ -17,6 +17,7 @@
                (:file "toolkit")
                (:file "class-map")
                (:file "name-translation")
+               (:file "dispatch")
                (:file "finalizable")
                (:file "gc-finalized")
                (:file "copying")
