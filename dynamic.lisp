@@ -35,8 +35,15 @@ See QTOOLS:*TARGET-PACKAGE*"
              (error "No methods named ~s found." function))
             ((fboundp symbol))
             (T
-             (funcall
-              (compile NIL `(lambda () ,(compile-wrapper symbol))))))
+             ;; We really do not want to
+             ;;   (funcall (compile NIL `(lambda () ,(compile-wrapper symbol))))
+             ;; here for the following reason: in order to allow inlining
+             ;; of the information as well as direct usage of defined variables
+             ;; we need to evaluate things in sequence rather than COMPILEing
+             ;; them. Using EVAL here avoids the style warnings that can be
+             ;; rather confusing and annoying during development and general
+             ;; usage.
+             (eval (compile-wrapper symbol))))
       symbol)))
 
 (defmacro q+ (function &rest args)
