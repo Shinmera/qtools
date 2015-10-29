@@ -97,6 +97,9 @@ memory, as lingering QOBJECTs would.")
     (call-next-method)
     (finalize-qobject object)))
 
+(defmethod no-applicable-method ((method (eql #'qclass-finalize-function)) &rest args)
+  (declare (ignore args)))
+
 (defmacro define-finalize-method ((instance class) &body body)
   "Defines a method to finalize an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.

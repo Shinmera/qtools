@@ -295,7 +295,8 @@ Example:
   (loop for *qclass-precedence-list* on (qclass-precedence-list object)
         for class = (first *qclass-precedence-list*)
         for method = (funcall method-locator class)
-        when method return (apply method object args)))
+        when method return (apply method object args)
+        finally (apply #'no-applicable-method method-locator object args)))
 
 (defun generate-qclass-dispatch-lambda (qclass fun basename args body)
   `(named-lambda ,qclass ,args
@@ -323,15 +324,13 @@ Example:
        (defun ,fun (qclass)
          (etypecase qclass
            (fixnum
-            ;; Speed up lookup
-            (or (gethash qclass ,var)
-                (setf (gethash qclass ,var)
-                      (gethash (qclass-name qclass) ,var))))
+            (gethash (qclass-name qclass) ,var))
            ((or symbol string)
             (gethash (ensure-completable-qclass qclass) ,var))))
 
        (defun (setf ,fun) (function qclass)
-         (setf (gethash (ensure-completable-qclass qclass) ,var) function))
+         (setf (gethash (ensure-completable-qclass qclass) ,var)
+               function))
 
        (defun ,rem (qclass)
          (remhash (ensure-qclass qclass) ,var))

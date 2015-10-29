@@ -22,6 +22,10 @@ Use DESCRIBE-PRINT-METHOD for information on a specific printing mechanism.
 Uses PRINT-OBJECT-USING-QCLASS and determines the class by QT::QOBJECT-CLASS."
   (print-qobject instance stream))
 
+(defmethod no-applicable-method ((method (eql #'qclass-print-function)) &rest args)
+  (destructuring-bind (instance stream) args
+    (print-unreadable-qobject (instance stream :type T :identity T))))
+
 (defmacro define-print-method ((instance class stream) &body body)
   "Defines a method to print an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.
@@ -42,8 +46,9 @@ See PRINT-OBJECT"
         `(defmethod print-object ((,instance ,class) ,stream)
            ,@body))))
 
-(define-print-method (instance QObject stream)
-  (print-unreadable-qobject (instance stream :type T :identity T)))
+(define-print-method (instance QEvent stream)
+  (print-unreadable-qobject (instance stream :type T :identity T)
+    (format stream "~s ~a" :type (enum-value (#_type instance)))))
 
 (define-print-method (instance QSize stream)
   (print-unreadable-qobject (instance stream :type T :identity T)
