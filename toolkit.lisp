@@ -68,7 +68,7 @@ KEY      ::= (OR form*) | FORM | t | otherwise"
                                         (eql comp 'otherwise))
                                     `(T ,@form))
                                    ((and (listp comp) (eql 'or (car comp)))
-                                    `((or ,@(loop for c in (cdr comp) collect `(enum-equal ,key ,comp))) ,@form))
+                                    `((or ,@(loop for c in (cdr comp) collect `(enum-equal ,key ,c))) ,@form))
                                    (T
                                     `((enum-equal ,key ,comp) ,@form))))))))
 
