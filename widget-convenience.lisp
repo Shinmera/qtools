@@ -126,6 +126,8 @@ is set to the value returned by the INITFORM, after which BODY is run. BODY
 is wrapped in a WITH-SLOTS-BOUND form, so all slots are conveniently available.
 
 See QTOOLS:DEFINE-INITIALIZER"
+  (when (eql widget-class name)
+    (cerror "Trust me, I know what I'm doing." "I really doubt you want to name the subwidget the same as the class."))
   (let ((initfunc (subwidget-initializer-symbol widget-class name)))
     `(progn
        (eval-when (:compile-toplevel :load-toplevel :execute)
