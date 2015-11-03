@@ -65,7 +65,7 @@ See PRINT-OBJECT"
 
 (define-print-method (instance QColor stream)
   (print-unreadable-qobject (instance stream :type T :identity T)
-    (format stream "~s ~s ~s ~s ~s ~s" :r (#_r instance) :g (#_g instance) :b (#_b instance))))
+    (format stream "~s ~s ~s ~s ~s ~s" :r (#_red instance) :g (#_green instance) :b (#_blue instance))))
 
 (defun describe-print-method (class)
   "Prints information about the print method for the specified class if possible."
