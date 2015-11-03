@@ -7,10 +7,17 @@
 (in-package #:org.shirakumo.qtools)
 (named-readtables:in-readtable :qt)
 
-(defmacro print-unreadable-qobject ((instance stream &key type identity) &body body)
-  `(print-unreadable-object (,instance ,stream :identity ,identity)
-     ,@(when type `((format ,stream "Qt::~a " (qt:qclass-name (qt::qobject-class ,instance)))))
-     ,@body))
+(defmacro print-unreadable-qobject ((object stream &key type identity) &body body)
+  (let ((instance (gensym "INSTANCE"))
+        (output (gensym "OUTPUT")))
+    `(let ((,instance ,object)
+           (,output ,stream))
+       (print-unreadable-object (,instance ,output :identity ,identity)
+         ,@(when type `((format ,stream "Qt::~a " (qt:qclass-name (qt::qobject-class ,instance)))))
+         (cond ((qobject-alive-p ,instance)
+                ,@body)
+               (T
+                (format ,output "~s" :deleted)))))))
 
 (define-qclass-dispatch-function print print-qobject (instance stream))
 
