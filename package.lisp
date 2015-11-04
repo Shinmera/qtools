@@ -102,7 +102,7 @@
    #:qtenumcase
    #:map-layout
    #:do-layout
-   #:clear-layout
+   #:sweep-layout
    #:enumerate-method-descriptors
    #:ensure-class
    #:with-slots-bound

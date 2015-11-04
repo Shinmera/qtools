@@ -83,7 +83,7 @@ KEY      ::= (OR form*) | FORM | t | otherwise"
   "Iterate over all WIDGETs on LAYOUT."
   `(map-layout (lambda (,widget) ,@body) ,layout))
 
-(defun clear-layout (layout)
+(defun sweep-layout (layout)
   "Removes all widgets from the layout and finalizes them."
   (loop for item = (#_takeAt layout 0)
         until (typep item 'null-qobject)
