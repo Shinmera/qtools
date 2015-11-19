@@ -131,6 +131,10 @@
    #:widget-class-option-p
    #:set-widget-class-option
    #:remove-widget-class-option
+   #:invalid-qt-superclass-hierarchy
+   #:requested-qt-superclass
+   #:clashing-qt-superclass
+   #:clashing-superclass
    #:define-widget)
   ;; widget-convenience.lisp
   (:export

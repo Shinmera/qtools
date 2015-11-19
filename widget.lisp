@@ -81,12 +81,40 @@ WIDGET-CLASS itself, or a symbol naming the class."
 (defmethod finalize :before ((widget widget))
   (call-finalizers widget))
 
-(defun setup-widget-class (class next-method &rest options &key initializers finalizers (save-direct-options T) &allow-other-keys)
+(define-condition invalid-qt-superclass-hierarchy (error)
+  ((requested-qt-superclass :initarg :requested-qt-superclass :accessor requested-qt-superclass)
+   (clashing-qt-superclass :initarg :clashing-qt-superclass :accessor clashing-qt-superclass)
+   (clashing-superclass :initarg :clashing-superclass :accessor clashing-superclass))
+  (:report (lambda (c s) (format s "Cannot use ~a as Qt-superclass, ~&because it is not a Qt-subclass of ~a which is a ~&transitive Qt-superclass of the ~a direct-superclass."
+                                 (qclass-name (requested-qt-superclass c)) (qclass-name (clashing-qt-superclass c)) (class-name (clashing-superclass c)))))
+  (:documentation "Error that is signalled when attempting to define a class with a Qt-superclass
+which is not possible to use with the given direct-superclasses due to a hierarchy clash."))
+
+(defun check-qt-superclass-compatibility (qt-superclass direct-superclasses)
+  "Check whether the given QT-SUPERCLASS is permissible given the DIRECT-SUPERCLASSES."
+  (let* ((qt-superclass (ensure-qclass qt-superclass))
+         (class-precedence (qclass-precedence-list qt-superclass)))
+    (labels ((check (class direct)
+               (let ((class (ignore-errors (ensure-class class))))
+                 (when (and class (c2mop:subclassp class (find-class 'widget)))
+                   (let ((qt-class (ensure-qclass (qt::class-qt-superclass class))))
+                     (unless (find qt-class class-precedence)
+                       (error 'invalid-qt-superclass-hierarchy
+                              :requested-qt-superclass qt-superclass
+                              :clashing-qt-superclass qt-class
+                              :clashing-superclass class)))
+                   (dolist (class (c2mop:class-direct-superclasses class))
+                     (check class direct))))))
+      (dolist (class direct-superclasses)
+        (check class class)))))
+
+(defun setup-widget-class (class next-method &rest options &key direct-superclasses qt-superclass initializers finalizers (save-direct-options T) &allow-other-keys)
   "This function should not be called directly, but is instead invoked by the appropriate functions
 such as INITIALIZE-INSTANCE, REINITIALIZE-INSTANCE, and SOFTLY-REDEFINE-WIDGET-CLASS. In brief,
 it concerns itself with proper option merging and filtering before passing it on to the CommonQt
 and CLOS methods that process them."
   (declare (ignore initializers finalizers))
+  (check-qt-superclass-compatibility (first qt-superclass) direct-superclasses)
   (let ((original-options (copy-list options)))
     ;; Append extra options
     (when (slot-boundp class 'extern-options)
@@ -210,6 +238,8 @@ the same form multiple times."
            :test #'(lambda (a b) (eql (car a) (car b))))
   (pushnew `(:qt-superclass ,(eqt-class-name qt-class)) options
            :test #'(lambda (a b) (eql (car a) (car b))))
+  ;; Ensure compile-time test
+  (check-qt-superclass-compatibility qt-class direct-superclasses)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (defclass ,name ,direct-superclasses
        ,direct-slots
