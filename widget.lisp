@@ -113,7 +113,7 @@ and CLOS methods that process them."
   (let ((values (copy-list direct-values)))
     (dolist (superclass direct-superclasses)
       (when (c2mop:subclassp superclass 'widget)
-        (dolist (value (slot-value superclass slot))
+        (dolist (value (reverse (slot-value superclass slot)))
           (pushnew value values :key #'third))))
     (setf (slot-value class slot)
           (stable-sort values #'> :key #'second))))
