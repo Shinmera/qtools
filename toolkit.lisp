@@ -305,7 +305,7 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
         (#_hide helper))
       (setf *slime-fix-applied* T))))
 
-(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T) (main-thread T) (on-error '#'invoke-debugger)) &body body)
+(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T) (main-thread T) (on-error '#'invoke-debugger) (show T)) &body body)
   "This is the main macro to start your application with.
 
 It does the following:
@@ -315,7 +315,7 @@ It does the following:
 4. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
    (This means you can also just use the main window class' name)
 5. Evaluate BODY
-6. Call Q+:SHOW on WINDOW
+6. Call Q+:SHOW on WINDOW if SHOW is non-NIL
 7. Call Q+:EXEC on *QAPPLICATION*
    This will enter the Qt application's main loop that won't exit until your
    application terminates.
@@ -329,7 +329,7 @@ It does the following:
                   #+(and swank windows) (fix-slime)
                   (with-finalizing ((,window (ensure-qobject ,instantiator)))
                     ,@body
-                    (#_show ,window)
+                    (when ,show (#_show ,window))
                     (#_exec *qapplication*))))
               (,innerfunc ()
                 #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
