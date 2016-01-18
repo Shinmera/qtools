@@ -73,11 +73,14 @@ KEY      ::= (OR form*) | FORM | t | otherwise"
                                     `((enum-equal ,key ,comp) ,@form))))))))
 
 (defun map-layout (function layout)
-  "Map all widgets on LAYOUT onto FUNCTION."
+  "Map all widgets and layouts on LAYOUT onto FUNCTION."
   (loop for i from 0
         for item = (#_itemAt layout i)
-        until (typep item 'null-qobject)
-        do (funcall function (#_widget item))))
+        until (null-qobject-p item)
+        do (let ((widget (#_widget item))
+                 (layout (#_layout item)))
+             (funcall function (if (null-qobject-p widget)
+                                   layout widget)))))
 
 (defmacro do-layout ((widget layout) &body body)
   "Iterate over all WIDGETs on LAYOUT."
