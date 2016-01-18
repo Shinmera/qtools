@@ -104,6 +104,7 @@
    #:do-layout
    #:sweep-layout
    #:enumerate-method-descriptors
+   #:ensure-qclass
    #:ensure-class
    #:with-slots-bound
    #:with-all-slots-bound
