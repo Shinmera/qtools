@@ -20,6 +20,13 @@
    #:copy-qobject
    #:define-copy-method
    #:describe-copy-method)
+  ;; dispatch.lisp
+  (:export
+   #:direct-qsubclass-p
+   #:qclass-precedence-list
+   #:dispatch-by-qclass
+   #:qinstancep
+   #:define-qclass-dispatch-function)
   ;; dynamic.lisp
   (:export
    #:ensure-q+-method
