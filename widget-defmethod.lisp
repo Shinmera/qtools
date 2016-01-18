@@ -95,11 +95,14 @@ This also signals errors if there is no such specializer or if it is invalid."
      (locally
          ,@body)))
 
+(defun slot-initializer-symbol (slot)
+  (intern (format NIL "%~a-CONNECTORS" slot)))
+
 (define-method-declaration slot (name args)
   (form-fiddle:with-destructured-lambda-form (:name method :declarations declarations) *method*
     (let ((slot (qtools:specified-type-method-name name args))
           (connectors (remove 'connected declarations :test-not #'eql :key #'caadr))
-          (connectors-initializer (intern (format NIL "%~a-CONNECTORS" name))))
+          (connectors-initializer (slot-initializer-symbol name)))
       (with-widget-class (widget-class)
         (dolist (connector connectors)
           (setf *method* (delete connector *method*)))

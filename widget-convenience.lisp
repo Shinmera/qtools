@@ -144,7 +144,8 @@ Note that this does not remove eventual methods associated with the slot.
 
 See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
 See QTOOLS:ENSURE-CLASS"
-  (remove-widget-class-option (ensure-class widget-class) :slots slot))
+  (remove-widget-class-option (ensure-class widget-class) :slots slot)
+  (remove-widget-class-option (ensure-class widget-class) :initializers (slot-initializer-symbol slot)))
 
 (defun remove-override (widget-class override)
   "Removes the OVERRIDE definition from the WIDGET-CLASS.
