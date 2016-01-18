@@ -93,6 +93,14 @@
        (declare (ignorable #'next-method-p #'call-next-method))
        ,@body)))
 
+(defun qinstancep (instance class)
+  "Tests whether INSTANCE is an INSTANCE of CLASS.
+This includes subclasses, so a QSlider instance is also
+an instance of a QWidget and so forth."
+  (loop with test-class = (ensure-qclass class)
+        for superclass in (qclass-precedence-list instance)
+        thereis (eql superclass test-class)))
+
 (defmacro define-qclass-dispatch-function (basename dispatcher args)
   (let ((var (intern (format NIL "*QCLASS-~a-FUNCTIONS*" (string-upcase basename))))
         (fun (intern (format NIL "QCLASS-~a-FUNCTION" (string-upcase basename))))
