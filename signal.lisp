@@ -60,16 +60,32 @@ If all types can be determined statically, EMIT-SIGNAL is used directly instead.
 (defmacro signal! (object function &rest args)
   "Macro for a more lisp-y writing of EMIT-SIGNAL.
 Function should be a list of the METHOD-NAME followed by Qt argument types.
-The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME."
-  `(emit-signal ,object ,(specified-type-method-name (first function) (rest function)) ,@args))
+The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.
+
+OBJECT can be either a single object to signal to, or a list of objects."
+  (let ((obj (gensym "OBJECT")))
+    `(let ((,obj ,object))
+       (flet ((emit-signal (,obj)
+                (emit-signal ,obj ,(specified-type-method-name (first function) (rest function)) ,@args)))
+         (if (listp ,obj)
+             (mapc #'emit-signal ,obj)
+             (emit-signal ,obj))))))
 
 (defmacro connect! (origin origin-function target target-function)
   "Macro for a more lisp-y writing of CONNECT.
 ORIGIN-FUNCTION and TARGET-FUNCTION should both be a list of the METHOD-NAME
 followed by Qt argument types. The effective method name is computed as per
-SPECIFIED-TYPE-METHOD-NAME."
-  `(connect ,origin ,(specified-type-method-name (car origin-function) (cdr origin-function))
-            ,target ,(specified-type-method-name (car target-function) (cdr target-function))))
+SPECIFIED-TYPE-METHOD-NAME.
+
+ORIGIN and TARGET can both be either a single object or a list of objects
+to connect with each other."
+  (let ((orig (gensym "ORIGIN")) (targ (gensym "TARGET")))
+    `(flet ((connect (origin target)
+              (connect origin ,(specified-type-method-name (car origin-function) (cdr origin-function))
+                       target ,(specified-type-method-name (car target-function) (cdr target-function)))))
+       (dolist (,orig (ensure-list ,origin))
+         (dolist (,targ (ensure-list ,target))
+           (connect ,orig ,targ))))))
 
 (defun signal-method-for-name (name)
   (intern (string-upcase (format NIL "SIGNAL-~a" name))))
