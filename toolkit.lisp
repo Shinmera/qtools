@@ -72,6 +72,17 @@ KEY      ::= (OR form*) | FORM | t | otherwise"
                                    (T
                                     `((enum-equal ,key ,comp) ,@form))))))))
 
+(defmacro qtypecase (instance &body cases)
+  "Analogous to CL:TYPECASE, but for Qt classes.
+
+See QINSTANCEP"
+  (let ((class (gensym "CLASS")))
+    `(let ((,class (ensure-qclass ,instance)))
+       (cond ,@(loop for (test . body) in cases
+                     collect (if (find test '(T :otherwise))
+                                 `(T ,@body)
+                                 `((qinstancep ,class (eqt-class-name ',test)) ,@body)))))))
+
 (defun map-layout (function layout)
   "Map all widgets and layouts on LAYOUT onto FUNCTION."
   (loop for i from 0

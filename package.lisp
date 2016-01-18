@@ -107,6 +107,7 @@
    #:qobject-alive-p
    #:maybe-delete-qobject
    #:qtenumcase
+   #:qtypecase
    #:map-layout
    #:do-layout
    #:sweep-layout
