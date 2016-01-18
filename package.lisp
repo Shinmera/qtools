@@ -112,6 +112,8 @@
    #:do-layout
    #:sweep-layout
    #:enumerate-method-descriptors
+   #:find-children
+   #:find-child
    #:ensure-qclass
    #:ensure-class
    #:with-slots-bound

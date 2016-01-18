@@ -123,6 +123,33 @@ Examples:
       (T
        (list (make-map args))))))
 
+(defun find-children (widget child-class &key first-only)
+  "Find all children that are an instance of CHILD-CLASS
+
+If FIRST-ONLY is non-NIL, only the first match is found, otherwise
+a list is returned.
+
+See QINSTANCEP"
+  (let ((found ()))
+    (labels ((test (widget)
+               (unless (null-qobject-p widget)
+                 (when (qinstancep widget child-class)
+                   (if first-only
+                       (return-from find-children widget)
+                       (push widget found)))))
+             (recurse (widget)
+               (dolist (child (#_children widget))
+                 (test child)
+                 (recurse child))))
+      (recurse widget))
+    (nreverse found)))
+
+(defun find-child (widget child-class)
+  "Find the first child that is an instance of CHILD-CLASS
+
+See FIND-CHILDREN"
+  (find-children widget child-class :first-only T))
+
 ;;;;;
 ;; General utils
 
