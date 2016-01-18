@@ -196,6 +196,9 @@ Class is resolved as per ENSURE-CLASS."
        (declare (ignorable ,@slots))
        ,@body)))
 
+(defun ensure-list (a)
+  (if (listp a) a (list a)))
+
 (defun fuse-plists (&rest plists-lists)
   (let ((target (make-hash-table)))
     (dolist (plists plists-lists)
