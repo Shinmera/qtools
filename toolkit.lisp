@@ -81,7 +81,8 @@ KEY      ::= (OR form*) | FORM | t | otherwise"
 
 (defmacro do-layout ((widget layout) &body body)
   "Iterate over all WIDGETs on LAYOUT."
-  `(map-layout (lambda (,widget) ,@body) ,layout))
+  `(block NIL
+     (map-layout (lambda (,widget) ,@body) ,layout)))
 
 (defun sweep-layout (layout)
   "Removes all widgets from the layout and finalizes them."
