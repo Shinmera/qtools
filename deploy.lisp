@@ -159,10 +159,17 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (format T "~&Pruning the image...")
   (prune-image)
   (format T "~&Dumping image...")
-  (uiop:dump-image (first (asdf:output-files o c))
-                   :executable T
-                   #+sb-core-compression :compression #+sb-core-compression T
-                   #+(and sbcl os-windows) :application-type #+(and sbcl os-windows) :gui))
+  (let ((file (first (asdf:output-files o c))))
+    #+(and windows ccl)
+    (ccl:save-application file
+                          :prepend-kernel T :purify T
+                          :application-type :gui
+                          :toplevel-function #'uiop:restore-image)
+    #-(and windows ccl)
+    (uiop:dump-image file
+                     :executable T
+                     #+sb-core-compression :compression #+sb-core-compression T
+                     #+(and sbcl os-windows) :application-type #+(and sbcl os-windows) :gui)))
 
 (defun build-qt-system (system &rest keys &key force force-not verbose version &allow-other-keys)
   "Shorthand for `(operate 'asdf:qt-program-op system)`. See OPERATE for details."
