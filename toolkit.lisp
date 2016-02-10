@@ -307,8 +307,7 @@ See QT:ENSURE-SMOKE"
                        (if (null-qobject-p instance)
                            (qt::%make-qapplication (list* name args))
                            instance))
-                 (qt-libs:set-qt-plugin-paths
-                  qt-libs:*standalone-libs-dir*))))
+                 (qt-libs:fix-qt-plugin-paths))))
         (if main-thread
             (tmt:call-in-main-thread #'inner :blocking T)
             (inner)))))
