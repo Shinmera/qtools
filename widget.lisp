@@ -70,11 +70,19 @@ WIDGET-CLASS itself, or a symbol naming the class."
         (widget-class-finalizers (ensure-class class)))
   class)
 
+(defgeneric construct (widget)
+  (:documentation "This method is called during the initialization of a widget instance.
+It MUST call QT:NEW on the widget at some point. Its primary
+purpose is to give the user some way to manipulate which arguments
+are passed to QT:NEW. By default, no arguments are passed."))
+
+(defmethod construct ((widget widget))
+  (new widget))
+
 (defmethod initialize-instance ((widget widget) &key)
   (when (next-method-p)
     (call-next-method))
-  ;; FIXME: Some constructors require arguments.
-  (new widget)
+  (construct widget)
   (call-initializers widget)
   widget)
 
@@ -108,7 +116,7 @@ which is not possible to use with the given direct-superclasses due to a hierarc
       (dolist (class direct-superclasses)
         (check class class)))))
 
-(defun setup-widget-class (class next-method &rest options &key direct-superclasses qt-superclass initializers finalizers (save-direct-options T) &allow-other-keys)
+(defun setup-widget-class (class next-method &rest options &key direct-superclasses qt-superclass initializers finalizers (save-direct-options T) (constructor () c-p) &allow-other-keys)
   "This function should not be called directly, but is instead invoked by the appropriate functions
 such as INITIALIZE-INSTANCE, REINITIALIZE-INSTANCE, and SOFTLY-REDEFINE-WIDGET-CLASS. In brief,
 it concerns itself with proper option merging and filtering before passing it on to the CommonQt
@@ -129,12 +137,22 @@ and CLOS methods that process them."
     (when save-direct-options
       (setf (widget-class-direct-options class)
             original-options)))
+  ;; Compile constructor
+  (when c-p
+    (let ((instance (gensym "INSTANCE")))
+      (funcall
+       (compile NIL `(lambda NIL
+                       (defmethod construct ((,instance ,(class-name class)))
+                         (with-all-slots-bound (,instance ,(class-name class))
+                           (new ,instance ,@constructor))))))))
   class)
 
-(defmethod initialize-instance :around ((class widget-class) &rest options)
+(defmethod initialize-instance :around ((class widget-class) &rest options &key constructor &allow-other-keys)
+  (declare (ignore constructor))
   (apply #'setup-widget-class class #'call-next-method 'init T options))
 
-(defmethod reinitialize-instance :around ((class widget-class) &rest options)
+(defmethod reinitialize-instance :around ((class widget-class) &rest options &key constructor &allow-other-keys)
+  (declare (ignore constructor))
   (apply #'setup-widget-class class #'call-next-method options))
 
 (defun set-effective-option (class slot direct-values &key (direct-superclasses (c2mop:class-direct-superclasses class)))

@@ -136,6 +136,7 @@
    #:widget-class-initializers
    #:widget-class-finalizers
    #:widget
+   #:construct
    #:call-initializers
    #:call-finalizers
    #:softly-redefine-widget-class
