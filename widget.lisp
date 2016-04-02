@@ -139,6 +139,7 @@ and CLOS methods that process them."
             original-options)))
   ;; Compile constructor
   (when c-p
+    (setf (find-class (class-name class)) class)
     (let ((instance (gensym "INSTANCE")))
       (funcall
        (compile NIL `(lambda NIL
