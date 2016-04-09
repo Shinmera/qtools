@@ -137,6 +137,8 @@ See QTOOLS:DEFINE-INITIALIZER"
          (setf ,name ,initform)
          ,@body))))
 
+(trivial-indent:define-indentation define-subwidget (6 4 &body))
+
 (defun remove-slot (widget-class slot)
   "Removes the SLOT definition from the WIDGET-CLASS.
 
