@@ -8,6 +8,11 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defvar *loaded-foreign-libs* ())
 (defvar *loaded-smoke-modules* ())
+(defvar *prune-hooks* (list 'prune-foreign-libraries))
+(defvar *boot-hooks* (list 'boot-foreign-libraries))
+
+(defun status (format-string &rest format-args)
+  (format T "~& ==> ~?~%" format-string format-args))
 
 (defun clean-symbol (symbol)
   (dolist (type '(function compiler-macro setf type variable))
@@ -27,7 +32,17 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defun prune-foreign-libraries ()
   (dolist (lib (cffi:list-foreign-libraries))
-    (cffi:close-foreign-library lib)))
+    (let ((name (cffi:foreign-library-name lib)))
+      (unless (cffi:foreign-library-loaded-p lib)
+        (status "Closing foreign library ~a." name)
+        (cffi:close-foreign-library name)))))
+
+(defun boot-foreign-libraries ()
+  (dolist (lib *loaded-foreign-libs*)
+    (let ((name (cffi:foreign-library-name lib)))
+      (unless (cffi:foreign-library-loaded-p lib)
+        (status "Loading foreign library ~a." name)
+        (cffi:load-foreign-library name)))))
 
 (defun prune-image ()
   (do-all-symbols (symbol)
@@ -40,7 +55,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   ;; Force CommonQt to forget all prior information it might have had.
   (qt::reload)
   #+:verbose (v:remove-global-controller)
-  (prune-foreign-libraries))
+  ;; Non-Qt prune functions
+  (loop for func in *prune-hooks*
+        do (funcall func)))
 
 (defun smoke-library-p (lib)
   (flet ((lib-matches-p (libname)
@@ -62,11 +79,11 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
                (or (matches "smokebase")
                    (matches "commonqt")
                    ;; Extra requirements for OS X
-                   #+darwin (and (matches "z") (find :qtcore (qtools:loaded-smoke-modules)))
-                   #+darwin (and (matches "png") (find :qtgui (qtools:loaded-smoke-modules)))
-                   #+darwin (and (matches "crypto") (find :qtnetwork (qtools:loaded-smoke-modules)))
-                   #+darwin (and (matches "ssl") (find :qtnetwork (qtools:loaded-smoke-modules)))
-                   #+darwin (and (matches "dbus") (find :qtdbus (qtools:loaded-smoke-modules)))
+                   #+osx-ports (and (matches "z") (find :qtcore (qtools:loaded-smoke-modules)))
+                   #+osx-ports (and (matches "png") (find :qtgui (qtools:loaded-smoke-modules)))
+                   #+osx-ports (and (matches "crypto") (find :qtnetwork (qtools:loaded-smoke-modules)))
+                   #+osx-ports (and (matches "ssl") (find :qtnetwork (qtools:loaded-smoke-modules)))
+                   #+osx-ports (and (matches "dbus") (find :qtdbus (qtools:loaded-smoke-modules)))
                    (loop for module in (qtools:loaded-smoke-modules)
                          thereis (matches module))))
         collect lib))
@@ -78,7 +95,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         (uiop:copy-file lib (ensure-directories-exist target))))))
 
 (defun warmly-boot ()
-  (format T "~&[QTOOLS] Performing warm boot.~%")
+  (status "Performing warm boot.")
   (when (uiop:argv0)
     (setf qt-libs:*standalone-libs-dir*
           (uiop:pathname-directory-pathname (uiop:argv0))))
@@ -87,16 +104,13 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     (qt-libs:load-libcommonqt :force T)
     ;; Reload our modules
     (dolist (mod *loaded-smoke-modules*)
-      (format T "~&[QTOOLS] (Re-)loading smoke module ~a" mod)
+      (status "Loading smoke module ~a." mod)
       (qt:ensure-smoke mod))
     ;; Reload Q+
     (process-all-methods)
-    ;; Reload other libraries
-    (dolist (lib *loaded-foreign-libs*)
-      (let ((name (cffi:foreign-library-name lib)))
-        (unless (or (cffi:foreign-library-loaded-p lib))
-          (format T "~&[QTOOLS] (Re-)loading foreign library ~a" name)
-          (cffi:load-foreign-library name))))))
+    ;; Non-Qt boot functions
+    (loop for func in *boot-hooks*
+          do (funcall func))))
 
 (defun quit ()
   (prune-foreign-libraries)
@@ -114,9 +128,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (restart-case
       (progn
         (warmly-boot)
-        (format T "~&[QTOOLS] Launching application.~%")
+        (status "Launching application.")
         (funcall entry-point)
-        (format T "~&[QTOOLS] Epilogue.~%")
+        (status "Epilogue.")
         (quit))
     (exit ()
       :report "Exit."
@@ -151,14 +165,14 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
             (call-entry-prepared entry)))))
 
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
-  (format T "~&Copying necessary libraries...")
+  (status "Copying necessary libraries.")
   (ensure-system-libs c (uiop:pathname-directory-pathname
                          (first (asdf:output-files o c))))
   (setf *loaded-foreign-libs* (loaded-foreign-libraries))
   (setf *loaded-smoke-modules* (loaded-smoke-modules))
-  (format T "~&Pruning the image...")
+  (status "Pruning the image.")
   (prune-image)
-  (format T "~&Dumping image...")
+  (status "Dumping image.")
   (let ((file (first (asdf:output-files o c))))
     #+(and windows ccl)
     (ccl:save-application file
