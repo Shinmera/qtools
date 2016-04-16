@@ -1,18 +1,86 @@
 #|
-This file is a part of Qtools
-(c) 2015 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
-Author: Nicolas Hafner <shinmera@tymoon.eu>
+ This file is a part of Qtools
+ (c) 2015 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
+ Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
 (in-package #:org.shirakumo.qtools)
 
-(defvar *loaded-foreign-libs* ())
-(defvar *loaded-smoke-modules* ())
-(defvar *prune-hooks* (list 'prune-foreign-libraries))
+(defvar *foreign-libraries-to-reload* ())
+(defvar *smoke-modules-to-reload* ())
+(defvar *build-hooks* (list 'prune-image))
 (defvar *boot-hooks* (list 'boot-foreign-libraries))
+(defvar *quit-hooks* (list 'prune-foreign-libraries))
+(defvar *folder-listing-cache* (make-hash-table :test 'equal))
+(defvar *user-libs* ())
 
-(defun status (format-string &rest format-args)
-  (format T "~& ==> ~?~%" format-string format-args))
+(defun status (level format-string &rest format-args)
+  (format T "~& ~a ~?~%" (case level
+                           (0 "==>")
+                           (1 "  ->")
+                           (T "    >"))
+          format-string format-args))
+
+(defun user-libs (name)
+  (cdr (assoc name *user-libs*)))
+
+(defun (setf user-libs) (libs name)
+  (let ((cons (assoc name *user-libs*)))
+    (cond (cons
+           (setf (cdr cons) libs))
+          (*user-libs*
+           (setf (cdr (last *user-libs*)) (cons name libs)))
+          (T
+           (setf *user-libs* (list (cons name libs)))))))
+
+(defun remove-user-libs (name)
+  (setf *user-libs* (remove name *user-libs* :key #'first)))
+
+(defmacro define-user-libs ((name &rest search-paths) &body libs)
+  `(setf (user-libs ',name)
+         (list (list ,@search-paths)
+               (list ,@(loop for lib in libs
+                             for (name . paths) = (ensure-list lib)
+                             collect `(list ',name ,@paths))))))
+
+(defun user-libs-paths ()
+  (loop for entry in *user-libs*
+        for (search-paths libs) = (cdr entry)
+        append (loop for (name . paths) in libs
+                     for known-paths = (remove-if-not #'uiop:file-exists-p paths)
+                     for auto-path = (discover-foreign-library-location name search-paths)
+                     append (cond (known-paths known-paths)
+                                  (auto-path (list auto-path))
+                                  (T (warn "No suitable path for ~a found, not copying." name))))))
+
+(defun discover-foreign-library-location (lib &optional search-paths)
+  ;; FIXME: Maybe do something with /etc/ld.so.cache ?
+  (let ((libpath (etypecase lib
+                   (symbol (cffi:foreign-library-pathname (cffi::get-foreign-library lib)))
+                   (cffi:foreign-library (cffi:foreign-library-pathname lib))
+                   (pathname lib)
+                   (string (uiop:parse-native-namestring lib))))
+        (search-paths (append search-paths
+                              cffi:*foreign-library-directories*
+                              #+unix (qt-lib-generator:get-path "LD_LIBRARY_PATH")
+                              #+darwin (qt-lib-generator:get-path "DYLD_LIBRARY_PATH")
+                              #+windows (qt-lib-generator:get-path "PATH")
+                              #+unix '(#p"/lib/"
+                                       #p"/usr/lib/"
+                                       #p"/usr/local/lib/")
+                              #+windows '(#p"C:/Windows/"
+                                          #p"C:/Windows/System32/"
+                                          #p"C:/Windows/SysWOW64/"))))
+    (if (eql :absolute (first (pathname-directory libpath)))
+        libpath
+        (dolist (path search-paths)
+          (dolist (file (or (gethash path *folder-listing-cache*)
+                            (setf (gethash path *folder-listing-cache*)
+                                  (uiop:directory-files path))))
+            (when (and (not (uiop:directory-pathname-p file))
+                       (equal (pathname-name libpath) (pathname-name file))
+                       (equal (pathname-type libpath) (pathname-name file)))
+              (return-from discover-foreign-library-location file)))))))
 
 (defun clean-symbol (symbol)
   (dolist (type '(function compiler-macro setf type variable))
@@ -30,34 +98,31 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (prune-symbol symbol)))
   (delete-package package))
 
-(defun prune-foreign-libraries ()
-  (dolist (lib (cffi:list-foreign-libraries))
-    (let ((name (cffi:foreign-library-name lib)))
-      (unless (cffi:foreign-library-loaded-p lib)
-        (status "Closing foreign library ~a." name)
-        (cffi:close-foreign-library name)))))
-
-(defun boot-foreign-libraries ()
-  (dolist (lib *loaded-foreign-libs*)
-    (let ((name (cffi:foreign-library-name lib)))
-      (unless (cffi:foreign-library-loaded-p lib)
-        (status "Loading foreign library ~a." name)
-        (cffi:load-foreign-library name)))))
-
-(defun prune-image ()
-  (do-all-symbols (symbol)
-    (clean-symbol symbol))
+(defun prune-local-paths ()
   (setf cffi:*foreign-library-directories*
         (delete qt-libs:*standalone-libs-dir* cffi:*foreign-library-directories*
                 :test #'uiop:pathname-equal))
   (setf qt-libs:*standalone-libs-dir* ".")
+  (setf *folder-listing-cache* NIL)
+  (setf *user-libs* NIL))
+
+(defun prune-foreign-libraries ()
+  (dolist (lib (cffi:list-foreign-libraries))
+    (let ((name (cffi:foreign-library-name lib)))
+      (when (cffi:foreign-library-loaded-p lib)
+        (status 1 "Closing foreign library ~a." name)
+        (cffi:close-foreign-library name)))))
+
+(defun prune-image ()
+  (status 1 "Pruning the image.")
+  (do-all-symbols (symbol)
+    (clean-symbol symbol))
   (setf qt:*qapplication* NIL)
   ;; Force CommonQt to forget all prior information it might have had.
   (qt::reload)
   #+:verbose (v:remove-global-controller)
-  ;; Non-Qt prune functions
-  (loop for func in *prune-hooks*
-        do (funcall func)))
+  (prune-local-paths)
+  (prune-foreign-libraries))
 
 (defun smoke-library-p (lib)
   (flet ((lib-matches-p (libname)
@@ -72,7 +137,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   ;; Remove smoke libraries as we will reload them ourselves later.
   (remove-if #'smoke-library-p (cffi:list-foreign-libraries)))
 
-(defun system-required-libs (system &key (standalone-dir qt-libs:*standalone-libs-dir*))
+(defun system-required-libs (&key (standalone-dir qt-libs:*standalone-libs-dir*))
   (qt-libs:ensure-standalone-libs :standalone-dir standalone-dir)
   (loop for lib in (uiop:directory-files standalone-dir)
         when (flet ((matches (string) (search (string string) (file-namestring lib) :test #'char-equal)))
@@ -88,14 +153,27 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
                          thereis (matches module))))
         collect lib))
 
-(defun ensure-system-libs (system target)
-  (dolist (lib (system-required-libs system))
+(defun deploy-foreign-libraries (libraries target)
+  (ensure-directories-exist target)
+  (dolist (lib libraries)
     (let ((target (make-pathname :defaults lib :directory (pathname-directory target))))
       (unless (uiop:file-exists-p target)
-        (uiop:copy-file lib (ensure-directories-exist target))))))
+        (status 1 "Copying library ~a" lib)
+        (uiop:copy-file lib target)))))
+
+(defun boot-foreign-libraries ()
+  (flet ((maybe-load (lib)
+           (let* ((lib (cffi::get-foreign-library lib))
+                  (name (cffi:foreign-library-name lib)))
+             (unless (cffi:foreign-library-loaded-p lib)
+               (status 1 "Loading foreign library ~a." name)
+               (cffi:load-foreign-library name)))))
+    (dolist (lib *foreign-libraries-to-reload*)
+      (maybe-load lib))))
 
 (defun warmly-boot ()
-  (status "Performing warm boot.")
+  (status 0 "Performing warm boot.")
+  #+:verbose (v:restart-global-controller)
   (when (uiop:argv0)
     (setf qt-libs:*standalone-libs-dir*
           (uiop:pathname-directory-pathname (uiop:argv0))))
@@ -103,17 +181,17 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
     ;; Reload libcommonqt core safely
     (qt-libs:load-libcommonqt :force T)
     ;; Reload our modules
-    (dolist (mod *loaded-smoke-modules*)
-      (status "Loading smoke module ~a." mod)
+    (dolist (mod *smoke-modules-to-reload*)
+      (status 1 "Loading smoke module ~a." mod)
       (qt:ensure-smoke mod))
     ;; Reload Q+
     (process-all-methods)
-    ;; Non-Qt boot functions
-    (loop for func in *boot-hooks*
-          do (funcall func))))
+    (status 0 "Running boot hooks.")
+    (mapc #'funcall *boot-hooks*)))
 
 (defun quit ()
-  (prune-foreign-libraries)
+  (status 0 "Running quit hooks.")
+  (mapc #'funcall *quit-hooks*)
   (qt:optimized-delete qt:*qapplication*)
   (uiop:finish-outputs)
   #+sbcl (sb-ext:exit :timeout 1)
@@ -128,10 +206,10 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (restart-case
       (progn
         (warmly-boot)
-        (status "Launching application.")
+        (status 0 "Launching application.")
         (funcall entry-point)
-        (status "Epilogue.")
-        (quit))
+        (status 0 "Epilogue.")
+        (invoke-restart 'exit))
     (exit ()
       :report "Exit."
       (quit))))
@@ -164,15 +242,28 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
             (declare (ignore args))
             (call-entry-prepared entry)))))
 
+(defun compute-libraries-to-reload ()
+  (let* ((user-libs (loop for entry in *user-libs*
+                          append (mapcar #'first (third entry))))
+         (other-libs (remove-if (lambda (lib) (find lib user-libs))
+                                (mapcar #'cffi:foreign-library-name
+                                        (loaded-foreign-libraries)))))
+    (append user-libs other-libs)))
+
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
-  (status "Copying necessary libraries.")
-  (ensure-system-libs c (uiop:pathname-directory-pathname
-                         (first (asdf:output-files o c))))
-  (setf *loaded-foreign-libs* (loaded-foreign-libraries))
-  (setf *loaded-smoke-modules* (loaded-smoke-modules))
-  (status "Pruning the image.")
-  (prune-image)
-  (status "Dumping image.")
+  (status 0 "Gathering system information.")
+  (setf *smoke-modules-to-reload* (loaded-smoke-modules))
+  (setf *foreign-libraries-to-reload* (compute-libraries-to-reload))
+  (status 1 "Will load the following smoke modules on boot: ~s" *smoke-modules-to-reload*)
+  (status 1 "Will load the following foreign libs on boot:  ~s" *foreign-libraries-to-reload*)
+  (status 0 "Copying necessary libraries.")
+  (let ((target (uiop:pathname-directory-pathname
+                 (first (asdf:output-files o c)))))
+    (deploy-foreign-libraries (system-required-libs) target)
+    (deploy-foreign-libraries (user-libs-paths) target))
+  (status 0 "Running build hooks.")
+  (mapc #'funcall *build-hooks*)
+  (status 0 "Dumping image.")
   (let ((file (first (asdf:output-files o c))))
     #+(and windows ccl)
     (ccl:save-application file
