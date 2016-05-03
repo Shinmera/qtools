@@ -5,8 +5,6 @@
   (:qtools)
   :class
   "qtools::smoke-module-system"
-  :module
-  "QTWEBKIT"
   :version
   "1.0.0"
   :license
@@ -16,4 +14,10 @@
   :maintainer
   "Nicolas Hafner <shinmera@tymoon.eu>"
   :description
-  "ASDF System wrapper around the qtwebkit smoke module. Ensures that it is present during compilation and loading of a system.") 
+  "ASDF System wrapper around the qtwebkit smoke module. Ensures that it is present during compilation and loading of a system."
+  :module
+  "QTWEBKIT"
+  :library-files
+  ("QtWebKit")
+  :depends-on
+  (:qtcore :qtgui)) 

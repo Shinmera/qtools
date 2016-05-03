@@ -5,8 +5,6 @@
   (:qtools)
   :class
   "qtools::smoke-module-system"
-  :module
-  "QTSVG"
   :version
   "1.0.0"
   :license
@@ -16,4 +14,10 @@
   :maintainer
   "Nicolas Hafner <shinmera@tymoon.eu>"
   :description
-  "ASDF System wrapper around the qtsvg smoke module. Ensures that it is present during compilation and loading of a system.") 
+  "ASDF System wrapper around the qtsvg smoke module. Ensures that it is present during compilation and loading of a system."
+  :module
+  "QTSVG"
+  :library-files
+  ("QtSvg")
+  :depends-on
+  (:qtcore :qtgui)) 
