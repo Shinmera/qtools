@@ -188,6 +188,9 @@ with SETF to use CL:SETF instead of CL+QT:SETF.
 See CL:FUNCTION."
   `(cl:function ,(ensure-cl-function-name name)))
 
+(deftype cl+qt:function ()
+  'cl:function)
+
 ;;;;;
 ;; Reader
 
