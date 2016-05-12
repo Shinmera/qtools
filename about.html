@@ -20,12 +20,12 @@
   <body>
     <header>
       <h1><img src="qtools-logo.png" alt="qtools"/></h1>
-      <span>0.6.5</span>
-      <p>A collection of tools to aid in development with CommonQt.</p>
+      <span class="version">0.6.9</span>
+      <p class="description">A collection of tools to aid in development with CommonQt.</p>
     </header>
     <div id="content">
       <article>
-        <c:documentate>
+        
           <span><h2>About Qtools <a href="https://travis-ci.org/Shinmera/qtools"><img src="https://travis-ci.org/Shinmera/qtools.svg?branch=master" alt="Build Status" align="right"/></a></h2>
 
 <p>Qtools is a collection of utilities to help development with CommonQt. There are a lot of things in there, from name mapping over garbage handling to widget class definition. Some tools are straightforward, others are quite complex. I'll try to explain everything as best I can.</p>
@@ -52,6 +52,18 @@
 
 <h2>Getting Started</h2>
 
+<h3>Qt</h3>
+
+<p>In case you already know Qt, you may skip this part and go straight to the next section. I'll briefly explain some of the core Qt concepts and how they fit together. However, you should still read the <a href="http://doc.qt.io/qt-4.8/">official Qt documentation</a> for anything that's left unclear.</p>
+
+<p>Since Qt is a C++ library it is heavily focused around classes and methods. At the top of the class hierarchy sits <a href="http://doc.qt.io/qt-4.8/qobject.html">QObject</a>. Almost all classes in Qt inherit from this. The more important one for us however is the <a href="http://doc.qt.io/qt-4.8/qwidget.html">QWidget</a> class, which already gives you everything you need to get started. It can act as a window or be contained in other widgets. It has all the sizing mechanics and is properly hooked into the event system that allows you to catch when keys are pressed, the window is resized, and so forth.</p>
+
+<p>Usually you create your new widgets by subclassing something like QWidget and then overriding methods to do what you want or simply attach other widgets to it and connect them up so that they can communicate to each other via the signal system. Classes have slots and signals. Signals are a form of method signature that describe a list of arguments and their type. Slots are the corresponding methods that perform actions when a signal reaches them. Wiring things up functions by connecting a signal and a source instance to a slot and a target instance. When then a signal is signalled onto the source instance, the target instance's slot method is called.</p>
+
+<p>And that's pretty much all of the core mechanics that you need to know about. For everything else, you usually refer to the documentation page for the specific class involved and see what kind of methods or signals you can use to do what you want. Seriously, the docs are good. I use them constantly while developing.</p>
+
+<h3>Qtools</h3>
+
 <p>Before getting started with explaining the details on the various parts of Qtools, I'll go through a basic project setup of a project using it.</p>
 
 <p>First you will want an ASDF system to define your project. In its dependencies it should contain <code>:qtools</code> and the smoke modules you require, usually just <code>:qtcore</code> and <code>:qtgui</code>.</p>
@@ -60,6 +72,8 @@
   ...
   :depends-on (:qtools :qtcore :qtgui))
 </code></pre>
+
+<p>If you want to just try things out on the REPL real quick, just <code>(ql:quickload '(qtools qtcore qtgui))</code> should suffice.</p>
 
 <p>Then of course you'll usually want a package to put all your stuff in. Instead of <code>:use #:cl</code> you will most likely want to <code>:use #:cl+qt</code>. This package combines the symbols of the common-lisp base package, the commonqt package, and qtools. Thus all the symbols and functions you usually need for development are already included.</p>
 
@@ -111,6 +125,8 @@
 
 <p>We're doing things a bit roundabout here to illustrate creating signals. <code><a href="#QTOOLS:DEFINE-SIGNAL">define-signal</a></code> introduces a new signal called <code>name-set</code> that takes a single <code><a href="http://l1sp.org/cl/string">string</a></code> as argument. We then define a new slot that is connected to the <code><a href="http://l1sp.org/cl/go">go</a></code> button's <code>pressed</code> signal (which has no arguments) as well as the <code>name</code> field's <code>return-pressed</code>. We then simply fetch the current text of our <code>name</code> field and send it out again with our custom signal. The second slot catches this signal again and uses it to display a message box.</p>
 
+<p>You can now try and see what kind of magical wonders you have created by using <code><a href="#QTOOLS:WITH-MAIN-WINDOW">with-main-window</a></code> to launch everything: <code>(<a href="#QTOOLS:WITH-MAIN-WINDOW">with-main-window</a> (window 'main-window))</code>. This will block until your window is closed, as Qt needs to capture the thread to handle events.</p>
+
 <p>And that's that. The only thing we didn't take a look at here is <code><a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a></code>, which allows you to define override functions for your Qt classes. So, if you for example want to manually draw onto a widget you can override its <code>paintEvent</code> method using this.</p>
 
 <pre><code>(<a href="#QTOOLS:DEFINE-OVERRIDE">define-override</a> (main-window paint-event) (event)
@@ -137,13 +153,13 @@
 
 <p>In C++ there usually is no garbage collector, so you need to carefully clean up yourself or you'll create a memory leak. In Common Lisp we're used to the luxury of not having to worry about this, thanks to garbage collection. Sadly, we cannot use the garbage collector to also take care of C++ objects, as they live in a different world not governed by us. So, garbage collection of Qt objects is still our own worry.</p>
 
-<p>To make this all just a smidgeon easier, Qtools introduces a system of <em>finalizables</em>, the central point of which is the <code><a href="#QTOOLS:FINALIZE">finalize</a></code> generic function. This function should take care of all necessary cleanup when an object is no longer needed. For <code>qobject</code>s, this means running eventual cleanup (through <code><a href="#QTOOLS:FINALIZE-USING-CLASS">finalize-using-class</a></code>) and then being <code><a href="http://l1sp.org/cl/delete">delete</a></code>d, thus properly removed from memory. However, <code><a href="#QTOOLS:FINALIZE">finalize</a></code> can not only be used for Qt objects, but for anything else as well. Especially interesting here are <code><a href="#QTOOLS:FINALIZABLE">finalizable</a></code> objects, whose slots can specify an additional argument <code>:finalized</code>, which dictates whether <code><a href="#QTOOLS:FINALIZE">finalize</a></code> is run on the slot's value when the class instance is <code><a href="#QTOOLS:FINALIZE">finalize</a></code>d.</p>
+<p>To make this all just a smidgeon easier, Qtools introduces a system of <em>finalizables</em>, the central point of which is the <code><a href="#QTOOLS:FINALIZE">finalize</a></code> generic function. This function should take care of all necessary cleanup when an object is no longer needed. For <code>qobject</code>s, this means running eventual cleanup (through <code>finalize-using-class</code>) and then being <code><a href="http://l1sp.org/cl/delete">delete</a></code>d, thus properly removed from memory. However, <code><a href="#QTOOLS:FINALIZE">finalize</a></code> can not only be used for Qt objects, but for anything else as well. Especially interesting here are <code><a href="#QTOOLS:FINALIZABLE">finalizable</a></code> objects, whose slots can specify an additional argument <code>:finalized</code>, which dictates whether <code><a href="#QTOOLS:FINALIZE">finalize</a></code> is run on the slot's value when the class instance is <code><a href="#QTOOLS:FINALIZE">finalize</a></code>d.</p>
 
 <p>Often times we only need Qt instances for a certain lexical context of code. For this case, <code><a href="#QTOOLS:WITH-FINALIZING">with-finalizing</a></code> (and <code><a href="#QTOOLS:WITH-FINALIZING*">with-finalizing*</a></code>) can be used, which is a counterpart to <code><a href="http://l1sp.org/cl/let">let</a></code> that calls <code><a href="#QTOOLS:FINALIZE">finalize</a></code> on all its bindings once the form exits. This will take care of most cases. For cases where the instance may escape, or has to stay bound in a closure, there's <code><a href="#QTOOLS:WITH-GC-FINALIZED">with-gc-finalized</a></code>. This wraps the value of each binding in a <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> object. Using such a container, we can use Common Lisp's garbage collector to keep track of the references and, once the object is garbage collected it calls <code><a href="#QTOOLS:FINALIZE">finalize</a></code> on its inner value, ensuring proper removal. The <code><a href="#QTOOLS:WITH-GC-FINALIZED">with-gc-finalized</a></code> uses a <code><a href="http://l1sp.org/cl/symbol-macrolet">symbol-macrolet</a></code> to ensure that you don't have to worry about the boxing. However, if you manually use <code><a href="#QTOOLS:GC-FINALIZED">gc-finalized</a></code> objects, there's the <code><a href="#QTOOLS:MAKE-GC-FINALIZED">make-gc-finalized</a></code> and <code><a href="#QTOOLS:UNBOX">unbox</a></code> functions (with corresponding reader macros <code>#&gt;</code> and <code>#&lt;</code> in the <code>:qtools</code> read-table).</p>
 
 <p>While this kind of system takes care of a lot of cases, it's still not perfect and it may happen that you accidentally create a memory leak somewhere. I wish there was an easier way, but alas, life is difficult. You can try to solve this kind of situation by debugging Qtools and keeping track of which objects get finalized and which don't.</p>
 
-<p>Another occasional task is to copy an object instance. Qtools offers a <code><a href="#QTOOLS:COPY">copy</a></code> and <code><a href="#QTOOLS:COPY-USING-CLASS">copy-using-class</a></code> methods which handle proper copying for a couple of Qt objects, but sadly by far not all. If you want to use the copying system for a class that isn't handled by Qtools by default, you can define your own using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code>.</p>
+<p>Another occasional task is to copy an object instance. Qtools offers a <code><a href="#QTOOLS:COPY">copy</a></code> and <code>copy-using-class</code> methods which handle proper copying for a couple of Qt objects, but sadly by far not all. If you want to use the copying system for a class that isn't handled by Qtools by default, you can define your own using <code><a href="#QTOOLS:DEFINE-COPY-METHOD">define-copy-method</a></code>.</p>
 
 <p>Qtools will handle the printing of QObject instances as well and provides you with a mechanism of defining print methods for a qclass, just like you normally would for CL classes by <code><a href="http://l1sp.org/cl/print-object">print-object</a></code>. Simply use <code><a href="#QTOOLS:DEFINE-PRINT-METHOD">define-print-method</a></code>.</p>
 
@@ -174,7 +190,7 @@
 
 <p>The user may define additional declarations using <code><a href="#QTOOLS:DEFINE-METHOD-DECLARATION">define-method-declaration</a></code>.</p>
 
-<p>At this point it is useful to note about the general startup sequence of a widget. One <code><a href="http://l1sp.org/cl/make-instance">make-instance</a></code> is called, it calls to <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code>. Qtools defines a primary method on this specialized on the widget class. It then immediately calls the next method (<code><a href="http://l1sp.org/cl/call-next-method">call-next-method</a></code>), followed by <code>qt:new</code> which instantiates the C++ parts. Following that are the initializers in the order of their priority (highest goes first). This means that if you (for some reason) define an <code>:after</code> method on <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code> for your own widget, it will be run after all initializers have completed. For finalization it is the same: all finalizers are run before your own <code><a href="#QTOOLS:FINALIZE">finalize</a></code> method is run. However, if you define a <code>:before</code> method on <code><a href="#QTOOLS:FINALIZE">finalize</a></code> for your class, it will be run before the <code>:finalized</code> slots are finalized, otherwise all primary and <code>:after</code> methods should not access <code>:finalized</code> slots anymore. If you absolutely do need to do things before normal initialization or finalization, you can define an <code>:around</code> method.</p>
+<p>At this point it is useful to note about the general startup sequence of a widget. Once <code><a href="http://l1sp.org/cl/make-instance">make-instance</a></code> is called, it calls to <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code>. Qtools defines a primary method on this specialized on the widget class. It then immediately calls the next method (<code><a href="http://l1sp.org/cl/call-next-method">call-next-method</a></code>), followed by <code><a href="#QTOOLS:CONSTRUCT">construct</a></code> which should call <code>qt:new</code>, instantiating the C++ parts. Following that are the initializers in the order of their priority (highest goes first). This means that if you (for some reason) define an <code>:after</code> method on <code><a href="http://l1sp.org/cl/initialize-instance">initialize-instance</a></code> for your own widget, it will be run after all initializers have completed. For finalization it is the same: all finalizers are run before your own <code><a href="#QTOOLS:FINALIZE">finalize</a></code> method is run. However, if you define a <code>:before</code> method on <code><a href="#QTOOLS:FINALIZE">finalize</a></code> for your class, it will be run before the <code>:finalized</code> slots are finalized, otherwise all primary and <code>:after</code> methods should not access <code>:finalized</code> slots anymore. If you absolutely do need to do things before normal initialization or finalization, you can define an <code>:around</code> method.</p>
 
 <p>One last widget-related definition form is <code><a href="#QTOOLS:DEFINE-MENU">define-menu</a></code>, which is a very convenient way of specifying menus:</p>
 
@@ -195,6 +211,8 @@
 </code></pre>
 
 <p>Out of the box, it supports <code>:item</code>, <code>:menu</code>, and <code>:separator</code> components. The item takes a name, which can be either a string for a label, a list of string and keyboard mnemonic, or a symbol indicating the class slot that contains the item widget, and it takes a body of forms to execute if the item is triggered. Menus take a name as a string and a body of components to contain, or a symbol indicating the slot that contains the menu widget. New components can be added with <code><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE">define-menu-content-type</a></code>.</p>
+
+<p>If your widget has a Qt superclass to whose constructor you would like to pass certain arguments, you can do so by adding a method on <code><a href="#QTOOLS:CONSTRUCT">construct</a></code> that calls <code>qt:new</code> with the arguments you need. You can also use a shorthand to do the same by adding a <code>(:constructor ..)</code> option to your widget definition form. This expands to a <code><a href="http://l1sp.org/cl/defmethod">defmethod</a></code> form that binds all slots (<code><a href="#QTOOLS:WITH-ALL-SLOTS-BOUND">with-all-slots-bound</a></code>) and otherwise just contains a call to <code>qt:new</code> supplying the arguments of the option form verbatim. In effect this means that any unquoted symbol in the option denotes a slot reference. Note that the call to <code><a href="#QTOOLS:CONSTRUCT">construct</a></code> happens before the widget initializers are run. Thus you will not be able to use slot values that are set by subwidgets or initializers.</p>
 
 <p>As a final touch, Qtools offers macros for connecting slots and emitting signals. These translate to CommonQt's <code>emit-signal</code> and <code>connect</code> functions, and thus just offer a bit of syntactic sugar. They're called <code><a href="#QTOOLS:SIGNAL!">signal!</a></code> and <code><a href="#QTOOLS:CONNECT!">connect!</a></code>. Their use is simple enough:</p>
 
@@ -321,7 +339,7 @@
 
 <p>Since finalizables don't add any metaclass properties, there is no need to manually calculate inheritance order. However, as with all custom slot definitions, the slot properties must be copied over from the direct-slot instance to the effective slot. In the case of <code><a href="#QTOOLS:FINALIZABLE-CLASS">finalizable-class</a></code> this happens in <code>compute-effective-slot-definition</code>.</p>
 
-<p>In order to support finalizing of Qt class instances that don't have a CL class equivalent, the <code><a href="#QTOOLS:FINALIZE">finalize</a></code> method is extended wit ha <code><a href="#QTOOLS:FINALIZE-USING-CLASS">finalize-using-class</a></code> that is dispatched to using the Qt class and the instance of a <code>qobject</code> instance is passed to <code><a href="#QTOOLS:FINALIZE">finalize</a></code>.</p>
+<p>In order to support finalizing of Qt class instances that don't have a CL class equivalent, the <code><a href="#QTOOLS:FINALIZE">finalize</a></code> method is extended wit ha <code>finalize-using-class</code> that is dispatched to using the Qt class and the instance of a <code>qobject</code> instance is passed to <code><a href="#QTOOLS:FINALIZE">finalize</a></code>.</p>
 
 <h3>Widgets</h3>
 
@@ -364,13 +382,16 @@
 <p>Currently the following implementations are tested and supported by Qtools:</p>
 
 <ul>
-<li><a href="http://www.sbcl.org/">SBCL</a> (1.2.8 Lin64)</li>
-<li><a href="http://ccl.clozure.com/">CCL</a> (1.10 Lin64)</li>
+<li><a href="http://www.sbcl.org/">SBCL</a></li>
+<li><a href="http://ccl.clozure.com/">CCL</a></li>
+<li><a href="https://common-lisp.net/project/ecl/">ECL</a></li>
 </ul>
+
+<p>You can run it on x86_64 Linux, OS X, and Windows, where SBCL on Linux is the recommended platform.</p>
 
 <p>It may or may not work more or less smoothly on other implementations and platforms depending on MOP and CommonQt support and general implementation quirks.</p>
 </span>
-        </c:documentate>
+        
       </article>
       <article>
         
@@ -392,6 +413,45 @@
                 <span class="nicknames">(ORG.SHIRAKUMO.QTOOLS)</span>
               </h3>
               <ul><li>
+                  <a name="QTOOLS:*BOOT-HOOKS*"/>
+                  <article>
+                    <header class="special">
+                      <span class="type">special</span>
+                      <code>
+                        <h4><a href="#QTOOLS:*BOOT-HOOKS*" class="name">*BOOT-HOOKS*</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:*BUILD-HOOKS*"/>
+                  <article>
+                    <header class="special">
+                      <span class="type">special</span>
+                      <code>
+                        <h4><a href="#QTOOLS:*BUILD-HOOKS*" class="name">*BUILD-HOOKS*</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:*FOREIGN-LIBRARIES-TO-RELOAD*"/>
+                  <article>
+                    <header class="special">
+                      <span class="type">special</span>
+                      <code>
+                        <h4><a href="#QTOOLS:*FOREIGN-LIBRARIES-TO-RELOAD*" class="name">*FOREIGN-LIBRARIES-TO-RELOAD*</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:*GENERATED-MODULES*"/>
                   <article>
                     <header class="special">
@@ -484,6 +544,19 @@ See QTOOLS:COMPILE-WRAPPER</pre>
                     <pre class="docstring">A vector of all Qt4.8 class names as strings.</pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:*QUIT-HOOKS*"/>
+                  <article>
+                    <header class="special">
+                      <span class="type">special</span>
+                      <code>
+                        <h4><a href="#QTOOLS:*QUIT-HOOKS*" class="name">*QUIT-HOOKS*</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:*SMOKE-MODULES*"/>
                   <article>
                     <header class="special">
@@ -501,6 +574,19 @@ the respective Qt parts. Usually you will only need
 QTCORE and QTGUI, but for example if you need OpenGL support
 you'll want QTOPENGL, or if you need phonon, you'll want
 the PHONON module.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:*SMOKE-MODULES-TO-RELOAD*"/>
+                  <article>
+                    <header class="special">
+                      <span class="type">special</span>
+                      <code>
+                        <h4><a href="#QTOOLS:*SMOKE-MODULES-TO-RELOAD*" class="name">*SMOKE-MODULES-TO-RELOAD*</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:*TARGET-PACKAGE*"/>
@@ -592,6 +678,19 @@ called on the object it contains.
 In order to retrieve the contained object, use UNBOX.</pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:QT-PROGRAM-OP"/>
+                  <article>
+                    <header class="class">
+                      <span class="type">class</span>
+                      <code>
+                        <h4><a href="#QTOOLS:QT-PROGRAM-OP" class="name">QT-PROGRAM-OP</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:SMOKE-MODULE-SYSTEM"/>
                   <article>
                     <header class="class">
@@ -657,6 +756,46 @@ In order to modify the metadata, please look at SET/REMOVE-WIDGET-CLASS-OPTION.<
                     <pre class="docstring"/>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:INVALID-QT-SUPERCLASS-HIERARCHY"/>
+                  <article>
+                    <header class="condition">
+                      <span class="type">condition</span>
+                      <code>
+                        <h4><a href="#QTOOLS:INVALID-QT-SUPERCLASS-HIERARCHY" class="name">INVALID-QT-SUPERCLASS-HIERARCHY</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Error that is signalled when attempting to define a class with a Qt-superclass
+which is not possible to use with the given direct-superclasses due to a hierarchy clash.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:CLASHING-QT-SUPERCLASS"/>
+                  <article>
+                    <header class="accessor">
+                      <span class="type">accessor</span>
+                      <code>
+                        <h4><a href="#QTOOLS:CLASHING-QT-SUPERCLASS" class="name">CLASHING-QT-SUPERCLASS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(CONDITION)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:CLASHING-SUPERCLASS"/>
+                  <article>
+                    <header class="accessor">
+                      <span class="type">accessor</span>
+                      <code>
+                        <h4><a href="#QTOOLS:CLASHING-SUPERCLASS" class="name">CLASHING-SUPERCLASS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(CONDITION)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:MENU-CONTENT-TYPE"/>
                   <article>
                     <header class="accessor">
@@ -685,6 +824,45 @@ In order to modify the metadata, please look at SET/REMOVE-WIDGET-CLASS-OPTION.<
 See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:PARENT"/>
+                  <article>
+                    <header class="accessor">
+                      <span class="type">accessor</span>
+                      <code>
+                        <h4><a href="#QTOOLS:PARENT" class="name">PARENT</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(OBJECT)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Returns the PARENT object. This usually translates to (#_parent object) unless overridden.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:REQUESTED-QT-SUPERCLASS"/>
+                  <article>
+                    <header class="accessor">
+                      <span class="type">accessor</span>
+                      <code>
+                        <h4><a href="#QTOOLS:REQUESTED-QT-SUPERCLASS" class="name">REQUESTED-QT-SUPERCLASS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(CONDITION)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:USER-LIBS"/>
+                  <article>
+                    <header class="accessor">
+                      <span class="type">accessor</span>
+                      <code>
+                        <h4><a href="#QTOOLS:USER-LIBS" class="name">USER-LIBS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(NAME)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:VALUE"/>
                   <article>
                     <header class="accessor">
@@ -695,7 +873,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                         <span class="arguments">(OBJECT)</span>
                       </code>
                     </header>
-                    <pre class="docstring">Returns the VALUE of object. This usually translates to (#_value object) unless overriden.</pre>
+                    <pre class="docstring">Returns the VALUE of object. This usually translates to (#_value object) unless overridden.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:WIDGET-ACTIONS"/>
@@ -787,6 +965,19 @@ See QTOOLS:CALL-INITIALIZERS</pre>
 See (SETF QTOOLS:MENU-CONTENT-TYPE).</pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:BUILD-QT-SYSTEM"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:BUILD-QT-SYSTEM" class="name">BUILD-QT-SYSTEM</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(SYSTEM &amp;REST KEYS &amp;KEY FORCE FORCE-NOT VERBOSE VERSION &amp;ALLOW-OTHER-KEYS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Shorthand for `(operate 'asdf:qt-program-op system)`. See OPERATE for details.</pre>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:CALL-FINALIZERS"/>
                   <article>
                     <header class="function">
@@ -847,19 +1038,6 @@ WIDGET-CLASS itself, or a symbol naming the class.</pre>
 Look at the source to see the mappings.</pre>
                   </article>
                 </li><li>
-                  <a name="QTOOLS:CLEAR-LAYOUT"/>
-                  <article>
-                    <header class="function">
-                      <span class="type">function</span>
-                      <code>
-                        <h4><a href="#QTOOLS:CLEAR-LAYOUT" class="name">CLEAR-LAYOUT</a></h4>
-                        <span class="qualifiers"></span>
-                        <span class="arguments">(LAYOUT)</span>
-                      </code>
-                    </header>
-                    <pre class="docstring">Removes all widgets from the layout and finalizes them.</pre>
-                  </article>
-                </li><li>
                   <a name="QTOOLS:CLEAR-METHOD-INFO"/>
                   <article>
                     <header class="function">
@@ -903,6 +1081,19 @@ See QTOOLS:COMPILE-OPERATOR
 See QT:QMETHOD-STATIC-P
 See QTOOLS:COMPILE-STATIC-METHOD
 See QTOOLS:COMPILE-METHOD</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:COPY-QOBJECT"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:COPY-QOBJECT" class="name">COPY-QOBJECT</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(INSTANCE)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DEFAULT-APPLICATION-NAME"/>
@@ -974,6 +1165,45 @@ Argument types are determined as follows:
 If the argument is a CONS, the CAR is taken as a value (and thus discarded)
 and the CDR is the literal type to take. Otherwise the type is determined
 by EQT-TYPE-OF.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:DIRECT-QSUBCLASS-P"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:DIRECT-QSUBCLASS-P" class="name">DIRECT-QSUBCLASS-P</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(QCLASS MAYBE-SUPERCLASS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:DISCOVER-FOREIGN-LIBRARY-LOCATION"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:DISCOVER-FOREIGN-LIBRARY-LOCATION" class="name">DISCOVER-FOREIGN-LIBRARY-LOCATION</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(LIB &amp;OPTIONAL SEARCH-PATHS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:DISPATCH-BY-QCLASS"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:DISPATCH-BY-QCLASS" class="name">DISPATCH-BY-QCLASS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(METHOD-LOCATOR OBJECT &amp;REST ARGS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:ECL-TYPE-FOR"/>
@@ -1061,13 +1291,26 @@ See QTOOLS:*TARGET-PACKAGE*</pre>
                       <code>
                         <h4><a href="#QTOOLS:ENSURE-QAPPLICATION" class="name">ENSURE-QAPPLICATION</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(&amp;KEY NAME ARGS)</span>
+                        <span class="arguments">(&amp;KEY NAME ARGS (MAIN-THREAD T))</span>
                       </code>
                     </header>
                     <pre class="docstring">Ensures that the QT:*QAPPLICATION* is available, potentially using NAME and ARGS to initialize it.
 
 See QT:*QAPPLICATION*
 See QT:ENSURE-SMOKE</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:ENSURE-QCLASS"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:ENSURE-QCLASS" class="name">ENSURE-QCLASS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(THING)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:ENSURE-QOBJECT"/>
@@ -1132,6 +1375,52 @@ be found through that, an error is signalled.</pre>
                       </code>
                     </header>
                     <pre class="docstring">Same as QT-TYPE-OF, but signals an error if no matching type could be found.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:FINALIZE-QOBJECT"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:FINALIZE-QOBJECT" class="name">FINALIZE-QOBJECT</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(INSTANCE)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:FIND-CHILD"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:FIND-CHILD" class="name">FIND-CHILD</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(WIDGET CHILD-CLASS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Find the first child that is an instance of CHILD-CLASS
+
+See FIND-CHILDREN</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:FIND-CHILDREN"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:FIND-CHILDREN" class="name">FIND-CHILDREN</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(WIDGET CHILD-CLASS &amp;KEY FIRST-ONLY)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Find all children that are an instance of CHILD-CLASS
+
+If FIRST-ONLY is non-NIL, only the first match is found, otherwise
+a list is returned.
+
+See QINSTANCEP</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:FIND-QT-CLASS-NAME"/>
@@ -1283,7 +1572,7 @@ See QTOOLS:*QMETHODS*</pre>
                         <span class="arguments">(FUNCTION LAYOUT)</span>
                       </code>
                     </header>
-                    <pre class="docstring">Map all widgets on LAYOUT onto FUNCTION.</pre>
+                    <pre class="docstring">Map all widgets and layouts on LAYOUT onto FUNCTION.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:MAYBE-DELETE-QOBJECT"/>
@@ -1321,6 +1610,19 @@ See QTOOLS:CL-OPERATOR-NAME
 See QT:QMETHOD-STATIC-P
 See QTOOLS:CL-STATIC-METHOD-NAME
 See QTOOLS:CL-METHOD-NAME</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:PRINT-QOBJECT"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:PRINT-QOBJECT" class="name">PRINT-QOBJECT</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(INSTANCE STREAM)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:PROCESS-ALL-METHODS"/>
@@ -1374,6 +1676,34 @@ See QTOOLS:*QMETHODS*</pre>
 If MODULES is passed, CommonQt is reloaded and only the given modules are loaded.
 
 See WRITE-EVERYTHING-TO-FILE</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:QCLASS-PRECEDENCE-LIST"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:QCLASS-PRECEDENCE-LIST" class="name">QCLASS-PRECEDENCE-LIST</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(QCLASS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:QINSTANCEP"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:QINSTANCEP" class="name">QINSTANCEP</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(INSTANCE CLASS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Tests whether INSTANCE is an INSTANCE of CLASS.
+This includes subclasses, so a QSlider instance is also
+an instance of a QWidget and so forth.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:QOBJECT-ALIVE-P"/>
@@ -1554,6 +1884,19 @@ See QTOOLS:REMOVE-WIDGET-CLASS-OPTION
 See QTOOLS:ENSURE-CLASS</pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:REMOVE-USER-LIBS"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:REMOVE-USER-LIBS" class="name">REMOVE-USER-LIBS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(NAME)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:REMOVE-WIDGET-CLASS-OPTION"/>
                   <article>
                     <header class="function">
@@ -1646,6 +1989,19 @@ Example:
  =&gt; '(((1 a) (1 b)) ((0 a) (0 b)) ((2 c))) </pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:SWEEP-LAYOUT"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:SWEEP-LAYOUT" class="name">SWEEP-LAYOUT</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(LAYOUT)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Removes all widgets from the layout and finalizes them.</pre>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:TO-METHOD-NAME"/>
                   <article>
                     <header class="function">
@@ -1678,6 +2034,19 @@ and dropping the hyphen. Therefore: foo-bar fooBar</pre>
 If THING is a string, it is returned directly.
 If it is a symbol, either QT-TYPE-FOR for THING is
 returned, or the STRING-DOWNCASE of THING.</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:USER-LIBS-PATHS"/>
+                  <article>
+                    <header class="function">
+                      <span class="type">function</span>
+                      <code>
+                        <h4><a href="#QTOOLS:USER-LIBS-PATHS" class="name">USER-LIBS-PATHS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">()</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:WIDGET-CLASS-OPTION-P"/>
@@ -1725,13 +2094,29 @@ See QTOOLS:*TARGET-PACKAGE*</pre>
                       <code>
                         <h4><a href="#QTOOLS:WRITE-SMOKE-MODULE-SYSTEM-FILE" class="name">WRITE-SMOKE-MODULE-SYSTEM-FILE</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(MODULE &amp;OPTIONAL
+                        <span class="arguments">(MODULE &amp;KEY DEPENDS-ON LIBRARY-FILES
  (PATH (SYSTEM-RELATIVE-PATHNAME :QTOOLS (FORMAT NIL &quot;smoke/~(~a~).asd&quot; MODULE))))</span>
                       </code>
                     </header>
                     <pre class="docstring">Writes a SMOKE-MODULE-SYSTEM form to the given PATH.
 
 See QTOOLS:COMPILE-SMOKE-MODULE-SYSTEM-DEFINITION</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:CONSTRUCT"/>
+                  <article>
+                    <header class="generic">
+                      <span class="type">generic</span>
+                      <code>
+                        <h4><a href="#QTOOLS:CONSTRUCT" class="name">CONSTRUCT</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(WIDGET)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">This method is called during the initialization of a widget instance.
+It MUST call QT:NEW on the widget at some point. Its primary
+purpose is to give the user some way to manipulate which arguments
+are passed to QT:NEW. By default, no arguments are passed.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:COPY"/>
@@ -1756,22 +2141,6 @@ Use DESCRIBE-COPY-METHOD for information on a specific copying mechanism.
 Uses COPY-QOBJECT-USING-CLASS and determines the class by QT::QOBJECT-CLASS.</pre>
                   </article>
                 </li><li>
-                  <a name="QTOOLS:COPY-USING-CLASS"/>
-                  <article>
-                    <header class="generic">
-                      <span class="type">generic</span>
-                      <code>
-                        <h4><a href="#QTOOLS:COPY-USING-CLASS" class="name">COPY-USING-CLASS</a></h4>
-                        <span class="qualifiers"></span>
-                        <span class="arguments">(QCLASS INSTANCE)</span>
-                      </code>
-                    </header>
-                    <pre class="docstring">Creates a copy of the given instance by using methods
-appropriate for the given qclass.
-
-See COPY</pre>
-                  </article>
-                </li><li>
                   <a name="QTOOLS:FINALIZE"/>
                   <article>
                     <header class="generic">
@@ -1791,25 +2160,6 @@ FINALIZE will then try to clean up objects and make sure that they don't clutter
 memory, as lingering QOBJECTs would.</pre>
                   </article>
                 </li><li>
-                  <a name="QTOOLS:FINALIZE-USING-CLASS"/>
-                  <article>
-                    <header class="generic">
-                      <span class="type">generic</span>
-                      <code>
-                        <h4><a href="#QTOOLS:FINALIZE-USING-CLASS" class="name">FINALIZE-USING-CLASS</a></h4>
-                        <span class="qualifiers"></span>
-                        <span class="arguments">(CLASS OBJECT)</span>
-                      </code>
-                    </header>
-                    <pre class="docstring">Extension to the FINALIZE generic function to support differentiating by the
-classes of an object. Previously used to specialise on QClass instances. Please use
-DEFINE-QCLASS-FINALIZE-FUNCTION for this mechanism now.
-
-This method should not be called directly.
-
-See FINALIZE</pre>
-                  </article>
-                </li><li>
                   <a name="QTOOLS:FINALIZED"/>
                   <article>
                     <header class="generic">
@@ -1821,22 +2171,6 @@ See FINALIZE</pre>
                       </code>
                     </header>
                     <pre class="docstring"/>
-                  </article>
-                </li><li>
-                  <a name="QTOOLS:PRINT-OBJECT-USING-CLASS"/>
-                  <article>
-                    <header class="generic">
-                      <span class="type">generic</span>
-                      <code>
-                        <h4><a href="#QTOOLS:PRINT-OBJECT-USING-CLASS" class="name">PRINT-OBJECT-USING-CLASS</a></h4>
-                        <span class="qualifiers"></span>
-                        <span class="arguments">(QCLASS INSTANCE STREAM)</span>
-                      </code>
-                    </header>
-                    <pre class="docstring">Prints a representation of the given instance by using methods
-appropriate for the given qclass.
-
-See PRINT-OBJECT</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:UNBOX"/>
@@ -1859,13 +2193,16 @@ See PRINT-OBJECT</pre>
                       <code>
                         <h4><a href="#QTOOLS:CONNECT!" class="name">CONNECT!</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(ORIGIN ORIGIN-FUNCTION TARGET TARGET-FUNCTION)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Macro for a more lisp-y writing of CONNECT.
 ORIGIN-FUNCTION and TARGET-FUNCTION should both be a list of the METHOD-NAME
 followed by Qt argument types. The effective method name is computed as per
-SPECIFIED-TYPE-METHOD-NAME.</pre>
+SPECIFIED-TYPE-METHOD-NAME.
+
+ORIGIN and TARGET can both be either a single object or a list of objects
+to connect with each other.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DEFINE-COPY-METHOD"/>
@@ -1875,21 +2212,21 @@ SPECIFIED-TYPE-METHOD-NAME.</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-COPY-METHOD" class="name">DEFINE-COPY-METHOD</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((INSTANCE CLASS) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a method to copy an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.
 
 Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
-is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
+to a name using FIND-QT-CLASS-NAME a QCLASS-COPY method
+is defined on the respective qt-class. Otherwise a COPY method
 is defined with the CLASS directly as specializer for the instance.
 
 In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on COPY-QOBJECT.
 
-See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS</pre>
+See COPY-QOBJECT</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DEFINE-FINALIZABLE"/>
@@ -1899,7 +2236,7 @@ See COPY-QOBJECT, COPY-QOBJECT-USING-CLASS</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-FINALIZABLE" class="name">DEFINE-FINALIZABLE</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(NAME DIRECT-SUPERCLASSES DIRECT-SLOTS &amp;REST OPTIONS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Shorthand around DEFCLASS to create a finalizable class.
@@ -1915,21 +2252,21 @@ FINALIZABLE-CLASS as metaclass.</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-FINALIZE-METHOD" class="name">DEFINE-FINALIZE-METHOD</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((INSTANCE CLASS) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a method to finalize an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.
 
 Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a COPY-QOBJECT-USING-CLASS method
-is defined on the respective qt-class. Otherwise a COPY-QOBJECT method
+to a name using FIND-QT-CLASS-NAME a FINALIZE-QCLASS method
+is defined on the respective qt-class. Otherwise a FINALIZE method
 is defined with the CLASS directly as specializer for the instance.
 
 In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on FINALIZE.
 
-See FINALIZE, FINALIZE-USING-CLASS</pre>
+See FINALIZE</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DEFINE-FINALIZER"/>
@@ -1939,7 +2276,7 @@ See FINALIZE, FINALIZE-USING-CLASS</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-FINALIZER" class="name">DEFINE-FINALIZER</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a new finalizer of METHOD-NAME on WIDGET-CLASS.
@@ -1964,7 +2301,7 @@ See QTOOLS:FINALIZE</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-INITIALIZER" class="name">DEFINE-INITIALIZER</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET-CLASS METHOD-NAME &amp;OPTIONAL (PRIORITY 0)) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a new initializer of METHOD-NAME on WIDGET-CLASS.
@@ -1987,7 +2324,7 @@ See QTOOLS:WITH-SLOTS-BOUND</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-MENU" class="name">DEFINE-MENU</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET-CLASS NAME) &amp;BODY CONTENTS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a menu on WIDGET-CLASS with NAME and CONTENTS.
@@ -2018,7 +2355,7 @@ See QTOOLS:MAKE-CHORD.</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-MENU-CONTENT-TYPE" class="name">DEFINE-MENU-CONTENT-TYPE</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(TYPE (PARENT &amp;REST ARGS) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a new menu content type processor NAME.
@@ -2033,7 +2370,7 @@ See (SETF QTOOLS:MENU-CONTENT-TYPE).</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-METHOD-DECLARATION" class="name">DEFINE-METHOD-DECLARATION</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(NAME ARGS &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Define a new method declaration function of NAME.
@@ -2048,7 +2385,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-OVERRIDE" class="name">DEFINE-OVERRIDE</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET-CLASS OVERRIDE &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Define a new OVERRIDE on WIDGET-CLASS with ARGS.
@@ -2070,21 +2407,34 @@ See CommonQt/override</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-PRINT-METHOD" class="name">DEFINE-PRINT-METHOD</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((INSTANCE CLASS STREAM) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a method to print an object of CLASS.
 CLASS can be either a common-lisp class type or a Qt class name.
 
 Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a PRINT-OBJECT-USING-CLASS method
+to a name using FIND-QT-CLASS-NAME a QCLASS-PRINT method
 is defined on the respective qt-class. Otherwise a PRINT-OBJECT method
 is defined with the CLASS directly as specializer for the instance.
 
 In cases where you need to define a method on a same-named CL class,
 directly use DEFMETHOD on PRINT-OBJECT.
 
-See PRINT-OBJECT, PRINT-OBJECT-USING-CLASS</pre>
+See PRINT-OBJECT</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:DEFINE-QCLASS-DISPATCH-FUNCTION"/>
+                  <article>
+                    <header class="macro">
+                      <span class="type">macro</span>
+                      <code>
+                        <h4><a href="#QTOOLS:DEFINE-QCLASS-DISPATCH-FUNCTION" class="name">DEFINE-QCLASS-DISPATCH-FUNCTION</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DEFINE-SIGNAL"/>
@@ -2094,7 +2444,7 @@ See PRINT-OBJECT, PRINT-OBJECT-USING-CLASS</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-SIGNAL" class="name">DEFINE-SIGNAL</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET-CLASS SIGNAL) ARGS &amp;BODY OPTIONS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Define a new SIGNAL on WIDGET-CLASS with ARGS.
@@ -2113,7 +2463,7 @@ See CommonQt/signals</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-SIGNAL-METHOD" class="name">DEFINE-SIGNAL-METHOD</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(NAME ARGS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Shorthand to define wrapper methods for the given signal.
@@ -2137,7 +2487,7 @@ method to call is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-SLOT" class="name">DEFINE-SLOT</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET-CLASS SLOT &amp;OPTIONAL METHOD-NAME) ARGS &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Define a new SLOT on WIDGET-CLASS with ARGS.
@@ -2167,7 +2517,7 @@ See CommonQt/slots</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-SUBWIDGET" class="name">DEFINE-SUBWIDGET</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET-CLASS NAME) INITFORM &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Defines a new sub-widget of NAME on WIDGET-CLASS.
@@ -2180,6 +2530,19 @@ is wrapped in a WITH-SLOTS-BOUND form, so all slots are conveniently available.
 See QTOOLS:DEFINE-INITIALIZER</pre>
                   </article>
                 </li><li>
+                  <a name="QTOOLS:DEFINE-USER-LIBS"/>
+                  <article>
+                    <header class="macro">
+                      <span class="type">macro</span>
+                      <code>
+                        <h4><a href="#QTOOLS:DEFINE-USER-LIBS" class="name">DEFINE-USER-LIBS</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring"/>
+                  </article>
+                </li><li>
                   <a name="QTOOLS:DEFINE-WIDGET"/>
                   <article>
                     <header class="macro">
@@ -2187,7 +2550,7 @@ See QTOOLS:DEFINE-INITIALIZER</pre>
                       <code>
                         <h4><a href="#QTOOLS:DEFINE-WIDGET" class="name">DEFINE-WIDGET</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(NAME (QT-CLASS &amp;REST DIRECT-SUPERCLASSES) DIRECT-SLOTS &amp;REST OPTIONS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Shorthand over DEFCLASS.
@@ -2208,7 +2571,7 @@ the same form multiple times.</pre>
                       <code>
                         <h4><a href="#QTOOLS:DO-LAYOUT" class="name">DO-LAYOUT</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WIDGET LAYOUT) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Iterate over all WIDGETs on LAYOUT.</pre>
@@ -2221,7 +2584,7 @@ the same form multiple times.</pre>
                       <code>
                         <h4><a href="#QTOOLS:FSETF" class="name">FSETF</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(&amp;REST PAIRS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Finalizing SETF. The same as CL+QT:SETF, but performs a FINALIZE on the place first.
@@ -2235,7 +2598,7 @@ The finalize is performed before the place is set, but after the new value is ev
                       <code>
                         <h4><a href="#QTOOLS:Q+" class="name">Q+</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(FUNCTION &amp;REST ARGS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Emits a function call to the Q+ FUNCTION with ARGS.
@@ -2262,7 +2625,7 @@ See QTOOLS:ENSURE-Q+-METHOD</pre>
                       <code>
                         <h4><a href="#QTOOLS:Q+FUN" class="name">Q+FUN</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(FUNCTION)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Emits a form that evaluates to the function object of FUNCTION.
@@ -2281,10 +2644,30 @@ See QTOOLS:ENSURE-Q+-METHOD</pre>
                       <code>
                         <h4><a href="#QTOOLS:QTENUMCASE" class="name">QTENUMCASE</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(KEYFORM &amp;BODY FORMS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
-                    <pre class="docstring">Just like CASE, but for Qt enums using QT:ENUM=.</pre>
+                    <pre class="docstring">Similar to CASE:
+
+KEYFORM  --- A form that evaluates to the key to compare against.
+CASES    ::= CASE*
+CASE     ::= (KEY form*)
+KEY      ::= (OR form*) | FORM | t | otherwise</pre>
+                  </article>
+                </li><li>
+                  <a name="QTOOLS:QTYPECASE"/>
+                  <article>
+                    <header class="macro">
+                      <span class="type">macro</span>
+                      <code>
+                        <h4><a href="#QTOOLS:QTYPECASE" class="name">QTYPECASE</a></h4>
+                        <span class="qualifiers"></span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
+                      </code>
+                    </header>
+                    <pre class="docstring">Analogous to CL:TYPECASE, but for Qt classes.
+
+See QINSTANCEP</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:SIGNAL!"/>
@@ -2294,12 +2677,14 @@ See QTOOLS:ENSURE-Q+-METHOD</pre>
                       <code>
                         <h4><a href="#QTOOLS:SIGNAL!" class="name">SIGNAL!</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(OBJECT FUNCTION &amp;REST ARGS)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Macro for a more lisp-y writing of EMIT-SIGNAL.
 Function should be a list of the METHOD-NAME followed by Qt argument types.
-The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
+The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.
+
+OBJECT can be either a single object to signal to, or a list of objects.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:WITH-ALL-SLOTS-BOUND"/>
@@ -2309,7 +2694,7 @@ The effective method name is computed as per SPECIFIED-TYPE-METHOD-NAME.</pre>
                       <code>
                         <h4><a href="#QTOOLS:WITH-ALL-SLOTS-BOUND" class="name">WITH-ALL-SLOTS-BOUND</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((INSTANCE CLASS) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Turns into a WITH-SLOTS with all slots of CLASS.
@@ -2323,7 +2708,7 @@ Class is resolved as per ENSURE-CLASS.</pre>
                       <code>
                         <h4><a href="#QTOOLS:WITH-FINALIZING" class="name">WITH-FINALIZING</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(BINDINGS &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Executes the body as by LET and calls FINALIZE on all the objects introduced by
@@ -2339,7 +2724,7 @@ reverse order of the bindings specified.</pre>
                       <code>
                         <h4><a href="#QTOOLS:WITH-FINALIZING*" class="name">WITH-FINALIZING*</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(BINDINGS &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Executes the body as by LET* and calls FINALIZE on all the objects introduced by
@@ -2355,7 +2740,7 @@ reverse order of the bindings specified.</pre>
                       <code>
                         <h4><a href="#QTOOLS:WITH-GC-FINALIZED" class="name">WITH-GC-FINALIZED</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">(BINDINGS &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Creates bindings as per LET with the special note that each value of a binding is wrapped
@@ -2373,9 +2758,7 @@ automatically ensured to be GC-ed and FINALIZEd once the body exits.</pre>
                       <code>
                         <h4><a href="#QTOOLS:WITH-MAIN-WINDOW" class="name">WITH-MAIN-WINDOW</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((WINDOW INSTANTIATOR &amp;KEY NAME QAPPLICATION-ARGS (BLOCKING T)
- (ON-ERROR '(FUNCTION INVOKE-DEBUGGER)))
- &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">This is the main macro to start your application with.
@@ -2383,11 +2766,12 @@ automatically ensured to be GC-ed and FINALIZEd once the body exits.</pre>
 It does the following:
 1. Call ENSURE-QAPPLICATION with the provided NAME and QAPPLICATION-ARGS
 2. Run the following in the main thread through TMT:WITH-BODY-IN-MAIN-THREAD
+   if MAIN-THREAD is non-NIL and make it non-blocking if BLOCKING is NIL.
 3. Establish a handler for ERROR that calls the ON-ERROR function if hit.
 4. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
    (This means you can also just use the main window class' name)
 5. Evaluate BODY
-6. Call Q+:SHOW on WINDOW
+6. Call Q+:SHOW on WINDOW if SHOW is non-NIL
 7. Call Q+:EXEC on *QAPPLICATION*
    This will enter the Qt application's main loop that won't exit until your
    application terminates.
@@ -2401,7 +2785,7 @@ It does the following:
                       <code>
                         <h4><a href="#QTOOLS:WITH-SLOTS-BOUND" class="name">WITH-SLOTS-BOUND</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((INSTANCE CLASS) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Turns into a WITH-SLOTS with all direct-slots of CLASS.
@@ -2415,7 +2799,7 @@ Class is resolved as per ENSURE-CLASS.</pre>
                       <code>
                         <h4><a href="#QTOOLS:WITH-WIDGET-CLASS" class="name">WITH-WIDGET-CLASS</a></h4>
                         <span class="qualifiers"></span>
-                        <span class="arguments">((VARIABLE &amp;OPTIONAL (METHOD '*METHOD*)) &amp;BODY BODY)</span>
+                        <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
                     <pre class="docstring">Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.
