@@ -292,7 +292,10 @@ Q+ does one last thing to fix the "issue" of having setters instead of being abl
 ## Support
 Currently the following implementations are tested and supported by Qtools:
 
-* [SBCL](http://www.sbcl.org/) (1.2.8 Lin64)
-* [CCL](http://ccl.clozure.com/) (1.10 Lin64)
+* [SBCL](http://www.sbcl.org/)
+* [CCL](http://ccl.clozure.com/)
+* [ECL](https://common-lisp.net/project/ecl/)
+
+You can run it on x86_64 Linux, OS X, and Windows, where SBCL on Linux is the recommended platform.
 
 It may or may not work more or less smoothly on other implementations and platforms depending on MOP and CommonQt support and general implementation quirks.
