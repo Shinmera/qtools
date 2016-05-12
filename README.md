@@ -25,6 +25,8 @@ First you will want an ASDF system to define your project. In its dependencies i
       ...
       :depends-on (:qtools :qtcore :qtgui))
 
+If you want to just try things out on the REPL real quick, just `(ql:quickload '(qtools qtcore qtgui))` should suffice.
+
 Then of course you'll usually want a package to put all your stuff in. Instead of `:use #:cl` you will most likely want to `:use #:cl+qt`. This package combines the symbols of the common-lisp base package, the commonqt package, and qtools. Thus all the symbols and functions you usually need for development are already included.
 
     (defpackage #:qtools-intro
@@ -68,6 +70,8 @@ This sets up the displaying part of our GUI, but so far we haven't made it react
       (q+:qmessagebox-information main-window "Greetings" (format NIL "Good day to you, ~a!" new-name)))
 
 We're doing things a bit roundabout here to illustrate creating signals. `define-signal` introduces a new signal called `name-set` that takes a single `string` as argument. We then define a new slot that is connected to the `go` button's `pressed` signal (which has no arguments) as well as the `name` field's `return-pressed`. We then simply fetch the current text of our `name` field and send it out again with our custom signal. The second slot catches this signal again and uses it to display a message box.
+
+You can now try and see what kind of magical wonders you have created by using `with-main-window` to launch everything: `(with-main-window (window 'main-window))`. This will block until your window is closed, as Qt needs to capture the thread to handle events.
 
 And that's that. The only thing we didn't take a look at here is `define-override`, which allows you to define override functions for your Qt classes. So, if you for example want to manually draw onto a widget you can override its `paintEvent` method using this.
 
