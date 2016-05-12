@@ -349,12 +349,18 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
         (#_hide helper))
       (setf *slime-fix-applied* T))))
 
-(defmacro with-main-window ((window instantiator &key name qapplication-args (blocking T) (main-thread T) (on-error '#'invoke-debugger) (show T)) &body body)
+(defmacro with-main-window ((window instantiator &key name
+                                                      qapplication-args
+                                                      (blocking T)
+                                                      (main-thread #+darwin T #-darwin NIL)
+                                                      (on-error '#'invoke-debugger)
+                                                      (show T)) &body body)
   "This is the main macro to start your application with.
 
 It does the following:
 1. Call ENSURE-QAPPLICATION with the provided NAME and QAPPLICATION-ARGS
 2. Run the following in the main thread through TMT:WITH-BODY-IN-MAIN-THREAD
+   if MAIN-THREAD is non-NIL and make it non-blocking if BLOCKING is NIL.
 3. Establish a handler for ERROR that calls the ON-ERROR function if hit.
 4. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
    (This means you can also just use the main window class' name)
