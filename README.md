@@ -17,6 +17,16 @@ The heavy lifting and ground-work that is required to interface with Smoke (and 
 Unfortunately, working with CommonQt itself is a bit awkward. While it offers everything you need, the way you have to make use of it is sub-par. Qtools attempts to help with this by offering another layer over CommonQt to smooth everything out. However, since you might not like certain parts of the Qtools ecosystem, it should be possible for you to only use the features you like, rather than being forced to use everything. So, you can always mix and match "plain" CommonQt and Qtools extensions.
 
 ## Getting Started
+### Qt
+In case you already know Qt, you may skip this part and go straight to the next section. I'll briefly explain some of the core Qt concepts and how they fit together. However, you should still read the [official Qt documentation](http://doc.qt.io/qt-4.8/) for anything that's left unclear.
+
+Since Qt is a C++ library it is heavily focused around classes and methods. At the top of the class hierarchy sits [QObject](http://doc.qt.io/qt-4.8/qobject.html). Almost all classes in Qt inherit from this. The more important one for us however is the [QWidget](http://doc.qt.io/qt-4.8/qwidget.html) class, which already gives you everything you need to get started. It can act as a window or be contained in other widgets. It has all the sizing mechanics and is properly hooked into the event system that allows you to catch when keys are pressed, the window is resized, and so forth.
+
+Usually you create your new widgets by subclassing something like QWidget and then overriding methods to do what you want or simply attach other widgets to it and connect them up so that they can communicate to each other via the signal system. Classes have slots and signals. Signals are a form of method signature that describe a list of arguments and their type. Slots are the corresponding methods that perform actions when a signal reaches them. Wiring things up functions by connecting a signal and a source instance to a slot and a target instance. When then a signal is signalled onto the source instance, the target instance's slot method is called.
+
+And that's pretty much all of the core mechanics that you need to know about. For everything else, you usually refer to the documentation page for the specific class involved and see what kind of methods or signals you can use to do what you want. Seriously, the docs are good. I use them constantly while developing.
+
+### Qtools
 Before getting started with explaining the details on the various parts of Qtools, I'll go through a basic project setup of a project using it.
 
 First you will want an ASDF system to define your project. In its dependencies it should contain `:qtools` and the smoke modules you require, usually just `:qtcore` and `:qtgui`.
