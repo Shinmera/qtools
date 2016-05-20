@@ -168,9 +168,6 @@ See QTOOLS:COMPILE-SMOKE-MODULE-SYSTEM-DEFINITION"
        (qthelp
         :depends-on (:qtcore :qtgui :qtsql)
         :library-files ("QtHelp"))
-       (qtmultimedia
-        :depends-on (:qtcore :qtgui)
-        :library-files ("QtMultimedia"))
        (qtnetwork
         :depends-on (:qtcore)
         :library-files ("QtNetwork"))
