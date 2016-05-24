@@ -94,6 +94,35 @@ This'll make the background of our window completely white. The important thing 
 
 A general note about developing with Qtools/CommonQt: While custom function bodies such as from qt-slots, overrides, initializers, and finalizers reside on the CL side and can thus be redefined at any time and take effect immediately, adding or removing qt-slots and overrides will not affect already created instances. This is to say, if you run your application and recompile your override, the effect will be visible immediately. But if you add a new slot, override, or signal, the existing instance will not have them. This is due to the fact that these things need to be tied to the C++ class, which will not update existing instances when it is changed, like CLOS usually does. This means that if you change a running widget by adding new components, you need to recreate or restart it to see the effects.
 
+## Deployment
+So, you've built a neat little Qt application and you would like to deploy it and ship it to people that aren't developers. For this, you will want to dump a binary and bundle it together with the necessary shared libraries. Qtools will take care of this for you, to the point where it becomes very trivial to do.
+
+You will need an ASDF system that compiles your program and add the following options to your system definition:
+
+    :defsystem-depends-on (:qtools)
+    :build-operation "qt-program-op"
+    :build-pathname "executable-name"
+    :entry-point "my-package:my-launch-function"
+
+You can change the string of `:build-pathname` to whatever pathname-name you'd like your executable to have. You should change the stirng of `:entry-point` to be a designator for an external symbol that is either your main window class name, or a function that handles the launching of your GUI.
+
+Once you have updated your ASD, you should launch a clean instance of your implementation from the command line -- make sure not to load slime or anything else that creates threads. Then simply invoke `(asdf:operate :build-op :system-name :force T)`. For sbcl, that would be:
+
+    sbcl --eval "(asdf:operate :build-op :system-name :force T)"
+
+This will compile your system, gather some info on it, copy the necessary shared libraries to the deployment folder, and finally dump an image with your system ready to go. It should put it all into a new `bin` folder within your project's root. If everything went right, you should be able to just launch the executable within and be greeted with your nice GUI. You can then just ZIP up the build folder and ship that-- it should contain all of the necessary shared library dependencies to run outside of your development environment.
+
+As an example for a working system that can be deployed, have a look at [halftone](https://github.com/shinmera/halftone) or [cl-gamepad-visualizer](https://github.com/shirakumo/cl-gamepad).
+
+For the case where you depend on further external libraries that are not managed by Qtools by default, you will need to tell Qtools about them so that it can deploy them alongside. To do this, use the `define-user-libs` macro. In the case of the cl-gamepad-visualizer, we depend on a library called "libstem-gamepad" which is managed by the library itself in a static folder. So, we just tell Qtools that it should look in that static folder and dump the CFFI library named `cl-gamepad-cffi:libstem-gamepad`.
+
+    (qtools:define-user-libs (libstem-gamepad cl-gamepad-cffi::*static*)
+      (cl-gamepad-cffi:libstem-gamepad))
+
+See the `define-user-libs` docstring for more information.
+
+For more customisation you can also add custom functions to be run at the individual stages by pushing the function onto the appropriate hooks variable, `*build-hooks*`, `*boot-hooks*`, and `*quit-hooks*`.
+
 ## Qtools Components
 
 ### Name Conversion

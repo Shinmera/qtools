@@ -139,6 +139,39 @@
 
 <p>A general note about developing with Qtools/CommonQt: While custom function bodies such as from qt-slots, overrides, initializers, and finalizers reside on the CL side and can thus be redefined at any time and take effect immediately, adding or removing qt-slots and overrides will not affect already created instances. This is to say, if you run your application and recompile your override, the effect will be visible immediately. But if you add a new slot, override, or signal, the existing instance will not have them. This is due to the fact that these things need to be tied to the C++ class, which will not update existing instances when it is changed, like CLOS usually does. This means that if you change a running widget by adding new components, you need to recreate or restart it to see the effects.</p>
 
+<h2>Deployment</h2>
+
+<p>So, you've built a neat little Qt application and you would like to deploy it and ship it to people that aren't developers. For this, you will want to dump a binary and bundle it together with the necessary shared libraries. Qtools will take care of this for you, to the point where it becomes very trivial to do.</p>
+
+<p>You will need an ASDF system that compiles your program and add the following options to your system definition:</p>
+
+<pre><code>:defsystem-depends-on (:qtools)
+:build-operation &quot;qt-program-op&quot;
+:build-pathname &quot;executable-name&quot;
+:entry-point &quot;my-package:my-launch-function&quot;
+</code></pre>
+
+<p>You can change the string of <code>:build-pathname</code> to whatever pathname-name you'd like your executable to have. You should change the stirng of <code>:entry-point</code> to be a designator for an external symbol that is either your main window class name, or a function that handles the launching of your GUI.</p>
+
+<p>Once you have updated your ASD, you should launch a clean instance of your implementation from the command line -- make sure not to load slime or anything else that creates threads. Then simply invoke <code>(asdf:operate :build-op :system-name :force T)</code>. For sbcl, that would be:</p>
+
+<pre><code>sbcl --eval &quot;(asdf:operate :build-op :system-name :force T)&quot;
+</code></pre>
+
+<p>This will compile your system, gather some info on it, copy the necessary shared libraries to the deployment folder, and finally dump an image with your system ready to go. It should put it all into a new <code>bin</code> folder within your project's root. If everything went right, you should be able to just launch the executable within and be greeted with your nice GUI. You can then just ZIP up the build folder and ship that-- it should contain all of the necessary shared library dependencies to run outside of your development environment.</p>
+
+<p>As an example for a working system that can be deployed, have a look at <a href="https://github.com/shinmera/halftone">halftone</a> or <a href="https://github.com/shirakumo/cl-gamepad">cl-gamepad-visualizer</a>.</p>
+
+<p>For the case where you depend on further external libraries that are not managed by Qtools by default, you will need to tell Qtools about them so that it can deploy them alongside. To do this, use the <code><a href="#QTOOLS:DEFINE-USER-LIBS">define-user-libs</a></code> macro. In the case of the cl-gamepad-visualizer, we depend on a library called &quot;libstem-gamepad&quot; which is managed by the library itself in a static folder. So, we just tell Qtools that it should look in that static folder and dump the CFFI library named <code>cl-gamepad-cffi:libstem-gamepad</code>.</p>
+
+<pre><code>(<a href="#QTOOLS:DEFINE-USER-LIBS">qtools:define-user-libs</a> (libstem-gamepad cl-gamepad-cffi::*static*)
+  (cl-gamepad-cffi:libstem-gamepad))
+</code></pre>
+
+<p>See the <code><a href="#QTOOLS:DEFINE-USER-LIBS">define-user-libs</a></code> docstring for more information.</p>
+
+<p>For more customisation you can also add custom functions to be run at the individual stages by pushing the function onto the appropriate hooks variable, <code><a href="#QTOOLS:*BUILD-HOOKS*">*build-hooks*</a></code>, <code><a href="#QTOOLS:*BOOT-HOOKS*">*boot-hooks*</a></code>, and <code><a href="#QTOOLS:*QUIT-HOOKS*">*quit-hooks*</a></code>.</p>
+
 <h2>Qtools Components</h2>
 
 <h3>Name Conversion</h3>
@@ -423,7 +456,9 @@
                         <span class="arguments">()</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">A list of functions to invoke (in sequence) during the warm-boot.
+
+Use this to run customised startup, prepare, or load functions.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:*BUILD-HOOKS*"/>
@@ -436,7 +471,9 @@
                         <span class="arguments">()</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">A list of functions to invoke (in sequence) during the build.
+
+Use this to run customised cleanup, compile, or deployment functions.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:*FOREIGN-LIBRARIES-TO-RELOAD*"/>
@@ -449,7 +486,9 @@
                         <span class="arguments">()</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">A list of CFFI libraries that need to be reloaded on boot.
+
+The system sets this variable itself during the build.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:*GENERATED-MODULES*"/>
@@ -554,7 +593,9 @@ See QTOOLS:COMPILE-WRAPPER</pre>
                         <span class="arguments">()</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">A list of functions to invoke (in sequence) when the program quits.
+
+Use this to run customised saving or cleanup functions.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:*SMOKE-MODULES*"/>
@@ -586,7 +627,9 @@ the PHONON module.</pre>
                         <span class="arguments">()</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">A list of smoke modules that need to be reloaded on boot.
+
+The system sets this variable itself during the build.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:*TARGET-PACKAGE*"/>
@@ -688,7 +731,10 @@ In order to retrieve the contained object, use UNBOX.</pre>
                         <span class="arguments">()</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">An ASDF:PROGRAM-OP subclass to handle things for Qt deployment.
+
+You should specify this as the BUILD-OPERATION in your ASD along with
+an ENTRY-POINT and a BUILD-PATHNAME.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:SMOKE-MODULE-SYSTEM"/>
@@ -766,8 +812,7 @@ In order to modify the metadata, please look at SET/REMOVE-WIDGET-CLASS-OPTION.<
                         <span class="arguments">()</span>
                       </code>
                     </header>
-                    <pre class="docstring">Error that is signalled when attempting to define a class with a Qt-superclass
-which is not possible to use with the given direct-superclasses due to a hierarchy clash.</pre>
+                    <pre class="docstring"/>
                   </article>
                 </li><li>
                   <a name="QTOOLS:CLASHING-QT-SUPERCLASS"/>
@@ -834,7 +879,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                         <span class="arguments">(OBJECT)</span>
                       </code>
                     </header>
-                    <pre class="docstring">Returns the PARENT object. This usually translates to (#_parent object) unless overridden.</pre>
+                    <pre class="docstring">accesses the PARENT of the object. This usually translates to (#_parent object) unless overridden.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:REQUESTED-QT-SUPERCLASS"/>
@@ -860,7 +905,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                         <span class="arguments">(NAME)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Accessor to the list of user libraries defined under the given name.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:VALUE"/>
@@ -873,7 +918,7 @@ See (SETF QTOOLS:METHOD-DECLARATION).</pre>
                         <span class="arguments">(OBJECT)</span>
                       </code>
                     </header>
-                    <pre class="docstring">Returns the VALUE of object. This usually translates to (#_value object) unless overridden.</pre>
+                    <pre class="docstring">Accesses the VALUE of the object. This usually translates to (#_value object) unless overridden.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:WIDGET-ACTIONS"/>
@@ -1177,7 +1222,7 @@ by EQT-TYPE-OF.</pre>
                         <span class="arguments">(QCLASS MAYBE-SUPERCLASS)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Returns T if MAYBE-SUPERCLASS is a direct superclass of QCLASS.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DISCOVER-FOREIGN-LIBRARY-LOCATION"/>
@@ -1190,7 +1235,29 @@ by EQT-TYPE-OF.</pre>
                         <span class="arguments">(LIB &amp;OPTIONAL SEARCH-PATHS)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Attempts to discover a path for the given library and search-paths.
+
+Aside from the explicitly passed search-paths, the following paths are
+automatically searched:
+  
+  CFFI:*FOREIGN-LIBRARY-DIRECTORIES*
+On UNIX:
+  LD_LIBRARY_PATH
+  /lib
+  /usr/lib
+  /usr/local/lib
+On DARWIN:
+  DYLD_LIBRARY_PATH
+On WINDOWS:
+  PATH
+  C:/Windows
+  C:/Windows/System32
+  C:/Windows/SysWOW64
+
+In order to avoid relisting big directories over and over during deployment
+the results of a directory listing are cached in *FOLDER-LISTING-CACHE*.
+A file matches if it matches the specified lib in both PATHNAME-NAME and
+PATHNAME-TYPE by EQUAL comparison.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DISPATCH-BY-QCLASS"/>
@@ -1203,7 +1270,16 @@ by EQT-TYPE-OF.</pre>
                         <span class="arguments">(METHOD-LOCATOR OBJECT &amp;REST ARGS)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Dispatches on the given-method locator by the object.
+
+The METHOD-LOCATOR should be a function of a single argument-- a qclass,
+which returns the appropriate method for that class or NIL if none.
+If the method-locator does not return a function for all classes in the
+precedence list for the object, NO-APPLICABLE-METHOD is called.
+
+This binds *QCLASS-PRECEDENCE-LIST*.
+
+See QCLASS-PRECEDENCE-LIST</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:ECL-TYPE-FOR"/>
@@ -1688,7 +1764,10 @@ See WRITE-EVERYTHING-TO-FILE</pre>
                         <span class="arguments">(QCLASS)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Returns the class precedence list for the given qclass.
+
+See *QCLASS-PRECEDENCE-LISTS*
+See COMPUTE-QCLASS-PRECEDENCE-LIST</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:QINSTANCEP"/>
@@ -1702,6 +1781,7 @@ See WRITE-EVERYTHING-TO-FILE</pre>
                       </code>
                     </header>
                     <pre class="docstring">Tests whether INSTANCE is an INSTANCE of CLASS.
+
 This includes subclasses, so a QSlider instance is also
 an instance of a QWidget and so forth.</pre>
                   </article>
@@ -1894,7 +1974,7 @@ See QTOOLS:ENSURE-CLASS</pre>
                         <span class="arguments">(NAME)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Remove the user libs defined under the given name.</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:REMOVE-WIDGET-CLASS-OPTION"/>
@@ -2434,7 +2514,31 @@ See PRINT-OBJECT</pre>
                         <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Defines a sort of generic function that dispatches by qclass.
+
+This can be used to write methods that dispatch as CLOS would, but on Qt
+internal classes. In specific, it defines the following things all in one:
+
+1. A variable *QCLASS-basename-FUNCTIONS* that contains all the methods you
+   define on the function.
+2. An accessor function QCLASS-basename-FUNCTION that takes a qclass and
+   accesses the appropriate method function.
+3. A function REMOVE-QCLASS-basename-FUNCTION to remove a method function.
+4. A macro DEFINE-QCLASS-basename-FUNCTION to define a method on the
+   qclass generic function. The macro will expect a qclass, a lambda-list,
+   and a body as arguments.
+5. A function DISPATCHER that is used as the &quot;generic function&quot;.
+
+Note that multiple-dispatch is not possible with this. Dispatch only ever
+happens on the first argument, which must be a qclass instance. There is
+also no method combination. Defining a second method on the same qclass will
+simply replace the old definition.
+
+However the local CALL-NEXT-METHOD and NEXT-METHOD-P functions are available
+in a method body.
+
+See GENERATE-QCLASS-DISPATCH-LAMBDA
+See DISPATCH-BY-QCLASS</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DEFINE-SIGNAL"/>
@@ -2540,7 +2644,30 @@ See QTOOLS:DEFINE-INITIALIZER</pre>
                         <span class="arguments">(&amp;REST ARGS)</span>
                       </code>
                     </header>
-                    <pre class="docstring"/>
+                    <pre class="docstring">Allows you to define custom user libraries to hook into the deployment system.
+
+If you have external libraries that are not provided by Qtools directly, you
+need to tell the system where to find them in order for it to be able to copy
+and load them properly during deployment.
+
+The basic layout of the macro is as follows:
+
+(define-user-libs (my-libs #p&quot;~/my-libs/&quot; #p&quot;/some/custom/path&quot;)
+  (cffi-lib-name)
+  (#p&quot;some_lib.so&quot;))
+
+This defines two new libraries under the MY-LIBS label. It tells the system
+that for both of them it should look in ~/my-libs and /some/custom/path.
+The first library is the CFFI library named CFFI-LIB-NAME. The second library
+is specified through an explicit pathname.
+
+If the system can find the libraries in the specified locations, it will copy
+them to the deployment directory and automatically load them if they were
+loaded at the time of dumping (which is usually the case for CFFI).
+
+See USER-LIBS
+See REMOVE-USER-LIBS
+See DISCOVER-FOREIGN-LIBRARY-LOCATION</pre>
                   </article>
                 </li><li>
                   <a name="QTOOLS:DEFINE-WIDGET"/>
