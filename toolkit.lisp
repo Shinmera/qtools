@@ -10,20 +10,17 @@
 ;;;;;
 ;; Qt Related Utils
 
-(defgeneric value (object)
-  (:documentation "Returns the VALUE of object. This usually translates to (#_value object) unless overridden."))
+(defgeneric value (object))
 
 (defmethod value ((object qobject))
   (#_value object))
 
-(defgeneric (setf value) (value object)
-  (:documentation "Sets the VALUE of object. This usually translates to (#_setValue object) unless overridden."))
+(defgeneric (setf value) (value object))
 
 (defmethod (setf value) (value (object qobject))
   (#_setValue object value))
 
-(defgeneric parent (object)
-  (:documentation "Returns the PARENT object. This usually translates to (#_parent object) unless overridden."))
+(defgeneric parent (object))
 
 (defmethod parent ((object qobject))
   (let ((o (#_parent object)))
@@ -38,12 +35,10 @@
   (setf (parent object) (null-qobject "QWidget")))
 
 (defun qobject-alive-p (object)
-  "Returns T if the object is not null and not deleted."
   (not (or (null-qobject-p object)
            (qobject-deleted object))))
 
 (defun maybe-delete-qobject (object)
-  "Deletes the object if possible."
   (if (typep object 'abstract-qobject)
       (when (qobject-alive-p object)
         #+:verbose (v:trace :qtools "Deleting QObject: ~a" object)
@@ -55,12 +50,6 @@
      (if (integerp b) b (qt:enum-value b))))
 
 (defmacro qtenumcase (keyform &body forms)
-  "Similar to CASE:
-
-KEYFORM  --- A form that evaluates to the key to compare against.
-CASES    ::= CASE*
-CASE     ::= (KEY form*)
-KEY      ::= (OR form*) | FORM | t | otherwise"
   (let ((key (gensym "KEY")))
     `(let ((,key ,keyform))
        (cond ,@(loop for (comp . form) in forms
@@ -73,9 +62,6 @@ KEY      ::= (OR form*) | FORM | t | otherwise"
                                     `((enum-equal ,key ,comp) ,@form))))))))
 
 (defmacro qtypecase (instance &body cases)
-  "Analogous to CL:TYPECASE, but for Qt classes.
-
-See QINSTANCEP"
   (let ((class (gensym "CLASS")))
     `(let ((,class (ensure-qclass ,instance)))
        (cond ,@(loop for (test . body) in cases
@@ -84,7 +70,6 @@ See QINSTANCEP"
                                  `((qinstancep ,class (eqt-class-name ',test)) ,@body)))))))
 
 (defun map-layout (function layout)
-  "Map all widgets and layouts on LAYOUT onto FUNCTION."
   (loop for i from 0
         for item = (#_itemAt layout i)
         until (null-qobject-p item)
@@ -94,26 +79,16 @@ See QINSTANCEP"
                                    layout widget)))))
 
 (defmacro do-layout ((widget layout) &body body)
-  "Iterate over all WIDGETs on LAYOUT."
   `(block NIL
      (map-layout (lambda (,widget) ,@body) ,layout)))
 
 (defun sweep-layout (layout)
-  "Removes all widgets from the layout and finalizes them."
   (loop for item = (#_takeAt layout 0)
         until (typep item 'null-qobject)
         do (#_removeItem layout item)
            (finalize (#_widget item))))
 
 (defun enumerate-method-descriptors (name args)
-  "Returns a list of all possible method descriptors with NAME and ARGS.
-Args may be either a list of direct types to use or a list of alternative types.
-In the case of lists, the argument alternatives are taken in parallel.
-
-Examples: 
- (.. foo '(a b)) => (\"foo(a,b)\")
- (.. foo '((a b))) => (\"foo(a)\" \"foo(b)\")
- (.. foo '((a b) (0 1))) => (\"foo(a,0)\" \"foo(b,1)\")"
   (flet ((make-map (args)
            (format NIL "~a(~{~a~^, ~})" name (mapcar #'to-type-name args))))
     (cond
@@ -124,12 +99,6 @@ Examples:
        (list (make-map args))))))
 
 (defun find-children (widget child-class &key first-only)
-  "Find all children that are an instance of CHILD-CLASS
-
-If FIRST-ONLY is non-NIL, only the first match is found, otherwise
-a list is returned.
-
-See QINSTANCEP"
   (let ((found ()))
     (labels ((test (widget)
                (unless (null-qobject-p widget)
@@ -145,9 +114,6 @@ See QINSTANCEP"
     (nreverse found)))
 
 (defun find-child (widget child-class)
-  "Find the first child that is an instance of CHILD-CLASS
-
-See FIND-CHILDREN"
   (find-children widget child-class :first-only T))
 
 ;;;;;
@@ -161,18 +127,12 @@ See FIND-CHILDREN"
     (qobject (qt::qobject-class thing))))
 
 (defun ensure-class (thing)
-  "Ensures to return a CLASS.
-SYMBOL -> FIND-CLASS
-CLASS  -> IDENTITY
-STANDARD-OBJECT -> CLASS-OF"
   (etypecase thing
     (symbol (find-class thing))
     (class thing)
     (standard-object (class-of thing))))
 
 (defmacro with-slots-bound ((instance class) &body body)
-  "Turns into a WITH-SLOTS with all direct-slots of CLASS.
-Class is resolved as per ENSURE-CLASS."
   (let ((slots (loop for slot in (c2mop:class-direct-slots
                                   (let ((class (ensure-class class)))
                                     (c2mop:finalize-inheritance class)
@@ -184,8 +144,6 @@ Class is resolved as per ENSURE-CLASS."
        ,@body)))
 
 (defmacro with-all-slots-bound ((instance class) &body body)
-  "Turns into a WITH-SLOTS with all slots of CLASS.
-Class is resolved as per ENSURE-CLASS."
   (let ((slots (loop for slot in (c2mop:class-slots
                                   (let ((class (ensure-class class)))
                                     (c2mop:finalize-inheritance class)
@@ -220,12 +178,6 @@ Class is resolved as per ENSURE-CLASS."
           collect (cons key val))))
 
 (defun split (list items &key (key #'identity) (test #'eql))
-  "Segregates items in LIST into separate lists if they mach an item in ITEMS.
-The first item in the returned list is the list of unmatched items.
-
-Example:
- (split '((0 a) (0 b) (1 a) (1 b) (2 c)) '(0 2) :key #'car)
- => '(((1 a) (1 b)) ((0 a) (0 b)) ((2 c))) "
   (loop with table = ()
         for item in list
         do (push item (getf table (find (funcall key item) items :test test)))
@@ -234,12 +186,10 @@ Example:
                                     collect (nreverse (getf table item)))))))
 
 (defmacro with-compile-and-run (&body body)
-  "Compiles BODY in a lambda and funcalls it."
   `(funcall
     (compile NIL `(lambda () ,,@body))))
 
 (defun maybe-unwrap-quote (thing)
-  "If it is a quote form, unwraps the contents. Otherwise returns it directly."
   (if (and (listp thing)
            (eql 'quote (first thing)))
       (second thing)
@@ -287,14 +237,9 @@ Example:
 (defvar *application-name* NIL)
 
 (defun default-application-name ()
-  "Attempts to find and return a default name to use for the application."
   (package-name *package*))
 
 (defun ensure-qapplication (&key name args (main-thread T))
-  "Ensures that the QT:*QAPPLICATION* is available, potentially using NAME and ARGS to initialize it.
-
-See QT:*QAPPLICATION*
-See QT:ENSURE-SMOKE"
   (unless qt:*qapplication*
     (setf *application-name* (or name *application-name* (default-application-name)))
     (let (#+sbcl (sb-ext:*muffled-warnings* 'style-warning)
@@ -314,9 +259,6 @@ See QT:ENSURE-SMOKE"
   qt:*qapplication*)
 
 (defun ensure-qobject (thing)
-  "Makes sure that THING is a usable qobject.
-
-If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
   (etypecase thing
     (qt:qobject thing)
     (widget thing)
@@ -355,21 +297,6 @@ If THING is a symbol, it attempts to use MAKE-INSTANCE with it."
                                                       (main-thread #+darwin T #-darwin NIL)
                                                       (on-error '#'invoke-debugger)
                                                       (show T)) &body body)
-  "This is the main macro to start your application with.
-
-It does the following:
-1. Call ENSURE-QAPPLICATION with the provided NAME and QAPPLICATION-ARGS
-2. Run the following in the main thread through TMT:WITH-BODY-IN-MAIN-THREAD
-   if MAIN-THREAD is non-NIL and make it non-blocking if BLOCKING is NIL.
-3. Establish a handler for ERROR that calls the ON-ERROR function if hit.
-4. Bind WINDOW to the result of INSTANTIATOR, passed through ENSURE-QOBJECT
-   (This means you can also just use the main window class' name)
-5. Evaluate BODY
-6. Call Q+:SHOW on WINDOW if SHOW is non-NIL
-7. Call Q+:EXEC on *QAPPLICATION*
-   This will enter the Qt application's main loop that won't exit until your
-   application terminates.
-8. Upon termination, call FINALIZE on WINDOW."
   (let ((bodyfunc (gensym "BODY"))
         (innerfunc (gensym "INNER"))
         (out (gensym "OUT")))

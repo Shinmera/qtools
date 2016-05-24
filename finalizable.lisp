@@ -8,8 +8,7 @@
 (named-readtables:in-readtable :qt)
 
 (defclass finalizable-class (standard-class)
-  ()
-  (:documentation "Metaclass for classes with finalizable slots."))
+  ())
 
 (defmethod c2mop:validate-superclass ((class finalizable-class) (superclass t))
   NIL)
@@ -24,8 +23,7 @@
   T)
 
 (defclass finalizable-slot ()
-  ((finalized :initarg :finalized :initform NIL :reader finalized))
-  (:documentation "Superclass for slots with a finalized option."))
+  ((finalized :initarg :finalized :initform NIL :reader finalized)))
 
 (defmethod print-object ((slot finalizable-slot) stream)
   (print-unreadable-object (slot stream :type T :identity T)
@@ -60,14 +58,9 @@
 
 (defclass finalizable ()
   ()
-  (:metaclass finalizable-class)
-  (:documentation "A class for finalizable objects."))
+  (:metaclass finalizable-class))
 
 (defmacro define-finalizable (name direct-superclasses direct-slots &rest options)
-  "Shorthand around DEFCLASS to create a finalizable class.
-
-Automatically adds FINALIZABLE as direct-superclass and 
-FINALIZABLE-CLASS as metaclass."
   (when (loop for name in direct-superclasses
               for superclass = (find-class name NIL)
               never (and superclass (c2mop:subclassp superclass (find-class 'finalizable))))
@@ -81,13 +74,6 @@ FINALIZABLE-CLASS as metaclass."
 (define-qclass-dispatch-function finalize finalize-qobject (instance))
 
 (defgeneric finalize (object)
-  (:documentation "Finalizes the object. The effects thereof may vary and even result in nothing at all.
-After FINALIZE has been called on an object, it should not be attempted to be used in any fashion
-whatsoever as it may have been rendered unusable or unstable.
-
-This method should be called on any object once it is known that it can be discarded.
-FINALIZE will then try to clean up objects and make sure that they don't clutter your
-memory, as lingering QOBJECTs would.")
   #+:verbose
   (:method :before (object)
     (v:trace :qtools "Finalizing ~s" object))
@@ -98,18 +84,6 @@ memory, as lingering QOBJECTs would.")
     (finalize-qobject object)))
 
 (defmacro define-finalize-method ((instance class) &body body)
-  "Defines a method to finalize an object of CLASS.
-CLASS can be either a common-lisp class type or a Qt class name.
-
-Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a FINALIZE-QCLASS method
-is defined on the respective qt-class. Otherwise a FINALIZE method
-is defined with the CLASS directly as specializer for the instance.
-
-In cases where you need to define a method on a same-named CL class,
-directly use DEFMETHOD on FINALIZE.
-
-See FINALIZE"
   (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
         `(define-qclass-finalize-function ,qt-class-name (,instance)
@@ -180,7 +154,6 @@ See FINALIZE"
   object)
 
 (defun describe-finalize-method (class)
-  "Prints information about the finalize method for the given class if possible."
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
                      (qclass-finalize-function qt-class-name)
@@ -211,15 +184,7 @@ See FINALIZE"
                  collect `(finalize ,temp))))))
 
 (defmacro with-finalizing (bindings &body body)
-  "Executes the body as by LET and calls FINALIZE on all the objects introduced by
-the bindings on completion of the body. If an error occurs during the binding phase,
-all objects bound up until that point are still finalized. Finalizing happens in
-reverse order of the bindings specified."
   (%build-with-finalizing-construct 'let bindings body))
 
 (defmacro with-finalizing* (bindings &body body)
-  "Executes the body as by LET* and calls FINALIZE on all the objects introduced by
-the bindings on completion of the body. If an error occurs during the binding phase,
-all objects bound up until that point are still finalized. Finalizing happens in
-reverse order of the bindings specified."
   (%build-with-finalizing-construct 'let* bindings body))

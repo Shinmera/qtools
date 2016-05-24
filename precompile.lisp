@@ -10,9 +10,6 @@
 ;; File processing
 
 (defun write-forms (stream)
-  "Writes all compileable forms to STREAM.
-
-See QTOOLS:MAP-COMPILE-ALL"
   (let ((i 0))
     (map-compile-all
      (lambda (form)
@@ -28,16 +25,6 @@ See QTOOLS:MAP-COMPILE-ALL"
     (format T "~&; ~d forms processed." i)))
 
 (defun write-everything-to-file (pathname &key (package *target-package*) (if-exists :supersede))
-  "Writes all compileable Qt method wrappers to PATHNAME.
-
-PACKAGE designates in which package the symbols will live.
-This makes it possible to deviate from the standard of
-*TARGET-PACKAGE*. The value of QTOOLS:*TARGET-PACKAGE*
-will be automatically set to this once the resulting file
-is LOADed or compiled again.
-
-See QTOOLS:WRITE-FORMS
-See QTOOLS:*TARGET-PACKAGE*"
   (let* ((package (cond ((typep package 'package) package)
                         ((find-package package) (find-package package))
                         (T (make-package package))))
@@ -63,10 +50,6 @@ See QTOOLS:*TARGET-PACKAGE*"
       pathname)))
 
 (defun q+-compile-and-load (&key modules (file (merge-pathnames "q+.lisp" (uiop:temporary-directory))))
-  "Writes, compiles, and loads the file for all generated Qt wrapper functions.
-If MODULES is passed, CommonQt is reloaded and only the given modules are loaded.
-
-See WRITE-EVERYTHING-TO-FILE"
   (when modules
     (qt::reload)
     (apply #'load-all-smoke-modules modules))
@@ -89,9 +72,7 @@ See WRITE-EVERYTHING-TO-FILE"
 
 (defclass smoke-module-system (asdf:system)
   ((smoke-module :accessor smoke-module :initarg :module :initform NIL)
-   (library-files :accessor library-files :initarg :library-files :initform NIL))
-  (:documentation "A wrapper ASDF system class that only exists to ensure that a
-given smoke module is loaded at compile and load time."))
+   (library-files :accessor library-files :initarg :library-files :initform NIL)))
 
 (defmethod asdf:perform ((op asdf:compile-op) (c smoke-module-system))
   (load-for-wrapper c))
@@ -100,9 +81,6 @@ given smoke module is loaded at compile and load time."))
   (load-for-wrapper c))
 
 (defun compile-smoke-module-system-definition (module &key depends-on library-files)
-  "Creates an ASDF:DEFSYSTEM form for the MODULE.
-
-See QTOOLS:SMOKE-MODULE-SYSTEM"
   `(asdf:defsystem ,(make-symbol (string-upcase module))
      :defsystem-depends-on (:qtools)
      :class "qtools::smoke-module-system"
@@ -118,9 +96,6 @@ See QTOOLS:SMOKE-MODULE-SYSTEM"
 
 (defun write-smoke-module-system-file (module &key depends-on library-files
                                                    (path (asdf:system-relative-pathname :qtools (format NIL "smoke/~(~a~).asd" module))))
-  "Writes a SMOKE-MODULE-SYSTEM form to the given PATH.
-
-See QTOOLS:COMPILE-SMOKE-MODULE-SYSTEM-DEFINITION"
   (with-open-file (stream path :direction :output :if-exists :supersede)
     (let ((*package* (find-package :cl-user))
           (*print-case* :downcase)

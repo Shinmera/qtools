@@ -10,32 +10,10 @@
 (define-qclass-dispatch-function copy copy-qobject (instance))
 
 (defgeneric copy (instance)
-  (:documentation "Generates a copy of the object.
-
-The way objects are copied varies, but usually it can be assumed that the
-copy is made in a way such that data immediately associated with the object
-is copied (such as pixel data in an image), but data only implicitly
-referenced (such as the paint device of a painter) is not.
-
-Use DESCRIBE-COPY-METHOD for information on a specific copying mechanism.
-
-Uses COPY-QOBJECT-USING-CLASS and determines the class by QT::QOBJECT-CLASS.")
   (:method (instance)
     (copy-qobject instance)))
 
 (defmacro define-copy-method ((instance class) &body body)
-  "Defines a method to copy an object of CLASS.
-CLASS can be either a common-lisp class type or a Qt class name.
-
-Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a QCLASS-COPY method
-is defined on the respective qt-class. Otherwise a COPY method
-is defined with the CLASS directly as specializer for the instance.
-
-In cases where you need to define a method on a same-named CL class,
-directly use DEFMETHOD on COPY-QOBJECT.
-
-See COPY-QOBJECT"
   (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
         `(define-qclass-copy-function ,qt-class-name (,instance)
@@ -120,7 +98,6 @@ See COPY-QOBJECT"
   (make-gc-finalized (copy (unbox instance))))
 
 (defun describe-copy-method (class)
-  "Prints information about the copy method for the specified class if possible."
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
                      (qclass-copy-function qt-class-name)

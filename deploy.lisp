@@ -277,7 +277,6 @@
                      #+(and sbcl os-windows) :application-type #+(and sbcl os-windows) :gui)))
 
 (defun build-qt-system (system &rest keys &key force force-not verbose version &allow-other-keys)
-  "Shorthand for `(operate 'asdf:qt-program-op system)`. See OPERATE for details."
   (declare (ignore force force-not verbose version))
   (apply 'asdf:operate 'qt-program-op system keys)
   T)

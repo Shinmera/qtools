@@ -31,7 +31,8 @@
                (:file "generate")
                (:file "dynamic")
                (:file "precompile")
-               (:file "deploy"))
+               (:file "deploy")
+               (:file "documentation"))
   :depends-on (:qt-libs
                :cl-ppcre
                :closer-mop
@@ -39,4 +40,5 @@
                :named-readtables
                :trivial-indent
                :trivial-garbage
-               :trivial-main-thread))
+               :trivial-main-thread
+               :documentation-utils))

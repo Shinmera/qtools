@@ -819,27 +819,17 @@
     "QXmlStreamNamespaceDeclaration"
     "QXmlStreamNotationDeclaration"
     "QXmlStreamReader"
-    "QXmlStreamWriter")
-  "A vector of all Qt4.8 class names as strings.")
+    "QXmlStreamWriter"))
 
 (defvar *qt-class-map* (let ((table (make-hash-table :test 'equalp :size (length *qt-class-vector*))))
                          (loop for class across *qt-class-vector*
                                do (setf (gethash class table) class))
-                         table)
-  "An EQUALP hash-table of all Qt4.8 class names to themselves as strings.")
+                         table))
 
 (defun find-qt-class-name (designator)
-  "Returns the string designating an equivalent Qt class. You can use this to resolve
-symbols and 'lisp-ified' names to Qt class names. Hyphens are stripped from the designator.
-
-See *QT-CLASS-MAP*"
   (gethash (cl-ppcre:regex-replace-all "-" (string designator) "") *qt-class-map*))
 
 (defun eqt-class-name (designator)
-  "Returns the string designating an equivalent Qt class, if possible.
-If the designator is a string, it is returned immediately without further check.
-If it is a symbol, it is resolved through FIND-QT-CLASS-NAME, and if no name can
-be found through that, an error is signalled."
   (etypecase designator
     (string designator)
     (symbol (or (find-qt-class-name designator)

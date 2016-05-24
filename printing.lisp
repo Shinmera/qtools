@@ -34,18 +34,6 @@ Uses PRINT-OBJECT-USING-QCLASS and determines the class by QT::QOBJECT-CLASS."
     (print-unreadable-qobject (instance stream :type T :identity T))))
 
 (defmacro define-print-method ((instance class stream) &body body)
-  "Defines a method to print an object of CLASS.
-CLASS can be either a common-lisp class type or a Qt class name.
-
-Qt class names will take precedence, meaning that if CLASS resolves
-to a name using FIND-QT-CLASS-NAME a QCLASS-PRINT method
-is defined on the respective qt-class. Otherwise a PRINT-OBJECT method
-is defined with the CLASS directly as specializer for the instance.
-
-In cases where you need to define a method on a same-named CL class,
-directly use DEFMETHOD on PRINT-OBJECT.
-
-See PRINT-OBJECT"
   (let ((qt-class-name (find-qt-class-name class)))
     (if qt-class-name
         `(define-qclass-print-function ,qt-class-name (,instance ,stream)
@@ -75,7 +63,6 @@ See PRINT-OBJECT"
     (format stream "~s ~s ~s ~s ~s ~s" :r (#_red instance) :g (#_green instance) :b (#_blue instance))))
 
 (defun describe-print-method (class)
-  "Prints information about the print method for the specified class if possible."
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
                      (qclass-print-function qt-class-name)

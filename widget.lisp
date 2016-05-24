@@ -13,68 +13,24 @@
    (direct-initializers :initform () :initarg :initializers :accessor widget-class-direct-initializers)
    (direct-finalizers :initform () :initarg :finalizers :accessor widget-class-direct-finalizers)
    (initializers :initform () :accessor widget-class-initializers)
-   (finalizers :initform () :accessor widget-class-finalizers))
-  (:documentation "Metaclass for widgets storing necessary information.
-
-The metadata stored in this is mostly responsible for two things:
- 1) Providing access to a sequence of mutually independent
-    initializers and finalizers for convenient setup and cleanup.
- 2) Allowing after-the-fact out-of-form changes to the class
-    definition, which is necessary to have for a distributed
-    definition form syntax as provided by WIDGET-CONVENIENCE macros.
-In order to modify the metadata, please look at SET/REMOVE-WIDGET-CLASS-OPTION."))
-
-(setf (documentation 'widget-class-direct-options 'function)
-      "Contains all the options passed to RE/INITIALIZE-INSTANCE when
-the class is re/initialized directly through a DEFCLASS form.")
-(setf (documentation 'widget-class-extern-options 'function)
-      "Contains all the options that are added to the class definition
-through external forms and thus need to be included and kept separate
-from options directly specified in the class definition.")
-(setf (documentation 'widget-class-initializers 'function)
-      "A sorted list of functions to be called upon initialization.
-This list is overwritten completely whenever the class is re/initialized.
-
-See QTOOLS:CALL-INITIALIZERS")
-(setf (documentation 'widget-class-finalizers 'function)
-      "A sorted list of functions to be called upon finalization.
-This list is overwritten completely whenever the class is re/initialized.
-
-See QTOOLS:CALL-FINALIZERS")
+   (finalizers :initform () :accessor widget-class-finalizers)))
 
 (defclass widget (finalizable)
   ()
   (:metaclass widget-class)
-  (:qt-superclass "QObject")
-  (:documentation "Common superclass for all widgets in order to allow for
-general initialization and cleanup forms that are standardised across all
-widgets. 
-
-See QTOOLS:DEFINE-WIDGET."))
+  (:qt-superclass "QObject"))
 
 (defun call-initializers (class)
-  "Calls all the initializers specified on CLASS in their proper sequence.
-
-CLASS can be either an instance of a WIDGET-CLASS, a
-WIDGET-CLASS itself, or a symbol naming the class."
   (mapc #'(lambda (function) (funcall (third function) class))
         (widget-class-initializers (ensure-class class)))
   class)
 
 (defun call-finalizers (class)
-  "Calls all the finalizers specified on CLASS in their proper sequence.
-
-CLASS can be either an instance of a WIDGET-CLASS, a
-WIDGET-CLASS itself, or a symbol naming the class."
   (mapc #'(lambda (function) (funcall (third function) class))
         (widget-class-finalizers (ensure-class class)))
   class)
 
-(defgeneric construct (widget)
-  (:documentation "This method is called during the initialization of a widget instance.
-It MUST call QT:NEW on the widget at some point. Its primary
-purpose is to give the user some way to manipulate which arguments
-are passed to QT:NEW. By default, no arguments are passed."))
+(defgeneric construct (widget))
 
 (defmethod construct ((widget widget))
   (new widget))
@@ -94,12 +50,9 @@ are passed to QT:NEW. By default, no arguments are passed."))
    (clashing-qt-superclass :initarg :clashing-qt-superclass :accessor clashing-qt-superclass)
    (clashing-superclass :initarg :clashing-superclass :accessor clashing-superclass))
   (:report (lambda (c s) (format s "Cannot use ~a as Qt-superclass, ~&because it is not a Qt-subclass of ~a which is a ~&transitive Qt-superclass of the ~a direct-superclass."
-                                 (qclass-name (requested-qt-superclass c)) (qclass-name (clashing-qt-superclass c)) (class-name (clashing-superclass c)))))
-  (:documentation "Error that is signalled when attempting to define a class with a Qt-superclass
-which is not possible to use with the given direct-superclasses due to a hierarchy clash."))
+                                 (qclass-name (requested-qt-superclass c)) (qclass-name (clashing-qt-superclass c)) (class-name (clashing-superclass c))))))
 
 (defun check-qt-superclass-compatibility (qt-superclass direct-superclasses)
-  "Check whether the given QT-SUPERCLASS is permissible given the DIRECT-SUPERCLASSES."
   (let* ((qt-superclass (ensure-qclass qt-superclass))
          (class-precedence (qclass-precedence-list qt-superclass)))
     (labels ((check (class direct)
@@ -117,10 +70,6 @@ which is not possible to use with the given direct-superclasses due to a hierarc
         (check class class)))))
 
 (defun setup-widget-class (class next-method &rest options &key direct-superclasses qt-superclass initializers finalizers (save-direct-options T) (constructor () c-p) &allow-other-keys)
-  "This function should not be called directly, but is instead invoked by the appropriate functions
-such as INITIALIZE-INSTANCE, REINITIALIZE-INSTANCE, and SOFTLY-REDEFINE-WIDGET-CLASS. In brief,
-it concerns itself with proper option merging and filtering before passing it on to the CommonQt
-and CLOS methods that process them."
   (declare (ignore initializers finalizers))
   (check-qt-superclass-compatibility (first qt-superclass) direct-superclasses)
   (let ((original-options (copy-list options)))
@@ -180,11 +129,6 @@ and CLOS methods that process them."
   (cascade-option-changes class))
 
 (defun softly-redefine-widget-class (class)
-  "Cause a soft redefinition of the given CLASS.
-
-This will in effect cause a call to REINITIALIZE-INSTANCE with the proper
-class options added from WIDGET-CLASS-DIRECT-OPTIONS, followed by a
-FINALIZE-INHERITANCE call on the class."
   (let ((class (ensure-class class)))
     #+:verbose (v:debug :qtools.widget "Softly redefining widget class ~s" class)
     ;; Press new options into the class definition
@@ -194,23 +138,10 @@ FINALIZE-INHERITANCE call on the class."
     class))
 
 (defun widget-class-option-p (class option value &key (key #'first) (test #'equal))
-  "Tests if OPTION VALUE is already present on CLASS.
-Returns the full option value if it can be found.
-
-See QTOOLS:SET-WIDGET-CLASS-OPTION"
   (let ((idents (getf (widget-class-extern-options (ensure-class class)) option)))
     (find (funcall key value) idents :key key :test test)))
 
 (defun set-widget-class-option (class option value &key (key #'first) (test #'equal))
-  "Sets a CLASS OPTION VALUE.
-
-The value is identified and distinguished within the OPTION list
-by TEST on KEY. If a matching list can be found, it is replaced
-at the same position. Otherwise it is appended to the end of the
-list. The order here is important to preserve load-order.
-
-See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
-See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
   (let* ((identifier (funcall key value))
          (class (ensure-class class))
          (idents (getf (widget-class-extern-options class) option)))
@@ -226,14 +157,6 @@ See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
     (softly-redefine-widget-class class)))
 
 (defun remove-widget-class-option (class option identifier &key (key #'first) (test #'equal))
-  "Removes a CLASS OPTION value.
-
-The value is identified and distinguished within the OPTION list
-by TEST on KEY. If the first item in the sub-list is EQUAL to IDENTIFIER,
-it is removed. This causes a call to SOFTLY-REDEFINE-WIDGET-CLASS.
-
-See QTOOLS:WIDGET-CLASS-EXTERN-OPTIONS.
-See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
   (let ((class (ensure-class class)))
     (setf (getf (widget-class-extern-options class) option)
           (remove identifier (getf (widget-class-extern-options class) option)
@@ -241,15 +164,6 @@ See QTOOLS:SOFTLY-REDEFINE-WIDGET-CLASS."
     (softly-redefine-widget-class class)))
 
 (defmacro define-widget (name (qt-class &rest direct-superclasses) direct-slots &rest options)
-  "Shorthand over DEFCLASS.
-
-Adds WIDGET as direct-superclass if it does not appear as a
-superclass to the specified direct-superclasses. Sets 
-WIDGET-CLASS as metaclass and qt-class as the qt-superclass 
-after resolving it through FIND-QT-CLASS-NAME.
-
-All options are fused as per FUSE-ALISTS. You may therefore use
-the same form multiple times."
   (when (loop for super in direct-superclasses
               never (c2mop:subclassp (find-class super) (find-class 'widget)))
     (push 'widget direct-superclasses))

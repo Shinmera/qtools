@@ -10,53 +10,20 @@
 (defvar *method*)
 (defvar *method-declarations* (make-hash-table :test 'eql))
 
-(setf (documentation '*method* 'variable)
-      "Contains the whole DEFMETHOD form that is currently being processed.
-If you modify the contents of this variable, the changes will be reflected
-in the outputted method definition form. However, no declaration that is
-processed by method-declarations will ever appear in the output.")
-
 (defun method-declaration (name)
-  "Returns a function to process the method declaration NAME, if one exists.
-
-See (SETF QTOOLS:METHOD-DECLARATION)."
   (gethash name *method-declarations*))
 
 (defun (setf method-declaration) (function name)
-  "Sets the FUNCTION to be used to process method declarations of NAME.
-The arguments of the function should parse the inner of the declaration.
-E.g: (declare (foo bar baz)) could be captured by (a &optional b) with
-A=>BAR, B=>BAZ. During evaluation of the function, the special variable
-*METHOD* will be bound.
-
-See QTOOLS:*METHOD*."
   (setf (gethash name *method-declarations*) function))
 
 (defun remove-method-declaration (name)
-  "Remove the method declaration processor function of NAME."
   (remhash name *method-declarations*))
 
 (defmacro define-method-declaration (name args &body body)
-  "Define a new method declaration function of NAME.
-
-See (SETF QTOOLS:METHOD-DECLARATION)."
   `(setf (method-declaration ',name)
          #'(lambda ,args ,@body)))
 
 (defmacro cl+qt:defmethod (&whole whole name &rest args)
-  "Defines a new method.
-
-This is identical to CL:DEFMETHOD with one exception:
-The only difference is that declarations are scanned and
-potentially specially processed. If a declaration is
-recognised through METHOD-DECLARATION, it is taken out of
-the method definition. The declaration processor function
-then may or may not cause side-effects or spit out
-additional forms to be output alongside the CL:DEFMETHOD
-form.
-
-See CL:DEFMETHOD.
-See QTOOLS:METHOD-DECLARATION."
   (declare (ignore args))
   ;; Split multi-specifier declarations into singulars.
   (let ((all-declarations (loop for form in (form-fiddle:lambda-declarations whole)
@@ -87,8 +54,6 @@ See QTOOLS:METHOD-DECLARATION."
            ,*method*)))))
 
 (defmacro with-widget-class ((variable &optional (method '*method*)) &body body)
-  "Binds VARIABLE to the current symbol name of the widget class as used as a specializer in the method arguments list.
-This also signals errors if there is no such specializer or if it is invalid."
   `(let ((,variable (second (first (form-fiddle:lambda-lambda-list ,method)))))
      (assert (not (null ,variable)) () "Method must have a primary specializer.")
      (assert (not (listp ,variable)) () "Primary specializer cannot be an EQL-specializer.")
