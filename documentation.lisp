@@ -884,6 +884,10 @@ KEY      ::= (OR form*) | FORM | t | otherwise")
 
 See QINSTANCEP")
 
+  (function qclass=case
+    "Similar to QTYPECASE, but only supports equality comparisons with classes, not subtype relations.
+You should use this if you care about reasonably performant class type comparisons.")
+
   (function map-layout
     "Map all widgets and layouts on LAYOUT onto FUNCTION.")
 

@@ -122,6 +122,7 @@
    #:maybe-delete-qobject
    #:qtenumcase
    #:qtypecase
+   #:qclass=case
    #:map-layout
    #:do-layout
    #:sweep-layout

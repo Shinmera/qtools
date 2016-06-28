@@ -69,6 +69,18 @@
                                  `(T ,@body)
                                  `((qinstancep ,class (eqt-class-name ',test)) ,@body)))))))
 
+(defmacro qclass=case (instance &body cases)
+  (let ((class (gensym "CLASS")))
+    `(let ((,class (qt::qobject-class ,instance)))
+       (declare (type fixnum ,class))
+       (cond ,@(loop for (class . body) in cases
+                     collect (if (find class '(T :otherwise))
+                                 `(T ,@body)
+                                 `((= ,class (the fixnum (load-time-value
+                                                          (qt:find-qclass 
+                                                           (eqt-class-name ',class)))))
+                                   ,@body)))))))
+
 (defun map-layout (function layout)
   (loop for i from 0
         for item = (#_itemAt layout i)
