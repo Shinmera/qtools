@@ -73,12 +73,12 @@
   (let ((class (gensym "CLASS")))
     `(let ((,class (qt::qobject-class ,instance)))
        (declare (type fixnum ,class))
-       (cond ,@(loop for (class . body) in cases
-                     collect (if (find class '(T :otherwise))
+       (cond ,@(loop for (case . body) in cases
+                     collect (if (find case '(T :otherwise))
                                  `(T ,@body)
                                  `((= ,class (the fixnum (load-time-value
                                                           (qt:find-qclass 
-                                                           (eqt-class-name ',class)))))
+                                                           (eqt-class-name ',case)))))
                                    ,@body)))))))
 
 (defun map-layout (function layout)
