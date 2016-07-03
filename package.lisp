@@ -82,7 +82,8 @@
    #:process-all-methods
    #:ensure-methods-processed
    #:compile-wrapper
-   #:map-compile-all)
+   #:map-compile-all
+   #:q+apropos)
   ;; precompile.lisp
   (:export
    #:write-everything-to-file

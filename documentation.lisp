@@ -682,6 +682,19 @@ See QTOOLS:COMPILE-METHOD")
 See QTOOLS:COMPILE-WRAPPER
 See QTOOLS:*QMETHODS*")
 
+  (function q+apropos
+    "Searches for Q+ functions that match the term given.
+
+This function is useful to determine the proper converted name for a method or
+enum, or to generally discover methods if you cannot recall what it was called
+exactly.
+
+This calls ENSURE-METHODS-PROCESSED before performing the search to ensure the
+method cache is fully populated according to the currently loaded modules.
+
+See QTOOLS:ENSURE-METHODS-PROCESSED
+See QTOOLS:*QMETHODS*")
+
   (function generate-method-docstring
     "Generates a docstring that references all the Qt methods that a wrapper function can be used for.")
 

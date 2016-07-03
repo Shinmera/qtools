@@ -221,6 +221,15 @@
   (loop for name being the hash-keys of *qmethods*
         do (funcall function (compile-wrapper name))))
 
+(defun q+apropos (term)
+  (ensure-methods-processed)
+  (loop for k being the hash-keys of *qmethods*
+        do (when (search term (string k) :test (lambda (a b)
+                                                 (or (char-equal a b)
+                                                     (and (find a "-_ ")
+                                                          (find b "-_ ")))))
+             (print k))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILERS
 
