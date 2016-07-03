@@ -687,10 +687,18 @@ See QTOOLS:*QMETHODS*")
 
 This function is useful to determine the proper converted name for a method or
 enum, or to generally discover methods if you cannot recall what it was called
-exactly.
+exactly. You can separate terms by a space and only methods that match each
+individual term will be shown. Matches are case-insensitive and ignore hyphens
+as well as underscores and dots.
 
-This calls ENSURE-METHODS-PROCESSED before performing the search to ensure the
-method cache is fully populated according to the currently loaded modules.
+Example: (q+apropos \"qimage format\")
+
+Q+::QIMAGE.FORMAT_INVALID
+...
+
+This function calls ENSURE-METHODS-PROCESSED before performing the search to
+ensure the method cache is fully populated according to the currently loaded
+ modules.
 
 See QTOOLS:ENSURE-METHODS-PROCESSED
 See QTOOLS:*QMETHODS*")

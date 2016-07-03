@@ -223,12 +223,13 @@
 
 (defun q+apropos (term)
   (ensure-methods-processed)
-  (loop for k being the hash-keys of *qmethods*
-        do (when (search term (string k) :test (lambda (a b)
-                                                 (or (char-equal a b)
-                                                     (and (find a "-_ ")
-                                                          (find b "-_ ")))))
-             (print k))))
+  (flet ((strip (string)
+           (cl-ppcre:regex-replace-all "[\\-_\\.]" string "")))
+    (let ((terms (cl-ppcre:split " +" (strip term))))
+      (loop for k being the hash-keys of *qmethods*
+            for method = (strip (string k))
+            do (when (every (lambda (term) (search term method :test #'char-equal)) terms)
+                 (print k))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILERS
