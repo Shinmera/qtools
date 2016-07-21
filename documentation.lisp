@@ -1080,6 +1080,13 @@ is wrapped in a WITH-SLOTS-BOUND form, so all slots are conveniently available.
 
 See QTOOLS:DEFINE-INITIALIZER")
 
+  (function define-subobject
+    "Alias for DEFINE-SUBWIDGET
+
+This is merely here for clarity.
+
+See QTOOLS:DEFINE-SUBOBJECT")
+
   (function remove-slot
     "Removes the SLOT definition from the WIDGET-CLASS.
 
@@ -1355,4 +1362,11 @@ WIDGET-CLASS as metaclass and qt-class as the qt-superclass
 after resolving it through FIND-QT-CLASS-NAME.
 
 All options are fused as per FUSE-ALISTS. You may therefore use
-the same form multiple times."))
+the same form multiple times.")
+
+  (function define-object
+    "Alias for DEFINE-WIDGET.
+
+This is merely here for clarity.
+
+See QTOOLS:DEFINE-WIDGET"))

@@ -183,6 +183,14 @@
        (&whole 2 (&whole 0 0 &rest 2))
        &rest (&whole 2 2 &rest (&whole 2 2 4 &body))))
 
+(defmacro define-object (name (qt-class &rest direct-superclasses) direct-slots &rest options)
+  `(define-widget ,name (,qt-class ,@direct-superclasses) ,direct-slots ,@options))
+
+(indent:define-indentation define-object
+    (4 (&whole 6 &rest)
+       (&whole 2 (&whole 0 0 &rest 2))
+       &rest (&whole 2 2 &rest (&whole 2 2 4 &body))))
+
 ;; Widgets are not qobject instances, but they often exhibit
 ;; a value method, so provide a default here.
 (defmethod value ((widget widget))

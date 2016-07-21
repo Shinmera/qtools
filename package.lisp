@@ -163,7 +163,8 @@
    #:requested-qt-superclass
    #:clashing-qt-superclass
    #:clashing-superclass
-   #:define-widget)
+   #:define-widget
+   #:define-object)
   ;; widget-convenience.lisp
   (:export
    #:define-slot
@@ -172,6 +173,7 @@
    #:define-finalizer
    #:define-signal
    #:define-subwidget
+   #:define-subobject
    #:remove-slot
    #:remove-override
    #:remove-initializer
