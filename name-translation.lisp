@@ -54,9 +54,11 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         ((string-equal qt-type "string") 'string)
         ((string-equal qt-type "const QWidget&") 'qt-widget)
         ((string-equal qt-type "QWidget&") 'qt-widget)
+        ((string-equal qt-type "QWidget*") 'qt-widget)
         ((string-equal qt-type "QWidget") 'qt-widget)
         ((string-equal qt-type "const QObject&") 'qobject)
         ((string-equal qt-type "QObject&") 'qobject)
+        ((string-equal qt-type "QObject*") 'qobject)
         ((string-equal qt-type "QObject") 'qobject)))
 
 (defun eqt-type-of (object)
