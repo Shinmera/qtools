@@ -133,7 +133,7 @@
   (cffi:with-foreign-pointer (data (length vector))
     (loop for i from 0 below (length vector)
           do (setf (cffi:mem-aref data :uchar i) (aref vector i)))
-    (q+:make-qbytearray data (length vector))))
+    (#_new QByteArray data (length vector))))
 
 ;;;;;
 ;; General utils
