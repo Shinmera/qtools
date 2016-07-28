@@ -50,6 +50,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
         ((string-equal qt-type "char") 'character)
         ((string-equal qt-type "const QString&") 'string)
         ((string-equal qt-type "QString&") 'string)
+        ((string-equal qt-type "QString*") 'string)
         ((string-equal qt-type "QString") 'string)
         ((string-equal qt-type "string") 'string)
         ((string-equal qt-type "const QWidget&") 'qt-widget)

@@ -62,6 +62,10 @@ Uses PRINT-OBJECT-USING-QCLASS and determines the class by QT::QOBJECT-CLASS."
   (print-unreadable-qobject (instance stream :type T :identity T)
     (format stream "~s ~s ~s ~s ~s ~s" :r (#_red instance) :g (#_green instance) :b (#_blue instance))))
 
+(define-print-method (instance QUrl stream)
+  (print-unreadable-qobject (instance stream :type T :identity T)
+    (format stream "~s" (#_toString instance))))
+
 (defun describe-print-method (class)
   (let* ((qt-class-name (find-qt-class-name class))
          (method (if qt-class-name
