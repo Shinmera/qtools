@@ -128,6 +128,13 @@
 (defun find-child (widget child-class)
   (find-children widget child-class :first-only T))
 
+(defun to-qbyte-array (vector)
+  (declare (type (vector (unsigned-byte 8)) vector))
+  (cffi:with-foreign-pointer (data (length vector))
+    (loop for i from 0 below (length vector)
+          do (setf (cffi:mem-aref data :uchar i) (aref vector i)))
+    (q+:make-qbytearray data (length vector))))
+
 ;;;;;
 ;; General utils
 

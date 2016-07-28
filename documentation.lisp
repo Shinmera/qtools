@@ -941,6 +941,9 @@ See QINSTANCEP")
 
 See FIND-CHILDREN")
 
+  (function to-qbyte-array
+    "Translates an unsigned-byte 8 vector into a QByteArray.")
+
   (function ensure-class
     "Ensures to return a CLASS.
 SYMBOL -> FIND-CLASS

@@ -130,6 +130,7 @@
    #:enumerate-method-descriptors
    #:find-children
    #:find-child
+   #:to-qbyte-array
    #:ensure-qclass
    #:ensure-class
    #:with-slots-bound
