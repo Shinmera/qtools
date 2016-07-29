@@ -310,30 +310,55 @@
         (#_hide helper))
       (setf *slime-fix-applied* T))))
 
+(defmacro with-traps-masked (&body body)
+  #+sbcl `(sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
+            ,@body)
+  #-sbcl `(progn ,@body))
+
+(defun main-window-exec (window &key name
+                                     qapplication-args
+                                     (blocking T)
+                                     (main-thread #+darwin T #-darwin NIL)
+                                     (on-error #'invoke-debugger)
+                                     (show T)
+                                     (finalize T)
+                                     (before-exec #'identity)
+                                     (after-exec #'identity))
+  (labels ((main ()
+             (ensure-qapplication :name name :args qapplication-args :main-thread NIL)
+             (let ((window (ensure-qobject window)))
+               (handler-bind ((error on-error))
+                 #+(and swank windows) (fix-slime)
+                 (unwind-protect
+                      (progn
+                        (funcall before-exec window)
+                        (when show (#_show window))
+                        (#_exec *qapplication*)
+                        (funcall after-exec window))
+                   (when finalize (finalize window)))))))
+    (if main-thread
+        (let ((out *standard-output*))
+          (tmt:with-body-in-main-thread (:blocking blocking)
+            (let ((*standard-output* out))
+              (with-traps-masked (main)))))
+        (with-traps-masked (main)))))
+
 (defmacro with-main-window ((window instantiator &key name
                                                       qapplication-args
                                                       (blocking T)
                                                       (main-thread #+darwin T #-darwin NIL)
                                                       (on-error '#'invoke-debugger)
-                                                      (show T)) &body body)
-  (let ((bodyfunc (gensym "BODY"))
-        (innerfunc (gensym "INNER"))
-        (out (gensym "OUT")))
-    `(labels ((,bodyfunc ()
-                (ensure-qapplication :name ,name :args ,qapplication-args :main-thread NIL)
-                (handler-bind ((error ,on-error))
-                  #+(and swank windows) (fix-slime)
-                  (with-finalizing ((,window (ensure-qobject ,instantiator)))
-                    ,@body
-                    (when ,show (#_show ,window))
-                    (#_exec *qapplication*))))
-              (,innerfunc ()
-                #+sbcl (sb-int:with-float-traps-masked (:underflow :overflow :invalid :inexact)
-                         (,bodyfunc))
-                #-sbcl (,bodyfunc)))
-       ,(if main-thread
-            `(let ((,out *standard-output*))
-               (tmt:with-body-in-main-thread (:blocking ,blocking)
-                 (let ((*standard-output* ,out))
-                   (,innerfunc))))
-            `(,innerfunc)))))
+                                                      (show T)
+                                                      (finalize T)
+                                                      (body :before-exec)) &body forms)
+  (ecase body ((:before-exec :after-exec)))
+  `(main-window-exec ,instantiator :name ,name
+                                   :qapplication-args ,qapplication-args
+                                   :blocking ,blocking
+                                   :main-thread ,main-thread
+                                   :on-error ,on-error
+                                   :show ,show
+                                   :finalize ,finalize
+                                   ,body (lambda (,window)
+                                           (declare (ignorable ,window))
+                                           ,@forms)))
