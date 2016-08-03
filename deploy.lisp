@@ -10,7 +10,7 @@
 (defvar *smoke-modules-to-reload* ())
 (defvar *build-hooks* (list 'prune-image))
 (defvar *boot-hooks* (list 'boot-foreign-libraries))
-(defvar *quit-hooks* (list 'prune-foreign-libraries))
+(defvar *quit-hooks* (list))
 (defvar *folder-listing-cache* (make-hash-table :test 'equal))
 (defvar *user-libs* ())
 
