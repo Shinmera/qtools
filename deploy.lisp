@@ -180,10 +180,11 @@
   (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
     ;; Reload libcommonqt core safely
     (qt-libs:load-libcommonqt :force T)
-    ;; Reload our modules
-    (dolist (mod *smoke-modules-to-reload*)
-      (status 1 "Loading smoke module ~a." mod)
-      (asdf:load-system mod :force T))
+    ;; Reload our modules, but without ASDF trying to probe the damn files.
+    (let ((asdf:*system-definition-search-functions* ()))
+      (dolist (mod *smoke-modules-to-reload*)
+        (status 1 "Loading smoke module ~a." mod)
+        (asdf:load-system mod :force T)))
     ;; Reload Q+
     (process-all-methods)
     (status 0 "Running boot hooks.")
