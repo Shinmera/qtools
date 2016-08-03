@@ -61,10 +61,9 @@
 
 (defun load-for-wrapper (c)
   (dolist (lib (library-files c))
-    (let ((realfile (qt-lib-generator:shared-library-file :name lib)))
-      (cffi:load-foreign-library
-       #-windows realfile #+windows (make-pathname :name (format NIL "~a4" (pathname-name realfile)) :defaults realfile)
-       :search-path qt-libs:*standalone-libs-dir*)))
+    (let* ((realfile (qt-lib-generator:shared-library-file :name lib))
+           (realfile #-windows realfile #+windows (make-pathname :name (format NIL "~a4" (pathname-name realfile)) :defaults realfile)))
+      (qt-libs:ensure-lib-loaded realfile)))
   (etypecase (smoke-module c)
     ((or symbol string) (load-all-smoke-modules (smoke-module c)))
     (list (apply #'load-all-smoke-modules (smoke-module c))))
