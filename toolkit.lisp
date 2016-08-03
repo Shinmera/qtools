@@ -279,6 +279,7 @@
 
 (defun ensure-qobject (thing)
   (etypecase thing
+    (function (ensure-qobject (funcall thing)))
     (qt:qobject thing)
     (widget thing)
     (symbol (make-instance thing))))
@@ -352,13 +353,14 @@
                                                       (finalize T)
                                                       (body :before-exec)) &body forms)
   (ecase body ((:before-exec :after-exec)))
-  `(main-window-exec ,instantiator :name ,name
-                                   :qapplication-args ,qapplication-args
-                                   :blocking ,blocking
-                                   :main-thread ,main-thread
-                                   :on-error ,on-error
-                                   :show ,show
-                                   :finalize ,finalize
-                                   ,body (lambda (,window)
-                                           (declare (ignorable ,window))
-                                           ,@forms)))
+  `(main-window-exec (lambda () ,instantiator)
+                     :name ,name
+                     :qapplication-args ,qapplication-args
+                     :blocking ,blocking
+                     :main-thread ,main-thread
+                     :on-error ,on-error
+                     :show ,show
+                     :finalize ,finalize
+                     ,body (lambda (,window)
+                             (declare (ignorable ,window))
+                             ,@forms)))
