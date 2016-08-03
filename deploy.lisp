@@ -183,7 +183,7 @@
     ;; Reload our modules
     (dolist (mod *smoke-modules-to-reload*)
       (status 1 "Loading smoke module ~a." mod)
-      (qt:ensure-smoke mod))
+      (asdf:load-system mod :force T))
     ;; Reload Q+
     (process-all-methods)
     (status 0 "Running boot hooks.")
