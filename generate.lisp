@@ -190,7 +190,8 @@
 
 (defun ensure-methods-processed ()
   (unless (equal (loaded-smoke-modules) *generated-modules*)
-    (process-all-methods)))
+    (process-all-methods)
+    (repopulate-class-map)))
 
 (defun ensure-methods (method)
   (or (etypecase method

@@ -6,6 +6,13 @@
 
 (in-package #:org.shirakumo.qtools)
 
+;; The reason why we're keeping a constant list is due to
+;; backwards compatibility. Since CommonQt does not load the
+;; libraries until run-time, we cannot construct the list
+;; dynamically as it is needed at compile-time to resolve the
+;; names in class definitions.
+;; This problem would not exist if everybody was forced to
+;; use the smoke asdf systems.
 (defvar *qt-class-vector*
   #("QAbstractAnimation"
     "QAbstractButton"
@@ -834,3 +841,11 @@
     (string designator)
     (symbol (or (find-qt-class-name designator)
                 (error "No corresponding Qt class found for ~s." designator)))))
+
+(defun repopulate-class-map ()
+  (qt::map-classes
+   (lambda (class)
+     (let ((name (qt::qclass-name class)))
+       (setf (gethash name *qt-class-map*) name)))
+   T)
+  *qt-class-map*)
