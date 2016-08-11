@@ -100,6 +100,16 @@
    #:keychord-editor)
   ;; name-translation.lisp
   (:export
+   #:define-translator
+   #:translate-name
+   #:define-simple-translator
+   #:define-1->1-translator
+   #:cffi
+   #:stack-item
+   #:type
+   #:class
+   #:qtype
+   #:qclass
    #:to-method-name
    #:qt-type-of
    #:qt-type-for

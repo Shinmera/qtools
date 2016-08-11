@@ -720,6 +720,71 @@ See QTOOLS:*QMETHODS*")
 
 ;; name-translation.lisp
 (docs:define-docs
+  (variable *translators*
+    "An ordered list of name translators.
+
+See TRANSLATOR
+See REMOVE-TRANSLATOR")
+
+  (type translator
+    "Translator data type class holding the name, priority, and translation function.
+
+See TRANSLATOR")
+
+  (function translator
+    "Accessor to retrieve or update/add a translator function.
+
+The SETF variant takes an additional, optional argument that sets the translator's priority.
+Higher priority numbers get considered first.
+
+See TRANSLATOR
+See REMOVE-TRANSLATOR
+See DEFINE-TRANSLATOR
+See *TRANSLATORS*")
+
+  (function remove-translator
+    "Removes the translator by the given name.
+
+See TRANSLATOR
+See *TRANSLATORS*")
+
+  (function translate-name
+    "Translates the given name to the requested type, if possible.
+
+When ERROR-P is T and no translation can be found, an error is signalled.
+Otherwise in that case NIL is returned.
+
+See TRANSLATOR")
+
+  (function define-translator
+    "Define a translator function.
+
+A translator takes a name and should translate it to the requested type of name if it can.
+If it cannot, then it should simply return NIL, otherwise the translated name.
+
+See TRANSLATOR")
+
+  (function define-simple-translator
+    "Define a translator function for a singular type.
+
+In addition to defining a standard translator, this constructs a name out of the given
+type as well as its name. This makes it possible to use the same name in the definition
+for multiple types of translators.
+
+See DEFINE-TRANSLATOR")
+
+  (function define-1->1-translator
+    "Defines a translator for a one to one mapping.
+
+The match is compared to the inputted name by STRING-EQUAL by default. A different
+comparison function can be specified through the TEST keyword argument. This function
+receives the given name to be translated as the first argument and the match as the
+second.
+
+The match is used as the name after being interned.
+
+See DEFINE-SIMPLE-TRANSLATOR")
+  
   (function to-method-name
     "Turns THING into a Qt method name.
 If THING is a STRING, it is returned directly.
