@@ -410,6 +410,77 @@ with SETF to use CL:SETF instead of CL+QT:SETF.
 
 See CL:FDEFINITION."))
 
+;; fast-call.lisp
+(docs:define-docs
+  (function with-call-stack
+    "Binds a populated stack area to be used in a fast-call.
+
+ARGS            ::= ARG*
+ARG             ::= (value stack-item-type)
+value           --- The value to be used at the stack position.
+stack-item-type --- It must be a symbol from the CommonQt StackItem union.
+
+The stack is populated in the order of the arguments. The values must be
+already of their proper types to be used for SETF CFFI:FOREIGN-SLOT-VALUE.
+You may use TRANSLATE-NAME STACK-ITEM to translate a common type name to
+the appropriate CommonQt StackItem union value.
+
+See FAST-DIRECT-CALL
+See FAST-CALL")
+
+  (function fast-direct-call
+    "Directly calls the given Qt class method on the given object using the
+specified STACK as arguments to supply to the method.
+
+Note that METHOD must be an existing Qt method number, OBJECT must be a
+pointer to a class instance that is compatible with the method, and STACK
+must be a pointer to an argument stack, preferably created through
+WITH-CALL-STACK.
+
+See WITH-CALL-STACK
+See FAST-CALL")
+
+  (function find-fastcall-method
+    "Attempts to find a matching method on the class.
+
+This is done by iterating over all methods that match the name and comparing
+the belonging class and its argument types. If you specify an argument type
+that is unknown, an error will be signalled. If no matching method can be
+found, NIL is returned.
+
+See FAST-CALL
+See ENSURE-Q+-METHOD")
+
+  (function fast-call
+    "Performs a fast call on a given method.
+
+This is useful if performance really matters and you have to minimise FFI
+call overhead. In exchange it is required that you specify the exact method
+signature you want to call and provide all arguments prepared in their proper
+types as no marshalling will be done. FAST-CALL also will not read out the
+return value.
+
+METHOD-DESCRIPTOR ::= (name class-name arg-type*)
+object            --- The instance of the class to call a method on.
+                      Must match the given class-name.
+args              --- The arguments to call the method with. Their types
+                      must match the ones given in the arg-types and must
+                      be prepared. Especially objects must be translated
+                      to pointers manually. See QT::QOBJECT-POINTER.
+name              --- The Q+ name of the method being called.
+class-name        --- The Qt class name of the class the method belongs to.
+
+At compile time a matching method number is searched for using
+FIND-FASTCALL-METHOD. If no method can be found that matches the class,
+name, and argument types, an error is signalled.
+The fast call procedure creates a stack for the arguments by WITH-CALL-STACK.
+It then uses FAST-DIRECT-CALL on the found method number, class, and
+stack to perform the actual call to the method.
+
+See FIND-FASTCALL-METHOD
+See FAST-DIRECT-CALL
+See WITH-CALL-STACK"))
+
 ;; finalizable.lisp
 (docs:define-docs
   (type finalizable-class

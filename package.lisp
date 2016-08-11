@@ -47,6 +47,12 @@
    #:q+
    #:q+fun
    #:fsetf)
+  ;; fast-call.lisp
+  (:export
+   #:with-call-stack
+   #:fast-direct-call
+   #:find-fastcall-method
+   #:fast-call)
   ;; finalizable.lisp
   (:export
    #:finalizable-class

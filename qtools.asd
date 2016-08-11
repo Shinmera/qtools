@@ -32,6 +32,7 @@
                (:file "dynamic")
                (:file "precompile")
                (:file "deploy")
+               (:file "fast-call")
                (:file "documentation"))
   :depends-on (:qt-libs
                :cl-ppcre
