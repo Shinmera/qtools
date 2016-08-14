@@ -18,9 +18,11 @@
   (setf method-name (or method-name (intern (format NIL "%~a-SLOT-~a" widget-class slot) *package*)))
   `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
                                                                         for type = (or (third arg)
-                                                                                       (cl-type-for (or (second arg)
-                                                                                                        (error "Qt type specifier required for ~s"
-                                                                                                               (first arg))))
+                                                                                       (translate-name
+                                                                                        (or (second arg)
+                                                                                            (error "Qt type specifier required for ~s"
+                                                                                                   (first arg)))
+                                                                                        'class NIL)
                                                                                        (emit-compilation-note
                                                                                         "Unable to determine CL-type of ~s for argument ~s, falling back to T."
                                                                                         (second arg) (first arg)))
