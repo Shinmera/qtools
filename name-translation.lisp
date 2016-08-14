@@ -31,7 +31,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (defun translate-name (name type &optional (error-p T))
   (or (loop for translator in *translators*
-            thereis (funcall translator name type))
+            thereis (funcall (translation translator) name type))
       (when error-p
         (error "Don't know how to translate ~a to ~a." name type))))
 
@@ -113,7 +113,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
       (qt::qtype-stack-item-slot type))))
 
 (defun substring-type-p (test type)
-  (search (string type) test))
+  (search (string type) (string test)))
 
 (define-1->1-translator type "bool" boolean)
 (define-1->1-translator type "char" (signed-byte 8))
@@ -172,7 +172,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (define-1->1-translator qtype string "const QString&" :test #'subtypep)
 (define-1->1-translator qtype qobject "const QObject&" :test #'subtypep)
 (define-simple-translator (qtype qtype -10) (type)
-  (when (qt::find-qtype type)
+  (when (qt::find-qtype (string type))
     type))
 
 (define-simple-translator (qclass qclass) (name)
