@@ -121,7 +121,8 @@
   (setf qt:*qapplication* NIL)
   ;; Force CommonQt to forget all prior information it might have had.
   (qt::reload)
-  #+:verbose (v:remove-global-controller)
+  (when (find-package :verbose)
+    (funcall (find-symbol (string :remove-global-controller) :verbose)))
   (prune-local-paths)
   (prune-foreign-libraries))
 
