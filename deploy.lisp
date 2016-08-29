@@ -100,9 +100,7 @@
   (delete-package package))
 
 (defun prune-local-paths ()
-  (setf cffi:*foreign-library-directories*
-        (delete qt-libs:*standalone-libs-dir* cffi:*foreign-library-directories*
-                :test #'uiop:pathname-equal))
+  (setf cffi:*foreign-library-directories* ())
   (setf qt-libs:*standalone-libs-dir* ".")
   (setf *folder-listing-cache* NIL)
   (setf *user-libs* NIL))
@@ -182,6 +180,7 @@
     (setf qt-libs:*standalone-libs-dir*
           (uiop:truenamize (uiop:pathname-directory-pathname (uiop:argv0)))))
   (status 1 "Standalone in ~a" qt-libs:*standalone-libs-dir*)
+  (qt-libs:setup-paths)
   (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
     ;; Reload libcommonqt core safely
     (qt-libs:load-libcommonqt :force T)
