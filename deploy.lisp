@@ -213,7 +213,10 @@
   ;; application. I can't decide that for them, so we leave
   ;; the possibility open.
   (restart-case
-      (progn
+      (handler-bind ((error (lambda (err)
+                              (unless (equalp "1" (uiop:getenv "QTOOLS_DEBUG_BOOT"))
+                                (status 0 "Encountered unhandled error: ~a" err)
+                                (invoke-restart 'exit)))))
         (warmly-boot)
         (status 0 "Launching application.")
         (funcall entry-point)
