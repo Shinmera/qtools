@@ -9,7 +9,7 @@
 (defvar *foreign-libraries-to-reload* ())
 (defvar *smoke-modules-to-reload* ())
 (defvar *build-hooks* (list 'prune-image))
-(defvar *boot-hooks* (list 'boot-foreign-libraries))
+(defvar *boot-hooks* (list))
 (defvar *quit-hooks* (list))
 (defvar *folder-listing-cache* (make-hash-table :test 'equal))
 (defvar *user-libs* ())
@@ -109,7 +109,8 @@
 
 (defun prune-foreign-libraries ()
   (dolist (lib (cffi:list-foreign-libraries))
-    (let ((name (cffi:foreign-library-name lib)))
+    (let ((name (cffi:foreign-library-name lib))
+          #+sbcl(sb-ext:*muffled-warnings* 'style-warning))
       (when (cffi:foreign-library-loaded-p lib)
         (status 1 "Closing foreign library ~a." name)
         (cffi:close-foreign-library name)))))
@@ -175,7 +176,8 @@
 
 (defun warmly-boot ()
   (status 0 "Performing warm boot.")
-  #+:verbose (v:restart-global-controller)
+  (when (find-package :verbose)
+    (funcall (find-symbol (string :restart-global-controller) :verbose)))
   (when (uiop:argv0)
     (setf qt-libs:*standalone-libs-dir*
           (uiop:pathname-directory-pathname (uiop:argv0))))
@@ -189,6 +191,8 @@
         (asdf:load-system mod :force T)))
     ;; Reload Q+
     (process-all-methods)
+    (status 0 "Reloading foreign libraries.")
+    (boot-foreign-libraries)
     (status 0 "Running boot hooks.")
     (mapc #'funcall *boot-hooks*)))
 
