@@ -198,7 +198,9 @@
 
 (defun quit ()
   (status 0 "Running quit hooks.")
-  (mapc #'funcall *quit-hooks*)
+  (dolist (hook *quit-hooks*)
+    (handler-case (funcall hook)
+      (error (err) (status 1 "Error running ~a: ~a" hook err))))
   (qt:optimized-delete qt:*qapplication*)
   (uiop:finish-outputs)
   #+sbcl (sb-ext:exit :timeout 1)
