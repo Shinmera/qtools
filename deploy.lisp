@@ -30,7 +30,7 @@
     (cond (cons
            (setf (cdr cons) libs))
           (*user-libs*
-           (setf (cdr (last *user-libs*)) (cons name libs)))
+           (setf (cdr (last *user-libs*)) (list (cons name libs))))
           (T
            (setf *user-libs* (list (cons name libs)))))))
 
