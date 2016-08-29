@@ -181,6 +181,7 @@
   (when (uiop:argv0)
     (setf qt-libs:*standalone-libs-dir*
           (uiop:pathname-directory-pathname (uiop:argv0))))
+  (status 1 "Standalone in ~a" qt-libs:*standalone-libs-dir*)
   (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
     ;; Reload libcommonqt core safely
     (qt-libs:load-libcommonqt :force T)
