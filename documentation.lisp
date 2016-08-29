@@ -83,6 +83,11 @@ Use this to run customised startup, prepare, or load functions.")
     "A list of functions to invoke (in sequence) when the program quits.
 
 Use this to run customised saving or cleanup functions.")
+
+  (variable *deployment-location*
+    "Variable containing the path to the directory that is being deployed to.
+
+This is bound when *BOOT-HOOKS* functions are called.")
   
   (function build-qt-system
     "Shorthand for `(operate 'asdf:qt-program-op system)`. See OPERATE for details.")

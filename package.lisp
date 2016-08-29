@@ -27,6 +27,7 @@
    #:*build-hooks*
    #:*boot-hooks*
    #:*quit-hooks*
+   #:*deployment-location*
    #:user-libs
    #:remove-user-libs
    #:define-user-libs

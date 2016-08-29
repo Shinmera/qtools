@@ -13,6 +13,7 @@
 (defvar *quit-hooks* (list))
 (defvar *folder-listing-cache* (make-hash-table :test 'equal))
 (defvar *user-libs* ())
+(defvar *deployment-location* NIL)
 
 (defun status (level format-string &rest format-args)
   (format T "~& ~a ~?~%" (case level
@@ -252,30 +253,29 @@
     (append user-libs other-libs)))
 
 (defmethod asdf:perform ((o qt-program-op) (c asdf:system))
-  (status 0 "Gathering system information.")
-  (setf *smoke-modules-to-reload* (loaded-smoke-modules))
-  (setf *foreign-libraries-to-reload* (compute-libraries-to-reload))
-  (status 1 "Will load the following smoke modules on boot: ~s" *smoke-modules-to-reload*)
-  (status 1 "Will load the following foreign libs on boot:  ~s" *foreign-libraries-to-reload*)
-  (status 0 "Copying necessary libraries.")
-  (let ((target (uiop:pathname-directory-pathname
-                 (first (asdf:output-files o c)))))
-    (deploy-foreign-libraries (system-required-libs) target)
-    (deploy-foreign-libraries (user-libs-paths) target))
-  (status 0 "Running build hooks.")
-  (mapc #'funcall *build-hooks*)
-  (status 0 "Dumping image.")
-  (let ((file (first (asdf:output-files o c))))
-    #+(and windows ccl)
-    (ccl:save-application file
-                          :prepend-kernel T :purify T
-                          :application-type :gui
-                          :toplevel-function #'uiop:restore-image)
-    #-(and windows ccl)
-    (uiop:dump-image file
-                     :executable T
-                     #+sb-core-compression :compression #+sb-core-compression T
-                     #+(and sbcl os-windows) :application-type #+(and sbcl os-windows) :gui)))
+  (let ((*deployment-location* (uiop:pathname-directory-pathname (first (asdf:output-files o c)))))
+    (status 0 "Gathering system information.")
+    (setf *smoke-modules-to-reload* (loaded-smoke-modules))
+    (setf *foreign-libraries-to-reload* (compute-libraries-to-reload))
+    (status 1 "Will load the following smoke modules on boot: ~s" *smoke-modules-to-reload*)
+    (status 1 "Will load the following foreign libs on boot:  ~s" *foreign-libraries-to-reload*)
+    (status 0 "Copying necessary libraries.")
+    (deploy-foreign-libraries (system-required-libs) *deployment-location*)
+    (deploy-foreign-libraries (user-libs-paths) *deployment-location*)
+    (status 0 "Running build hooks.")
+    (mapc #'funcall *build-hooks*)
+    (status 0 "Dumping image.")
+    (let ((file (first (asdf:output-files o c))))
+      #+(and windows ccl)
+      (ccl:save-application file
+                            :prepend-kernel T :purify T
+                            :application-type :gui
+                            :toplevel-function #'uiop:restore-image)
+      #-(and windows ccl)
+      (uiop:dump-image file
+                       :executable T
+                       #+sb-core-compression :compression #+sb-core-compression T
+                       #+(and sbcl os-windows) :application-type #+(and sbcl os-windows) :gui))))
 
 (defun build-qt-system (system &rest keys &key force force-not verbose version &allow-other-keys)
   (declare (ignore force force-not verbose version))
