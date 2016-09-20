@@ -166,6 +166,9 @@
        (qtwebkit
         :depends-on (:qtcore :qtgui)
         :library-files ("QtWebKit"))
+       (qwt
+        :depends-on (:qtcore :qtgui)
+        :library-files "qwt-qt4")
        (qtxmlpatterns
         :depends-on (:qtcore :qtxml :qtnetwork)
         :library-files ("QtXmlPatterns"))
