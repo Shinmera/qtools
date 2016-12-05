@@ -18,6 +18,6 @@
   :module
   "QWT"
   :library-files
-  "qwt-qt4"
+  ("qwt")
   :depends-on
   (:qtcore :qtgui)) 
