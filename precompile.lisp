@@ -58,8 +58,24 @@
 
 ;;;;;
 ;; ASDF components
+(defun get-platform-dependencies (c)
+  (let ((dependencies (getf (dependencies c)
+                            #+windows :win
+                            #+linux :lin
+                            #+darwin :mac
+                            :none)))
+    (unless (eql dependencies :none)
+      (return-from get-platform-dependencies dependencies)))
+  (let ((dependencies (getf (dependencies c)
+                            T
+                            :none)))
+    (unless (eql dependencies :none)
+      (return-from get-platform-dependencies dependencies)))
+  (error "~a cannot be loaded on this platform." c))
 
 (defun load-for-wrapper (c)
+  (dolist (dep (get-platform-dependencies c))
+    (asdf:load-system dep))
   (dolist (lib (library-files c))
     (qt-libs:ensure-lib-loaded lib))
   (etypecase (smoke-module c)
@@ -69,7 +85,8 @@
 
 (defclass smoke-module-system (asdf:system)
   ((smoke-module :accessor smoke-module :initarg :module :initform NIL)
-   (library-files :accessor library-files :initarg :library-files :initform NIL)))
+   (library-files :accessor library-files :initarg :library-files :initform NIL)
+   (dependencies :accessor dependencies :initarg :dependencies :initform '(T ()))))
 
 (defmethod asdf:perform ((op asdf:compile-op) (c smoke-module-system))
   (load-for-wrapper c))
@@ -77,7 +94,7 @@
 (defmethod asdf:perform ((op asdf:load-op) (c smoke-module-system))
   (load-for-wrapper c))
 
-(defun compile-smoke-module-system-definition (module &key depends-on library-files)
+(defun compile-smoke-module-system-definition (module &key dependencies library-files)
   `(asdf:defsystem ,(make-symbol (string-upcase module))
      :defsystem-depends-on (:qtools)
      :class "qtools::smoke-module-system"
@@ -89,87 +106,90 @@
                            module)
      :module ,(string-upcase module)
      :library-files ,library-files
-     :depends-on ,depends-on))
+     :dependencies ,dependencies))
 
-(defun write-smoke-module-system-file (module &key depends-on library-files
+(defun write-smoke-module-system-file (module &key (dependencies '(T ())) library-files
                                                    (path (asdf:system-relative-pathname :qtools (format NIL "smoke/~(~a~).asd" module))))
   (with-open-file (stream path :direction :output :if-exists :supersede)
     (let ((*package* (find-package :cl-user))
           (*print-case* :downcase)
           (*print-pretty* T))
       (print '(in-package #:cl-user) stream)
-      (print (compile-smoke-module-system-definition module :depends-on depends-on
+      (print (compile-smoke-module-system-definition module :dependencies dependencies
                                                             :library-files library-files)
              stream)))
   path)
 
-;; Manually gathered from LDD information about the libraries
+;; Manually gathered from ldd/otool/depwalker information about the libraries
 (defun generate-smoke-module-systems ()
   (macrolet ((g (&body defs)
-               `(progn
+               `(list
                   ,@(loop for def in defs
-                          collect (destructuring-bind (module &key depends-on library-files) def
+                          collect (destructuring-bind (module &key (dependencies '(T ())) library-files) def
                                     
                                     `(write-smoke-module-system-file
-                                      ',module :depends-on ',depends-on
+                                      ',module :dependencies ',dependencies
                                                :library-files ',library-files))))))
     (g (phonon
-        :depends-on (:qtcore :qtgui)
+        :dependencies (:win (:qtcore :qtgui)
+                       :lin (:qtcore :qtgui :qtdbus :qtxml)
+                       :mac (:qtcore :qtgui :qtdbus :qtxml))
         :library-files ("phonon"))
        (qimageblitz
-        :depends-on (:qtcore :qtgui)
+        :dependencies (T (:qtcore :qtgui))
         :library-files ("qimageblitz"))
        (qsci
-        :depends-on (:qtcore :qtgui)
+        :dependencies (T (:qtcore :qtgui))
         :library-files ("qscintilla2"))
        (qt3support
-        :depends-on (:qtnetwork :qtsql :qtxml :qtgui :qtcore)
+        :dependencies (T (:qtcore :qtgui :qtxml :qtnetwork :qtsql))
         :library-files ("Qt3Support"))
        (qtcore
-        :depends-on ()
         :library-files ("QtCore"))
        (qtdbus
-        :depends-on (:qtcore)
+        :dependencies (:lin (:qtcore :qtxml)
+                       :mac (:qtcore :qtxml))
         :library-files ("QtDBus"))
        (qtdeclarative
-        :depends-on (:qtcore :qtgui :qtnetwork :qtscript)
+        :dependencies (T (:qtcore :qtgui :qtnetwork :qtscript :qtsql :qtxmlpatterns))
         :library-files ("QtDeclarative"))
        (qtgui
-        :depends-on (:qtcore)
+        :dependencies (T (:qtcore))
         :library-files ("QtGui"))
        (qthelp
-        :depends-on (:qtcore :qtgui :qtsql)
-        :library-files ("QtHelp"))
+        :dependencies (T (:qtcore :qtgui :qtnetwork :qtsql))
+        :library-files ("QtHelp" "QtCLucene"))
        (qtnetwork
-        :depends-on (:qtcore)
+        :dependencies (T (:qtcore))
         :library-files ("QtNetwork"))
        (qtopengl
-        :depends-on (:qtcore :qtgui)
+        :dependencies (T (:qtcore :qtgui))
         :library-files ("QtOpenGL"))
        (qtscript
-        :depends-on (:qtcore)
+        :dependencies (T (:qtcore))
         :library-files ("QtScript"))
        (qtsql
-        :depends-on (:qtcore :qtgui)
+        :dependencies (T (:qtcore :qtgui))
         :library-files ("QtSql"))
        (qtsvg
-        :depends-on (:qtcore :qtgui)
+        :dependencies (T (:qtcore :qtgui))
         :library-files ("QtSvg"))
        (qttest
-        :depends-on (:qtcore :qtgui)
+        :dependencies (T (:qtcore :qtgui))
         :library-files ("QtTest"))
        (qtuitools
-        :depends-on (:qtcore :qtgui)
-        :library-files ())
+        :dependencies (T (:qtcore :qtgui)))
        (qtwebkit
-        :depends-on (:qtcore :qtgui)
+        :dependencies (T (:qtcore :qtgui :qtnetwork))
         :library-files ("QtWebKit"))
        (qwt
-        :depends-on (:qtcore :qtgui)
+        :dependencies (:win (:qtcore :qtgui :qtsvg)
+                       :lin (:qtcore :qtgui)
+                       :mac (:qtcore :qtgui))
         :library-files ("qwt"))
        (qtxmlpatterns
-        :depends-on (:qtcore :qtxml :qtnetwork)
+        :dependencies (T (:qtcore :qtnetwork))
         :library-files ("QtXmlPatterns"))
        (qtxml
-        :depends-on (:qtcore)
+        :dependencies (T (:qtcore))
         :library-files ("QtXml")))))

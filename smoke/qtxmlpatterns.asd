@@ -19,5 +19,5 @@
   "QTXMLPATTERNS"
   :library-files
   ("QtXmlPatterns")
-  :depends-on
-  (:qtcore :qtxml :qtnetwork)) 
+  :dependencies
+  (t (:qtcore :qtnetwork))) 

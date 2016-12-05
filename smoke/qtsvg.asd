@@ -19,5 +19,5 @@
   "QTSVG"
   :library-files
   ("QtSvg")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui))) 

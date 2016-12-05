@@ -19,5 +19,5 @@
   "QTSCRIPT"
   :library-files
   ("QtScript")
-  :depends-on
-  (:qtcore)) 
+  :dependencies
+  (t (:qtcore))) 

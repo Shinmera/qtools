@@ -19,5 +19,5 @@
   "QTWEBKIT"
   :library-files
   ("QtWebKit")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui :qtnetwork))) 

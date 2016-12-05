@@ -19,5 +19,5 @@
   "QTGUI"
   :library-files
   ("QtGui")
-  :depends-on
-  (:qtcore)) 
+  :dependencies
+  (t (:qtcore))) 

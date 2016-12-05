@@ -19,5 +19,5 @@
   "QTTEST"
   :library-files
   ("QtTest")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui))) 

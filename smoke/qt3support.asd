@@ -19,5 +19,5 @@
   "QT3SUPPORT"
   :library-files
   ("Qt3Support")
-  :depends-on
-  (:qtnetwork :qtsql :qtxml :qtgui :qtcore)) 
+  :dependencies
+  (t (:qtcore :qtgui :qtxml :qtnetwork :qtsql))) 

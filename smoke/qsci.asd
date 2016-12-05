@@ -19,5 +19,5 @@
   "QSCI"
   :library-files
   ("qscintilla2")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui))) 

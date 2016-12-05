@@ -19,5 +19,5 @@
   "QTOPENGL"
   :library-files
   ("QtOpenGL")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui))) 

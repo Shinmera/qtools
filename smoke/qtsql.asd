@@ -19,5 +19,5 @@
   "QTSQL"
   :library-files
   ("QtSql")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui))) 

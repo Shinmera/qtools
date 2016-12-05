@@ -19,5 +19,5 @@
   "QTDBUS"
   :library-files
   ("QtDBus")
-  :depends-on
-  (:qtcore)) 
+  :dependencies
+  (:lin (:qtcore :qtxml) :mac (:qtcore :qtxml))) 

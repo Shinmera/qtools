@@ -19,5 +19,5 @@
   "QIMAGEBLITZ"
   :library-files
   ("qimageblitz")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui))) 

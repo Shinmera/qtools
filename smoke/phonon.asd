@@ -19,5 +19,6 @@
   "PHONON"
   :library-files
   ("phonon")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (:win (:qtcore :qtgui) :lin (:qtcore :qtgui :qtdbus :qtxml) :mac
+   (:qtcore :qtgui :qtdbus :qtxml))) 

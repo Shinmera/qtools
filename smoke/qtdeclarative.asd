@@ -19,5 +19,5 @@
   "QTDECLARATIVE"
   :library-files
   ("QtDeclarative")
-  :depends-on
-  (:qtcore :qtgui :qtnetwork :qtscript)) 
+  :dependencies
+  (t (:qtcore :qtgui :qtnetwork :qtscript :qtsql :qtxmlpatterns))) 

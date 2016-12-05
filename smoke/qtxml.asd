@@ -19,5 +19,5 @@
   "QTXML"
   :library-files
   ("QtXml")
-  :depends-on
-  (:qtcore)) 
+  :dependencies
+  (t (:qtcore))) 

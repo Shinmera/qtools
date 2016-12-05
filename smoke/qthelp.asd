@@ -18,6 +18,6 @@
   :module
   "QTHELP"
   :library-files
-  ("QtHelp")
-  :depends-on
-  (:qtcore :qtgui :qtsql)) 
+  ("QtHelp" "QtCLucene")
+  :dependencies
+  (t (:qtcore :qtgui :qtnetwork :qtsql))) 

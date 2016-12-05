@@ -19,5 +19,5 @@
   "QTNETWORK"
   :library-files
   ("QtNetwork")
-  :depends-on
-  (:qtcore)) 
+  :dependencies
+  (t (:qtcore))) 

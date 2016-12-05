@@ -19,5 +19,5 @@
   "QTUITOOLS"
   :library-files
   nil
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (t (:qtcore :qtgui))) 

@@ -19,5 +19,5 @@
   "QTCORE"
   :library-files
   ("QtCore")
-  :depends-on
-  nil) 
+  :dependencies
+  (t nil)) 

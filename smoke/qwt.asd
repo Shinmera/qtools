@@ -19,5 +19,5 @@
   "QWT"
   :library-files
   ("qwt")
-  :depends-on
-  (:qtcore :qtgui)) 
+  :dependencies
+  (:win (:qtcore :qtgui :qtsvg) :lin (:qtcore :qtgui) :mac (:qtcore :qtgui))) 
