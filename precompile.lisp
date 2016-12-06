@@ -158,7 +158,7 @@
         :library-files ("QtGui"))
        (qthelp
         :dependencies (T (:qtcore :qtgui :qtnetwork :qtsql))
-        :library-files ("QtHelp" "QtCLucene"))
+        :library-files ("QtCLucene" "QtHelp"))
        (qtnetwork
         :dependencies (T (:qtcore))
         :library-files ("QtNetwork"))
