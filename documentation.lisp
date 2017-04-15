@@ -320,7 +320,7 @@ See DISPATCH-BY-QCLASS"))
 ;; dynamic.lisp
 (docs:define-docs
   (function to-readtable-case
-    "Translates STRING to the proper reading case according to READTABLE.
+    "Translates STRING to the requested reading case according to CASE.
 
 See CL:READTABLE-CASE")
 

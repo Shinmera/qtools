@@ -6,16 +6,22 @@
 
 (in-package #:org.shirakumo.qtools)
 
-(defun to-readtable-case (string &optional (readtable *readtable*))
-  (ecase (readtable-case readtable)
+(defun to-readtable-case (string &optional (case (readtable-case *readtable*)))
+  (ecase case
     (:upcase (string-upcase string))
     (:downcase (string-downcase string))
     (:preserve string)
-    (:invert (with-output-to-string (stream)
-               (loop for char across string
-                     do (cond ((upper-case-p char) (write-char (char-downcase char) stream))
-                              ((lower-case-p char) (write-char (char-upcase char) stream))
-                              (T (write-char char stream))))))))
+    (:invert (loop with case = :dont-know
+                   for char across string
+                   do (cond ((upper-case-p char)
+                             (case case
+                               (:upcase (setf case :preserve) (loop-finish))
+                               (:dont-know (setf case :downcase))))
+                            ((lower-case-p char)
+                             (case case
+                               (:downcase (setf case :preserve) (loop-finish))
+                               (:dont-know (setf case :upcase)))))
+                   finally (return (to-readtable-case string case))))))
 
 (defun ensure-q+-method (function)
   (handler-bind ((style-warning #'muffle-warning))
