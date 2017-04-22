@@ -326,7 +326,7 @@
                                      (before-exec #'identity)
                                      (after-exec #'identity))
   (labels ((main ()
-             (ensure-qapplication :name name :args qapplication-args :main-thread NIL)
+             (ensure-qapplication :name name :args qapplication-args :main-thread main-thread)
              (let ((window (ensure-qobject window)))
                (handler-bind ((error on-error))
                  #+(and swank windows) (fix-slime)
