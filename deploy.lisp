@@ -279,13 +279,15 @@
       #+(and windows ccl)
       (ccl:save-application file
                             :prepend-kernel T :purify T
-                            :application-type :gui
+                            :application-type (if (find :qtools-deploy-console *features*) :console :gui)
                             :toplevel-function #'uiop:restore-image)
       #-(and windows ccl)
       (uiop:dump-image file
                        :executable T
-                       #+sb-core-compression :compression #+sb-core-compression T
-                       #+(and sbcl os-windows) :application-type #+(and sbcl os-windows) :gui))))
+                       #+sb-core-compression :compression
+                       #+sb-core-compression (if (find :qtools-no-compress *features*) NIL T)
+                       #+(and sbcl os-windows) :application-type
+                       #+(and sbcl os-windows) (if (find :qtools-deploy-console *features*) :console :gui)))))
 
 (defun build-qt-system (system &rest keys &key force force-not verbose version &allow-other-keys)
   (declare (ignore force force-not verbose version))

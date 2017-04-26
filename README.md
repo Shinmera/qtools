@@ -123,6 +123,8 @@ See the `define-user-libs` docstring for more information.
 
 For more customisation you can also add custom functions to be run at the individual stages by pushing the function onto the appropriate hooks variable, `*build-hooks*`, `*boot-hooks*`, and `*quit-hooks*`.
 
+If you need to debug the built binary on Windows, the default behaviour is a bit annoying, as it causes Windows to completely prevent all terminal output. To circumvent this, you must either run it under mintty, or deploy it with the feature `:qtools-deploy-console` set before the build-op.
+
 ## Qtools Components
 
 ### Name Conversion
