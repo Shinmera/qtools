@@ -22,19 +22,12 @@
    #:describe-copy-method)
   ;; deploy.lisp
   (:export
-   #:*foreign-libraries-to-reload*
    #:*smoke-modules-to-reload*
    #:*build-hooks*
    #:*boot-hooks*
    #:*quit-hooks*
    #:*deployment-location*
-   #:user-libs
-   #:remove-user-libs
-   #:define-user-libs
-   #:user-libs-paths
-   #:discover-foreign-library-location
-   #:qt-program-op
-   #:build-qt-system)
+   #:qt-program-op)
   ;; dispatch.lisp
   (:export
    #:direct-qsubclass-p

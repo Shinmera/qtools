@@ -6,7 +6,7 @@
 
 (in-package #:cl-user)
 (asdf:defsystem qtools
-  :version "0.7.0"
+  :version "1.0.0"
   :license "Artistic"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
@@ -35,6 +35,7 @@
                (:file "fast-call")
                (:file "documentation"))
   :depends-on (:qt-libs
+               :deploy
                :cl-ppcre
                :closer-mop
                :form-fiddle

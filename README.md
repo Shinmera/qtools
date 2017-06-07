@@ -114,14 +114,7 @@ This will compile your system, gather some info on it, copy the necessary shared
 
 As an example for a working system that can be deployed, have a look at [halftone](https://github.com/shinmera/halftone) or [cl-gamepad-visualizer](https://github.com/shirakumo/cl-gamepad).
 
-For the case where you depend on further external libraries that are not managed by Qtools by default, you will need to tell Qtools about them so that it can deploy them alongside. To do this, use the `define-user-libs` macro. In the case of the cl-gamepad-visualizer, we depend on a library called "libstem-gamepad" which is managed by the library itself in a static folder. So, we just tell Qtools that it should look in that static folder and dump the CFFI library named `cl-gamepad-cffi:libstem-gamepad`.
-
-    (qtools:define-user-libs (libstem-gamepad cl-gamepad-cffi::*static*)
-      (cl-gamepad-cffi:libstem-gamepad))
-
-See the `define-user-libs` docstring for more information.
-
-For more customisation you can also add custom functions to be run at the individual stages by pushing the function onto the appropriate hooks variable, `*build-hooks*`, `*boot-hooks*`, and `*quit-hooks*`.
+For more customisation and other details of the deployment system, see the underlying library [Deploy](https://shinmera.github.io/deploy/).
 
 If you need to debug the built binary on Windows, the default behaviour is a bit annoying, as it causes Windows to completely prevent all terminal output. To circumvent this, you must either run it under mintty, or deploy it with the feature `:qtools-deploy-console` set before the build-op.
 

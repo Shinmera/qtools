@@ -59,11 +59,6 @@ See COPY-QOBJECT")
 
 ;; deploy.lisp
 (docs:define-docs
-  (variable *foreign-libraries-to-reload*
-    "A list of CFFI libraries that need to be reloaded on boot.
-
-The system sets this variable itself during the build.")
-
   (variable *smoke-modules-to-reload*
     "A list of smoke modules that need to be reloaded on boot.
 
@@ -88,152 +83,15 @@ Use this to run customised saving or cleanup functions.")
     "Variable containing the path to the directory that is being deployed to.
 
 This is bound when *BOOT-HOOKS* functions are called.")
-  
-  (function build-qt-system
-    "Shorthand for `(operate 'asdf:qt-program-op system)`. See OPERATE for details.")
 
-  (function user-libs
-    "Accessor to the list of user libraries defined under the given name.")
-
-  (function remove-user-libs
-    "Remove the user libs defined under the given name.")
-
-  (function define-user-libs
-    "Allows you to define custom user libraries to hook into the deployment system.
-
-If you have external libraries that are not provided by Qtools directly, you
-need to tell the system where to find them in order for it to be able to copy
-and load them properly during deployment.
-
-The basic layout of the macro is as follows:
-
-\(define-user-libs (my-libs #p\"~/my-libs/\" #p\"/some/custom/path\")
-  (cffi-lib-name)
-  (#p\"some_lib.so\"))
-
-This defines two new libraries under the MY-LIBS label. It tells the system
-that for both of them it should look in ~/my-libs and /some/custom/path.
-The first library is the CFFI library named CFFI-LIB-NAME. The second library
-is specified through an explicit pathname.
-
-If the system can find the libraries in the specified locations, it will copy
-them to the deployment directory and automatically load them if they were
-loaded at the time of dumping (which is usually the case for CFFI).
-
-See USER-LIBS
-See REMOVE-USER-LIBS
-See DISCOVER-FOREIGN-LIBRARY-LOCATION")
-
-  (function discover-foreign-library-location
-    "Attempts to discover a path for the given library and search-paths.
-
-Aside from the explicitly passed search-paths, the following paths are
-automatically searched:
-  
-  CFFI:*FOREIGN-LIBRARY-DIRECTORIES*
-On UNIX:
-  LD_LIBRARY_PATH
-  /lib
-  /usr/lib
-  /usr/local/lib
-On DARWIN:
-  DYLD_LIBRARY_PATH
-On WINDOWS:
-  PATH
-  C:/Windows
-  C:/Windows/System32
-  C:/Windows/SysWOW64
-
-In order to avoid relisting big directories over and over during deployment
-the results of a directory listing are cached in *FOLDER-LISTING-CACHE*.
-A file matches if it matches the specified lib in both PATHNAME-NAME and
-PATHNAME-TYPE by EQUAL comparison.")
-
-  (function clean-symbol
-    "Removes the docstring from the symbol if possible.")
-
-  (function prune-symbol
-    "Detaches function and variable binding from the symbol.")
-
-  (function prune-package
-    "Runs CLEAN/PRUNE-SYMBOL on each symbol home to the package and then deletes the package.")
-
-  (function prune-local-paths
-    "Attempts to remove references to local system paths that you probably don't want to leak into your image.
-
-Affects CFFI:*FOREIGN-LIBRARY-DIRECTORIES*
-        QT-LIBS:*STANDALONE-LIBS-DIR*
-        *FOLDER-LISTING-CACHE*
-        *USER-LIBS*")
-
-  (function prune-foreign-libraries
-    "Closes all opened foreign libraries that CFFI knows about.")
-
-  (function prune-image
-    "Attempts to clean up the image somewhat.
-
-1. Runs CLEAN-SYMBOL on all symbols
-2. Sets the *QAPPLICATION* to NIL
-3. Calls QT::RELOAD to prune the smoke module state
-4. Runs PRUNE-LOCAL-PATHS
-5. Runs PRUNE-FOREIGN-LIBRARIES")
-
-  (function smoke-library-p
-    "Attempts to determine whether the given CFFI lib is a smoke library.")
-
-  (function smoke-required-libs
-    "Returns a list of required system (qt-libs) libraries.")
-
-  (function deploy-foreign-libraries
-    "Copies the given libraries over to the target directory.")
-
-  (function boot-foreign-libraries
-    "Loads all the libraries from *FOREIGN-LIBRARIES-TO-LOAD*
-
-See *FOREIGN-LIRBARIES-TO-LOAD*")
-
-  (function warmly-boot
-    "Boots up the image to ready it for further execution.
-
-0. If VERBOSE was present, its global controller is restarted
-1. Sets the QT-LIBS:*STANDALONE-LIBS-DIR* to the UIOP:ARGV0 pathname
-2. Runs QT-LIBS:LOAD-LIBCOMMONQT with FORCE
-3. Reloads all smoke modules from *SMOKE-MODULES-TO-RELOAD*
-4. Runs PROCESS-ALL-METHODS to ready Q+
-5. Calls all *BOOT-HOOKS*")
-
-  (function quit
-    "Cleans up the image to ready it for a clean quit.
-
-1. Calls all *QUIT-HOOKS*
-2. Deletes the *QAPPLICATION*
-3. Runs UIOP:FINISH-OUTPUTS
-4. Exits the image")
-
-  (function call-entry-prepared
-    "Wraps the ENTRY-POINT function in a proper startup/shutdown sequence.
-
-1. Establishes an EXIT restart which calls QUIT
-2. Runs WARMLY-BOOT
-3. Calls the entry-point
-4. Invokes the EXIT restart.")
-
-  (function discover-entry-point
-    "Attempts to discover a suitable entry point for the given ASDF component.
-
-This looks at the ASDF/SYSTEM:COMPONENT-ENTRY-POINT value and attempts to 
-coerce it into a class or a function. If it is a class, then the entry point
-will be (lambda () (with-main-window (window (make-instance entry-point)))),
-if it is a function it will just be called verbatim.")
+  (function qtools-library-p
+    "Test whether the given CFFI library is a Qtools library.")
 
   (type qt-program-op
-    "An ASDF:PROGRAM-OP subclass to handle things for Qt deployment.
+    "A DEPLOY:DEPLOY-OP subclass to handle things for Qt deployment.
 
 You should specify this as the BUILD-OPERATION in your ASD along with
-an ENTRY-POINT and a BUILD-PATHNAME.")
-
-  (function compute-libraries-to-reload
-    "Attempts to compute a list of all libraries that need to be reloaded on boot."))
+an ENTRY-POINT and a BUILD-PATHNAME."))
 
 ;; dispatch.lisp
 (docs:define-docs
