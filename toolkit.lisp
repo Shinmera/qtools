@@ -327,7 +327,9 @@
                                      (after-exec #'identity))
   (labels ((main ()
              (ensure-qapplication :name name :args qapplication-args :main-thread NIL)
-             (let ((window (ensure-qobject window)))
+             (let ((window (funcall window)))
+               (when (symbolp window)
+                 (setf window (make-instance window)))
                (handler-bind ((error on-error))
                  #+(and swank windows) (fix-slime)
                  (unwind-protect
