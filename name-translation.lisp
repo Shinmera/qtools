@@ -170,7 +170,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (define-1->1-translator qtype single-float "float" :test #'subtypep)
 (define-1->1-translator qtype double-float "double" :test #'subtypep)
 (define-1->1-translator qtype string "const QString&" :test #'subtypep)
-(define-1->1-translator qtype qobject "const QObject&" :test #'subtypep)
+(define-1->1-translator qtype qobject "const QObject*" :test #'subtypep)
 (define-simple-translator (qtype qtype -10) (type)
   (when (qt::find-qtype (string type))
     type))
