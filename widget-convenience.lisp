@@ -75,7 +75,7 @@
 (trivial-indent:define-indentation define-subwidget (6 4 &body))
 
 (defmacro define-subobject ((object-class name) initform &body body)
-  `(define-subwidget ((,object-class ,name) ,initform ,@body)))
+  `(define-subwidget (,object-class ,name) ,initform ,@body))
 
 (trivial-indent:define-indentation define-subobject (6 4 &body))
 
