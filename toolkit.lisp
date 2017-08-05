@@ -94,11 +94,15 @@
   `(block NIL
      (map-layout (lambda (,widget) ,@body) ,layout)))
 
-(defun sweep-layout (layout)
+(defun sweep-layout (layout &optional (finalize T))
   (loop for item = (#_takeAt layout 0)
         until (typep item 'null-qobject)
         do (#_removeItem layout item)
-           (finalize (#_widget item))))
+           (cond (finalize
+                  (finalize (#_widget item)))
+                 (T
+                  (#_setParent (#_widget item) (null-qobject "QWidget"))
+                  (#_hide (#_widget item))))))
 
 (defun enumerate-method-descriptors (name args)
   (flet ((make-map (args)

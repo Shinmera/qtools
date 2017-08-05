@@ -915,7 +915,10 @@ You should use this if you care about reasonably performant class type compariso
     "Iterate over all WIDGETs on LAYOUT.")
 
   (function sweep-layout
-    "Removes all widgets from the layout and finalizes them.")
+    "Removes all widgets from the layout and finalizes them if so desired.
+
+If FINALIZE is NIL, each widget is removed, its parent set to NIL, and
+it is hidden as to not show up as a window.")
 
   (function enumerate-method-descriptors
     "Returns a list of all possible method descriptors with NAME and ARGS.
