@@ -4,7 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:cl-user)
+
 (defpackage #:org.shirakumo.qtools.q+.asdf
   (:use #:cl))
 (in-package #:org.shirakumo.qtools.q+.asdf)

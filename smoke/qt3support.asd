@@ -1,5 +1,5 @@
 
-(in-package #:cl-user) 
+ 
 (asdf/parse-defsystem:defsystem #:qt3support
   :defsystem-depends-on
   (:qtools)

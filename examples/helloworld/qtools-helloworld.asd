@@ -4,7 +4,7 @@ This file is a part of Qtools
 Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:cl-user)
+
 (asdf:defsystem qtools-helloworld
   :name "Qtools-HelloWorld"
   :version "1.0.0"

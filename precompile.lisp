@@ -114,7 +114,6 @@
     (let ((*package* (find-package :cl-user))
           (*print-case* :downcase)
           (*print-pretty* T))
-      (print '(in-package #:cl-user) stream)
       (print (compile-smoke-module-system-definition module :dependencies dependencies
                                                             :library-files library-files)
              stream)))
