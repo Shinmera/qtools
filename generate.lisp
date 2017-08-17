@@ -222,15 +222,17 @@
   (loop for name being the hash-keys of *qmethods*
         do (funcall function (compile-wrapper name))))
 
-(defun q+apropos (term)
+(defun q+apropos (item)
   (ensure-methods-processed)
-  (flet ((strip (string)
-           (cl-ppcre:regex-replace-all "[\\-_\\.]" string "")))
-    (let ((terms (cl-ppcre:split " +" (strip term))))
-      (loop for k being the hash-keys of *qmethods*
-            for method = (strip (string k))
-            do (when (every (lambda (term) (search term method :test #'char-equal)) terms)
-                 (print k))))))
+  (let ((term (string item)))
+    (flet ((strip (string)
+	     (cl-ppcre:regex-replace-all "[\\-_\\.]" string "")))
+      (let ((terms (cl-ppcre:split " +" (strip term))))
+	(loop for k being the hash-keys of *qmethods*
+	   for method = (strip (string k))
+	   do (when (every (lambda (term) (search term method :test #'char-equal)) terms)
+		(print k)))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILERS
