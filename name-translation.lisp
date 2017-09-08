@@ -191,11 +191,18 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (defun qt-type-for (cl-type)
   (translate-name cl-type 'qtype NIL))
 
+(define-condition unknown-type-name (style-warning)
+  ((type-name :initarg :type-name))
+  (:report (lambda (c s) (format s "Don't know how to treat ~s as a type name; coercing to string.~%~
+                                    Consider using a translatable CL type, a direct Qt type, or a string instead."
+                                 (slot-value c 'type-name)))))
+
 (defun to-type-name (thing)
   (etypecase thing
     (string thing)
     (symbol (or (qt-type-for thing)
-                (string-downcase thing)))))
+                (progn (warn 'unknown-type-name :type-name thing)
+                       (string-downcase thing))))))
 
 (defun cl-type-for (qt-type)
   (translate-name qt-type 'type NIL))
