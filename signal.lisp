@@ -61,6 +61,15 @@
          (dolist (,targ (ensure-list ,target))
            (connect ,orig ,targ))))))
 
+(defmacro disconnect! (origin origin-function target target-function)
+  (let ((orig (gensym "ORIGIN")) (targ (gensym "TARGET")))
+    `(flet ((disconnect (origin target)
+              (disconnect origin ,(specified-type-method-name (car origin-function) (cdr origin-function))
+                          target ,(specified-type-method-name (car target-function) (cdr target-function)))))
+       (dolist (,orig (ensure-list ,origin))
+         (dolist (,targ (ensure-list ,target))
+           (disconnect ,orig ,targ))))))
+
 (defun signal-method-for-name (name)
   (intern (string-upcase (format NIL "SIGNAL-~a" name))))
 

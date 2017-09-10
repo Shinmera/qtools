@@ -863,6 +863,15 @@ SPECIFIED-TYPE-METHOD-NAME.
 ORIGIN and TARGET can both be either a single object or a list of objects
 to connect with each other.")
 
+  (function disconnect!
+    "Macro for a more lisp-y writing of DISCONNECT.
+ORIGIN-FUNCTION and TARGET-FUNCTION should both be a list of the METHOD-NAME
+followed by Qt argument types. The effective method name is computed as per
+SPECIFIED-TYPE-METHOD-NAME.
+
+ORIGIN and TARGET can both be either a single object or a list of objects
+to connect with each other.")
+
   (function define-signal-method
     "Shorthand to define wrapper methods for the given signal.
 

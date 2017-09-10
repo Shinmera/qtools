@@ -124,6 +124,7 @@
    #:generic-signal
    #:signal!
    #:connect!
+   #:disconnect!
    #:define-signal-method)
   ;; toolkit.lisp
   (:export
