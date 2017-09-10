@@ -29,7 +29,8 @@
 
 (defmethod (setf parent) (value (object qobject))
   (#_setParent object value)
-  (#_show object))
+  (when (qinstancep object "QWidget")
+    (#_show object)))
 
 (defmethod (setf parent) ((value null) (object qobject))
   (setf (parent object) (null-qobject "QWidget")))
