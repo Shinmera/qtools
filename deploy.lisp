@@ -41,7 +41,8 @@
   (qt-libs:setup-paths)
   (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
     ;; Reload libcommonqt core safely
-    (qt-libs:load-libcommonqt :force T)
+    (setf qt::*library-loaded-p* NIL)
+    (qt::load-libcommonqt)
     ;; Reload our modules, but without ASDF trying to probe the damn files.
     (let ((asdf:*system-definition-search-functions* ()))
       (dolist (mod *smoke-modules-to-reload*)

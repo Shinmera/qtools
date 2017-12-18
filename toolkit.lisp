@@ -276,7 +276,8 @@
                        (if (null-qobject-p instance)
                            (qt::%make-qapplication (list* name args))
                            instance))
-                 (qt-libs:fix-qt-plugin-paths))))
+                 (dolist (hook qt:*qapplication-create-hooks*)
+                   (funcall hook qt:*qapplication*)))))
         (if main-thread
             (tmt:call-in-main-thread #'inner :blocking T)
             (inner)))))
