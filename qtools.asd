@@ -34,7 +34,7 @@
                (:file "deploy")
                (:file "fast-call")
                (:file "documentation"))
-  :depends-on (:qt-libs
+  :depends-on (:qt+libs
                :deploy
                :cl-ppcre
                :closer-mop
