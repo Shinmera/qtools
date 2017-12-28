@@ -995,7 +995,13 @@ See QT:ENSURE-SMOKE")
   (function ensure-qobject
     "Makes sure that THING is a usable qobject.
 
-If THING is a symbol, it attempts to use MAKE-INSTANCE with it.")
+THING can be of type:
+  FUNCTION   --- ENSURE-QOBJECT is called on the return value of the function.
+  QT:QOBJECT --- THING is returned.
+  WIDGET     --- THING is returned.
+  SYMBOL     --- MAKE-INSTANCE is called on THING.
+  STRING     --- QT:INTERPRET-NEW is called on THING.")
+  
   (function with-main-window
     "This is the main macro to start your application with.
 

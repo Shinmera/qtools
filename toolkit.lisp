@@ -288,7 +288,8 @@
     (function (ensure-qobject (funcall thing)))
     (qt:qobject thing)
     (widget thing)
-    (symbol (make-instance thing))))
+    (symbol (make-instance thing))
+    (string (qt:interpret-new thing))))
 
 ;; Slime bug on windows. See https://common-lisp.net/project/commonqt/#known-issues
 ;; We just create a helper widget that immediately closes itself again.
