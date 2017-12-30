@@ -74,9 +74,6 @@
 (define-qclass-dispatch-function finalize finalize-qobject (instance))
 
 (defgeneric finalize (object)
-  #+:verbose
-  (:method :before (object)
-    (v:trace :qtools "Finalizing ~s" object))
   (:method (object)
     object)
   (:method ((object qobject))

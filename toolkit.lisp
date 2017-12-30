@@ -40,11 +40,9 @@
            (qobject-deleted object))))
 
 (defun maybe-delete-qobject (object)
-  (if (typep object 'abstract-qobject)
-      (when (qobject-alive-p object)
-        #+:verbose (v:trace :qtools "Deleting QObject: ~a" object)
-        (optimized-delete object))
-      #+:verbose (v:trace :qtools "Deleting QObject: WARN Tried to delete non-qobject ~a" object)))
+  (when (and (typep object 'abstract-qobject)
+             (qobject-alive-p object))
+    (optimized-delete object)))
 
 (defun enum-equal (a b)
   (= (if (integerp a) a (qt:enum-value a))

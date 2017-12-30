@@ -79,7 +79,6 @@
             do (setf (getf options name) (append (getf options name) value))))
     ;; Delegate
     (remf options :save-direct-options)
-    #+:verbose (unless (getf options 'init) (v:debug :qtools.widget "~s Delegating class options: ~s" class options))
     (remf options 'init)
     (apply next-method class options)
     ;; Save directly specified options
@@ -130,7 +129,6 @@
 
 (defun softly-redefine-widget-class (class)
   (let ((class (ensure-class class)))
-    #+:verbose (v:debug :qtools.widget "Softly redefining widget class ~s" class)
     ;; Press new options into the class definition
     (apply #'reinitialize-instance class :save-direct-options NIL (copy-list (widget-class-direct-options class)))
     ;; CommonQt performs computations on finalisation
