@@ -180,11 +180,39 @@
 (defvar *standard-function-reader* (get-dispatch-macro-character #\# #\'))
 (progn
   (defun read-function (stream subchar arg)
+    (declare (ignore subchar arg))
     (multiple-value-bind (q+-symbol-p consumed-stream) (q+-symbol-p stream)
       (let ((stream (make-concatenated-stream consumed-stream stream)))
-        (if q+-symbol-p
-            (let ((name (q+-symbol-name (read-name stream))))
-              `(q+fun ,name))
-            `(cl+qt:function ,(second (funcall *standard-function-reader* stream subchar arg)))))))
+        (cond ;; Q+ Symbol case
+          (q+-symbol-p
+           (let ((name (q+-symbol-name (read-name stream))))
+             `(q+fun ,name)))
+          ;; Setf case
+          ((eql (peek-char T stream T NIL T) #\()
+           ;; Consume opening parenthesis
+           (read-char stream)
+           (let ((setf (read stream T NIL T)))
+             (cond ;; CL-setf case, in which just read "as normal"
+               ((eql setf 'cl:setf)
+                (prog1 `(cl:function (cl:setf ,(read stream T NIL T)))
+                  (unless (char= #\) (read-char stream NIL T T))
+                    (error "A SETF function name must only contain two items."))))
+               ;; CL+QT-setf case, in which we might have a q+ reference.
+               ((eql setf 'cl+qt:setf)
+                ;; Consume whitespace
+                (peek-char T stream T NIL T)
+                (multiple-value-bind (q+-symbol-p consumed-stream) (q+-symbol-p stream)
+                  (let ((stream (make-concatenated-stream consumed-stream stream)))
+                    (prog1 (if q+-symbol-p
+                               (let ((name (q+-symbol-name (read-name stream))))
+                                 `(q+fun ,(format NIL "~a-~a" 'set name)))
+                               `(cl+qt:function (cl:setf ,(read stream T NIL T))))
+                      (unless (char= #\) (read-char stream NIL T T))
+                        (error "A SETF function name must only contain two items."))))))
+               (T
+                (error "FUNCTION does not accept expressions that are not function names.")))))
+          ;; Other symbol case
+          (T
+           `(cl+qt:function ,(read stream T NIL T)))))))
 
   (set-dispatch-macro-character #\# #\' #'read-function (named-readtables:find-readtable :qtools)))
