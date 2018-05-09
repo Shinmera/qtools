@@ -41,13 +41,13 @@
   (qt-libs:setup-paths)
   (let (#+sbcl(sb-ext:*muffled-warnings* 'style-warning))
     ;; Reload libcommonqt core safely
-    (setf qt::*library-loaded-p* NIL)
-    (qt::load-libcommonqt)
-    ;; Reload our modules, but without ASDF trying to probe the damn files.
-    (let ((asdf:*system-definition-search-functions* ()))
-      (dolist (mod *smoke-modules-to-reload*)
-        (deploy:status 1 "Loading smoke module ~a." mod)
-        (asdf:load-system mod :force T)))
+    (qt-libs::%ensure-lib-loaded "smokebase")
+    (qt-libs::%ensure-lib-loaded "commonqt")
+    (qt::reload)
+    ;; Reload our modules
+    (dolist (mod *smoke-modules-to-reload*)
+      (deploy:status 1 "Loading smoke module ~a." mod)
+      (qt-libs:manually-load-foreign-library-system mod))
     ;; Reload Q+
     (process-all-methods)
     (deploy:status 0 "Running Qtools boot hooks.")
