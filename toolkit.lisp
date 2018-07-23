@@ -294,7 +294,7 @@
 ;; That way we can execute the qapplication and ensure the weird workaround
 ;; is automatically performed. Hopefully it'll work fast enough on most
 ;; machines that the window is barely visible.
-#+(and swank windows)
+#+windows
 (progn
   (defvar *slime-fix-applied* NIL)
 
@@ -334,7 +334,10 @@
              (ensure-qapplication :name name :args qapplication-args :main-thread NIL)
              (let ((window (ensure-qobject (funcall window))))
                (handler-bind ((error on-error))
-                 #+(and swank windows) (fix-slime)
+                 #+windows
+                 (when (or (find :swank *features*)
+                           (find :slynk *features*))
+                   (fix-slime))
                  (unwind-protect
                       (progn
                         (funcall before-exec window)
