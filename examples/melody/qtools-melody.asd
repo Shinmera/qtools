@@ -12,7 +12,9 @@
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "A simple music player using Qt and Phonon."
-  :homepage "https://github.com/Shinmera/qtools"
+  :homepage "https://Shinmera.github.io/qtools/"
+  :bug-tracker "https://github.com/Shinmera/qtools/issues"
+  :source-control (:git "https://github.com/Shinmera/qtools.git")
   :serial T
   :components ((:file "package")
                (:file "track-list")

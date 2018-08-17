@@ -11,7 +11,9 @@
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "A collection of tools to aid in development with CommonQt."
-  :homepage "https://github.com/Shinmera/qtools"
+  :homepage "https://Shinmera.github.io/qtools/"
+  :bug-tracker "https://github.com/Shinmera/qtools/issues"
+  :source-control (:git "https://github.com/Shinmera/qtools.git")
   :serial T
   :components ((:file "package")
                (:file "toolkit")

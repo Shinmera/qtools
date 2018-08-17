@@ -12,7 +12,9 @@
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "A simple REPL in Qt."
-  :homepage "https://github.com/Shinmera/qtools"
+  :homepage "https://Shinmera.github.io/qtools/"
+  :bug-tracker "https://github.com/Shinmera/qtools/issues"
+  :source-control (:git "https://github.com/Shinmera/qtools.git")
   :serial T
   :components ((:file "evaluator"))
   :depends-on (:qtools :qtcore :qtgui

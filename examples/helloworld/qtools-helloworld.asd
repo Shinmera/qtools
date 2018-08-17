@@ -12,7 +12,9 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "Your every day hello world."
-  :homepage "https://github.com/Shinmera/qtools"
+  :homepage "https://Shinmera.github.io/qtools/"
+  :bug-tracker "https://github.com/Shinmera/qtools/issues"
+  :source-control (:git "https://github.com/Shinmera/qtools.git")
   :components ((:file "helloworld"))
   :defsystem-depends-on (:qtools)
   :depends-on (:qtcore :qtgui)

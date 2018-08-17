@@ -31,7 +31,9 @@
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "Precompiles all Q+ method wrappers for currently active smoke modules."
-  :homepage "https://github.com/Shinmera/qtools"
+  :homepage "https://Shinmera.github.io/qtools/"
+  :bug-tracker "https://github.com/Shinmera/qtools/issues"
+  :source-control (:git "https://github.com/Shinmera/qtools.git")
   :serial T
   :components ((:dynamic-smoke-wrapper "q+"))
   :depends-on (:qtools))
