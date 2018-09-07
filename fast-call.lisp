@@ -31,8 +31,10 @@
           for args = (mapcar #'qt::qtype-name (qt::list-qmethod-argument-types method))
           for mclass = (qt::qmethod-class method)
           when (and (= mclass (ensure-qclass class))
-                    (every (lambda (a b) (eql (translate-name a 'cffi)
-                                              (translate-name b 'cffi)))
+                    (every (lambda (a b)
+                             (and (translate-name a 'cffi NIL)
+                                  (eql (translate-name a 'cffi)
+                                       (translate-name b 'cffi))))
                            args argtypes))
           return method)))
 
