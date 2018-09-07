@@ -54,5 +54,5 @@
                              ,obj
                              ,stack)
            ,(when rettype
-              `(funcall ,(qt::unmarshaller rettype)
+              `(funcall ,(qt::unmarshaller (qt::find-qtype (translate-name rettype 'qtype)))
                         ,stack)))))))
