@@ -155,6 +155,11 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (when (find-class type NIL)
     type))
 
+(define-1->1-translator qtype uchar "unsigned char")
+(define-1->1-translator qtype ushort"unsigned short")
+(define-1->1-translator qtype uint "unsigned int")
+(define-1->1-translator qtype ulong "unsigned long")
+(define-1->1-translator qtype ulonglong "unsigned long long")
 (define-1->1-translator qtype boolean "bool" :test #'subtypep)
 (define-1->1-translator qtype (signed-byte 8) "char" :test #'subtypep)
 (define-1->1-translator qtype (unsigned-byte 8) "unsigned char" :test #'subtypep)
