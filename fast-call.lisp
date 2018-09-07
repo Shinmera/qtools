@@ -31,8 +31,8 @@
           for args = (mapcar #'qt::qtype-name (qt::list-qmethod-argument-types method))
           for mclass = (qt::qmethod-class method)
           when (and (= mclass (ensure-qclass class))
-                    (every (lambda (a b) (eql (translate-type a 'cffi)
-                                              (translate-type b 'cffi)))
+                    (every (lambda (a b) (eql (translate-name a 'cffi)
+                                              (translate-name b 'cffi)))
                            args argtypes))
           return method)))
 
@@ -43,7 +43,7 @@
       `(let ((,obj (qt::qobject-pointer ,object)))
          (with-call-stack ,stack ((,obj qt::ptr)
                                   ,@(loop for type in types for arg in args
-                                          collect (list arg (translate-type type 'stack-item))))
+                                          collect (list arg (translate-name type 'stack-item))))
            (fast-direct-call ,(or (apply #'find-fastcall-method obj-type method types)
                                   (error "Couldn't find method for descriptor ~s"
                                          method-descriptor))
