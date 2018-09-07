@@ -323,7 +323,7 @@ signature you want to call and provide all arguments prepared in their proper
 types as no marshalling will be done. FAST-CALL also will not read out the
 return value.
 
-METHOD-DESCRIPTOR ::= (name class-name arg-type*)
+METHOD-DESCRIPTOR ::= (name class-name arg-type* ret-type)
 object            --- The instance of the class to call a method on.
                       Must match the given class-name.
 args              --- The arguments to call the method with. Their types
@@ -339,6 +339,8 @@ name, and argument types, an error is signalled.
 The fast call procedure creates a stack for the arguments by WITH-CALL-STACK.
 It then uses FAST-DIRECT-CALL on the found method number, class, and
 stack to perform the actual call to the method.
+Finally, if ret-type is not NIL, it retrieses the return value by calling the
+corresponding unmarshaller on the stack.
 
 See FIND-FASTCALL-METHOD
 See FAST-DIRECT-CALL

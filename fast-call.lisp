@@ -39,15 +39,20 @@
           return method)))
 
 (defmacro fast-call (method-descriptor object &rest args)
-  (destructuring-bind (obj-type method &rest types) method-descriptor
+  (destructuring-bind (method obj-type &rest types) method-descriptor
     (let ((obj (gensym "OBJECT"))
-          (stack (gensym "STACK")))
+          (stack (gensym "STACK"))
+          (rettype (car (last types)))
+          (argtypes (butlast types)))
       `(let ((,obj (qt::qobject-pointer ,object)))
          (with-call-stack ,stack ((,obj qt::ptr)
-                                  ,@(loop for type in types for arg in args
+                                  ,@(loop for type in argtypes for arg in args
                                           collect (list arg (translate-name type 'stack-item))))
            (fast-direct-call ,(or (apply #'find-fastcall-method obj-type method types)
                                   (error "Couldn't find method for descriptor ~s"
                                          method-descriptor))
                              ,obj
-                             ,stack))))))
+                             ,stack)
+           ,(when rettype
+              `(funcall ,(qt::unmarshaller rettype)
+                        ,stack)))))))

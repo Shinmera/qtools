@@ -257,10 +257,10 @@ For a list of available smoke modules, see `*smoke-modules*`.
 In some cases it is vital to minimise overhead to a method call. Since usually dispatch is dynamic at run-time and un/marshalling of arguments and return values is involved, the standard way of calling methods might be too slow. In that case, you can use Qtools' fast-call mechanism to perform a method call as quickly as possible. At a cost, naturally.
 
     (let ((size (q+:make-qsize 100 100)))
-      (fast-call (set-height QSize int) size 200)
+      (fast-call (set-height QSize int NIL) size 200)
       size)
 
-Fast-calling is possible if you know the exact method signature to call and are willing to translate the arguments to their proper required CFFI types. In the case of passing QObjects, you must pass their pointer. You can get that pointer by `qt::qobject-pointer`.
+Fast-calling is possible if you know the exact method signature to call and are willing to translate the arguments to their proper required CFFI types. In the case of passing QObjects, you must pass their pointer. You can get that pointer by `qt::qobject-pointer`. The last argument in the method-descriptor is the return value type, which you can always set to NIL if you don't care about the return value.
 
 ## Examples
 A couple of example applications using Qtools can be found in the [examples/](https://github.com/Shinmera/qtools/tree/master/examples/) folder: `qtools-evaluator`, `qtools-titter`, `qtools-melody`, and `qtools-opengl`. Each of them can be loaded by their name, and launched using the `main` function from their package.
