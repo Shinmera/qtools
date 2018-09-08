@@ -54,5 +54,5 @@
                              ,obj
                              ,stack)
            ,(when rettype
-              `(funcall ,(qt::unmarshaller (qt::find-qtype (translate-name rettype 'qtype)))
+              `(funcall (load-time-value (qt::unmarshaller (qt::find-qtype ,(translate-name rettype 'qtype))))
                         ,stack)))))))
