@@ -100,10 +100,10 @@
             thereis (eql superclass test-class))))
 
 (defmacro define-qclass-dispatch-function (basename dispatcher args)
-  (let ((var (intern (format NIL "*QCLASS-~a-FUNCTIONS*" (string-upcase basename))))
-        (fun (intern (format NIL "QCLASS-~a-FUNCTION" (string-upcase basename))))
-        (rem (intern (format NIL "REMOVE-QCLASS-~a-FUNCTION" (string-upcase basename))))
-        (def (intern (format NIL "DEFINE-QCLASS-~a-FUNCTION" (string-upcase basename)))))
+  (let* ((var (intern (format NIL "*QCLASS-~a-FUNCTIONS*" (string-upcase basename))))
+         (fun (intern (format NIL "QCLASS-~a-FUNCTION" (string-upcase basename))))
+         (rem (intern (format NIL "REMOVE-QCLASS-~a-FUNCTION" (string-upcase basename))))
+         (def (intern (format NIL "DEFINE-QCLASS-~a-FUNCTION" (string-upcase basename)))))
     `(progn
        (defvar ,var (make-hash-table :test 'equal))
 

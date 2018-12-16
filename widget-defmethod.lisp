@@ -61,7 +61,8 @@
          ,@body)))
 
 (defun slot-initializer-symbol (slot)
-  (intern (format NIL "%~a-CONNECTORS" slot)))
+  (let ((*print-case* (readtable-case *readtable*)))
+    (intern (format NIL "%~a-~a" slot 'connectors))))
 
 (define-method-declaration slot (name args)
   (form-fiddle:with-destructured-lambda-form (:name method :declarations declarations) *method*

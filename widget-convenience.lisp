@@ -15,7 +15,8 @@
         ,@forms))))
 
 (defmacro define-slot ((widget-class slot &optional method-name) args &body body)
-  (setf method-name (or method-name (intern (format NIL "%~a-SLOT-~a" widget-class slot) *package*)))
+  (let ((*print-case* (readtable-case *readtable*)))
+    (setf method-name (or method-name (intern (format NIL "%~a-~a-~a" widget-class 'slot slot) *package*))))
   `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class) ,@(loop for arg in args
                                                                         for type = (or (third arg)
                                                                                        (translate-name
@@ -31,7 +32,8 @@
      ,@(%make-slots-bound-proper widget-class body)))
 
 (defmacro define-override ((widget-class override &optional method-name) args &body body)
-  (setf method-name (or method-name (intern (format NIL "%~a-OVERRIDE-~a" widget-class override) *package*)))
+  (let ((*print-case* (readtable-case *readtable*)))
+    (setf method-name (or method-name (intern (format NIL "%~a-~a-~a" widget-class 'override override) *package*))))
   `(cl+qt:defmethod ,method-name ((,widget-class ,widget-class) ,@args)
      (declare (override ,override))
      ,@(%make-slots-bound-proper widget-class body)))
@@ -56,7 +58,8 @@
      (set-widget-class-option ',widget-class :signals '(,(qtools:specified-type-method-name signal args)))))
 
 (defun subwidget-initializer-symbol (widget-class name)
-  (intern (format NIL "%~a-SUBWIDGET-~a-INITIALIZER" widget-class name) *package*))
+  (let ((*print-case* (readtable-case *readtable*)))
+    (intern (format NIL "%~a-~a-~a-~a" widget-class 'subwidget name 'initializer) *package*)))
 
 (defmacro define-subwidget ((widget-class name) initform &body body)
   (when (eql widget-class name)

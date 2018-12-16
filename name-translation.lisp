@@ -41,13 +41,15 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
           ',name))
 
 (defmacro define-simple-translator ((type name &optional (priority 0)) (source) &body body)
-  (let ((target (gensym "TARGET")))
+  (let ((*print-case* (readtable-case *readtable*))
+        (target (gensym "TARGET")))
     `(define-translator ,(intern (format NIL "~a-~a" type name)) (,source ,target ,priority)
        (when (eql ,target ',type)
          ,@body))))
 
 (defmacro define-1->1-translator (type match result &key (test '#'string-equal) (priority 0))
-  (let ((name (gensym "TYPE")))
+  (let ((*print-case* (readtable-case *readtable*))
+        (name (gensym "TYPE")))
     `(define-simple-translator (,type ,(intern (princ-to-string match)) ,priority) (,name)
        (when (funcall ,test ,name ',match)
          ',result))))

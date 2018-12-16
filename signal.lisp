@@ -71,7 +71,8 @@
            (disconnect ,orig ,targ))))))
 
 (defun signal-method-for-name (name)
-  (intern (string-upcase (format NIL "SIGNAL-~a" name))))
+  (let ((*print-case* (readtable-case *readtable*)))
+    (intern (format NIL "~a-~a" 'signal name))))
 
 (defmacro define-signal-method (name args)
   (destructuring-bind (method &optional (name (signal-method-for-name method))) (if (listp name) name (list name))
