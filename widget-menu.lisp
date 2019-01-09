@@ -85,12 +85,13 @@
                                                       (with-slots-bound (,*widget* ,*widget*)
                                                         ,@body))))))))
 
-(defmacro define-menu ((widget-class name) &body contents)
+(defmacro define-menu ((widget-class name &optional menu-name) &body contents)
   (let* ((*print-case* (readtable-case *readtable*))
          (initfunc (intern (format NIL "~a-~a-~a-~a" '%build widget-class 'menu name) *package*))
+         (menu-name (or menu-name (capitalize-on #\- name #\Space T)))
          (menu (gensym "MENU-BAR"))
          (*widget* widget-class))
-    (multiple-value-bind (initform side-form) (build-menu-content menu :menu `(,(capitalize-on #\- name #\Space T) ,@contents))
+    (multiple-value-bind (initform side-form) (build-menu-content menu :menu `(,menu-name ,@contents))
       `(eval-when (:compile-toplevel :load-toplevel :execute)
          ,side-form
          (define-initializer (,widget-class ,initfunc 9)
