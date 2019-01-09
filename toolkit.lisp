@@ -42,7 +42,7 @@
 (defun maybe-delete-qobject (object)
   (when (and (typep object 'abstract-qobject)
              (qobject-alive-p object))
-    (optimized-delete object)))
+    (interpret-delete object)))
 
 (defun enum-equal (a b)
   (= (if (integerp a) a (qt:enum-value a))
