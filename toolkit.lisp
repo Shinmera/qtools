@@ -10,44 +10,6 @@
 ;;;;;
 ;; Qt Related Utils
 
-(defgeneric value (object))
-
-(defmethod value ((object qobject))
-  (#_value object))
-
-(defgeneric (setf value) (value object))
-
-(defmethod (setf value) (value (object qobject))
-  (#_setValue object value))
-
-(defgeneric parent (object))
-
-(defmethod parent ((object qobject))
-  (let ((o (#_parent object)))
-    (if (null-qobject-p o)
-        NIL o)))
-
-(defmethod (setf parent) (value (object qobject))
-  (#_setParent object value)
-  (when (qinstancep object "QWidget")
-    (#_show object)))
-
-(defmethod (setf parent) ((value null) (object qobject))
-  (setf (parent object) (null-qobject "QWidget")))
-
-(defun qobject-alive-p (object)
-  (not (or (null-qobject-p object)
-           (qobject-deleted object))))
-
-(defun maybe-delete-qobject (object)
-  (when (and (typep object 'abstract-qobject)
-             (qobject-alive-p object))
-    (interpret-delete object)))
-
-(defun enum-equal (a b)
-  (= (if (integerp a) a (qt:enum-value a))
-     (if (integerp b) b (qt:enum-value b))))
-
 (defmacro qtenumcase (keyform &body forms)
   (let ((key (gensym "KEY")))
     `(let ((,key ,keyform))
@@ -79,6 +41,50 @@
                                                           (qt:find-qclass 
                                                            (eqt-class-name ',case)))))
                                    ,@body)))))))
+
+(defgeneric value (object))
+
+(defmethod value ((object qobject))
+  (qtypecase object
+    ("QLineEdit" (#_text object))
+    ("QTextEdit" (#_toPlainText object))
+    (T (#_value object))))
+
+(defgeneric (setf value) (value object))
+
+(defmethod (setf value) (value (object qobject))
+  (qtypecase object
+    ("QLineEdit" (#_setText object value))
+    ("QTextEdit" (#_setPlainText object value))
+    (T (#_setValue object value))))
+
+(defgeneric parent (object))
+
+(defmethod parent ((object qobject))
+  (let ((o (#_parent object)))
+    (if (null-qobject-p o)
+        NIL o)))
+
+(defmethod (setf parent) (value (object qobject))
+  (#_setParent object value)
+  (when (qinstancep object "QWidget")
+    (#_show object)))
+
+(defmethod (setf parent) ((value null) (object qobject))
+  (setf (parent object) (null-qobject "QWidget")))
+
+(defun qobject-alive-p (object)
+  (not (or (null-qobject-p object)
+           (qobject-deleted object))))
+
+(defun maybe-delete-qobject (object)
+  (when (and (typep object 'abstract-qobject)
+             (qobject-alive-p object))
+    (interpret-delete object)))
+
+(defun enum-equal (a b)
+  (= (if (integerp a) a (qt:enum-value a))
+     (if (integerp b) b (qt:enum-value b))))
 
 (defun map-layout (function layout)
   (loop for i from 0
