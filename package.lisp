@@ -41,12 +41,17 @@
    #:q+
    #:q+fun
    #:fsetf)
+  ;; extra.lisp
+  (:export
+   #:to-byte-array
+   #:from-byte-array)
   ;; fast-call.lisp
   (:export
    #:with-call-stack
    #:fast-direct-call
    #:find-fastcall-method
-   #:fast-call)
+   #:fast-call
+   #:fast-static-call)
   ;; finalizable.lisp
   (:export
    #:finalizable-class

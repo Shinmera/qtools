@@ -314,16 +314,26 @@ found, NIL is returned.
 See FAST-CALL
 See ENSURE-Q+-METHOD")
 
+  (function find-fastcall-static-method
+    "Attempts to find a matching method on the class.
+
+This is done by iterating over all methods that match the name, comparing
+its argument types, and checking that it is static. If you specify an argument
+type that is unknown, an error will be signalled. If no matching method can be
+found, NIL is returned.
+
+See FAST-STATIC-CALL
+See ENSURE-Q+-METHOD")
+
   (function fast-call
     "Performs a fast call on a given method.
 
 This is useful if performance really matters and you have to minimise FFI
 call overhead. In exchange it is required that you specify the exact method
 signature you want to call and provide all arguments prepared in their proper
-types as no marshalling will be done. FAST-CALL also will not read out the
-return value.
+types as no marshalling will be done.
 
-METHOD-DESCRIPTOR ::= (name class-name arg-type* ret-type)
+METHOD-DESCRIPTOR ::= (name class-name ret-type? arg-type*)
 object            --- The instance of the class to call a method on.
                       Must match the given class-name.
 args              --- The arguments to call the method with. Their types
@@ -339,12 +349,42 @@ name, and argument types, an error is signalled.
 The fast call procedure creates a stack for the arguments by WITH-CALL-STACK.
 It then uses FAST-DIRECT-CALL on the found method number, class, and
 stack to perform the actual call to the method.
-Finally, if ret-type is not NIL, it retrieses the return value by calling the
+Finally, if ret-type is not NIL, it retrieves the return value by calling the
 corresponding unmarshaller on the stack.
 
 See FIND-FASTCALL-METHOD
 See FAST-DIRECT-CALL
-See WITH-CALL-STACK"))
+See WITH-CALL-STACK
+See FAST-STATIC-CALL")
+
+  (function fast-static-call
+    "Performs a fast call on a given static method.
+
+This is useful if performance really matters and you have to minimise FFI
+call overhead. In exchange it is required that you specify the exact method
+signature you want to call and provide all arguments prepared in their proper
+types as no marshalling will be done.
+
+METHOD-DESCRIPTOR ::= (name ret-type? arg-type*)
+args              --- The arguments to call the method with. Their types
+                      must match the ones given in the arg-types and must
+                      be prepared. Especially objects must be translated
+                      to pointers manually. See QT::QOBJECT-POINTER.
+name              --- The Q+ name of the method being called.
+
+At compile time a matching method number is searched for using
+FIND-FASTCALL-STATIC-METHOD. If no method can be found that matches the name
+and argument types, an error is signalled.
+The fast call procedure creates a stack for the arguments by WITH-CALL-STACK.
+It then uses FAST-DIRECT-CALL on the found method number, class, and
+stack to perform the actual call to the method.
+Finally, if ret-type is not NIL, it retrieves the return value by calling the
+corresponding unmarshaller on the stack.
+
+See FIND-FASTCALL-STATIC-METHOD
+See FAST-DIRECT-CALL
+See WITH-CALL-STACK
+See FAST-CALL"))
 
 ;; finalizable.lisp
 (docs:define-docs
