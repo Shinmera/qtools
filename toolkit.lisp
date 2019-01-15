@@ -48,6 +48,8 @@
   (qtypecase object
     ("QLineEdit" (#_text object))
     ("QTextEdit" (#_toPlainText object))
+    ("QDateTimeEdit" (#_dateTime object))
+    ("QDateEdit" (#_date object))
     (T (#_value object))))
 
 (defgeneric (setf value) (value object))
@@ -56,6 +58,8 @@
   (qtypecase object
     ("QLineEdit" (#_setText object value))
     ("QTextEdit" (#_setPlainText object value))
+    ("QDateTimeEdit" (#_setDateTime object value))
+    ("QDateEdit" (#_setDate object value))
     (T (#_setValue object value))))
 
 (defgeneric parent (object))
