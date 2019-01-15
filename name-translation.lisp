@@ -76,6 +76,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (define-1->1-translator cffi "long double" :long-double)
 (define-1->1-translator cffi "const char*" :string)
 (define-1->1-translator cffi "const QString&" :string)
+(define-1->1-translator cffi "void**" :pointer)
 (define-1->1-translator cffi :unsigned-char :uchar)
 (define-1->1-translator cffi :unsigned-short :ushort)
 (define-1->1-translator cffi :unsigned-int :uint)
@@ -179,8 +180,8 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (define-1->1-translator qtype string "const QString&" :test #'subtypep)
 (define-1->1-translator qtype qobject "const QObject*" :test #'subtypep)
 (define-simple-translator (qtype qtype 10) (type)
-  (when (qt::find-qtype (string-downcase type))
-    (string-downcase type)))
+  (cond ((qt::find-qtype type) type)
+        ((qt::find-qtype (string-downcase type)) (string-downcase type))))
 
 (define-simple-translator (qclass qclass) (name)
   (typecase name
