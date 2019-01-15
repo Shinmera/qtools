@@ -35,6 +35,7 @@
                (:file "precompile")
                (:file "deploy")
                (:file "fast-call")
+               (:file "extra")
                (:file "documentation"))
   :depends-on (:qt+libs
                :deploy
