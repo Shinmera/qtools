@@ -93,21 +93,6 @@ This is bound when *BOOT-HOOKS* functions are called.")
 You should specify this as the BUILD-OPERATION in your ASD along with
 an ENTRY-POINT and a BUILD-PATHNAME."))
 
-;; extra.lisp
-(docs:define-docs
-  (function from-byte-array
-    "Turns the QByteArray into a lisp unsigned-byte 8 vector.
-
-If FINALIZE is true, deletes the byte array after conversion.
-Note that this may or may not delete the byte array's content vector
-depending on whether it considers the content vector shared or not.")
-
-  (function to-byte-array
-    "Turns the unsigned-byte 8 vector into a QByteArray.
-
-The data vector is never shared and the returned QByteArray owns its
-data array. FINALIZING the array will free its backing storage."))
-
 ;; dispatch.lisp
 (docs:define-docs
   (function qclass-class-list

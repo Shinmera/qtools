@@ -41,10 +41,6 @@
    #:q+
    #:q+fun
    #:fsetf)
-  ;; extra.lisp
-  (:export
-   #:to-byte-array
-   #:from-byte-array)
   ;; fast-call.lisp
   (:export
    #:with-call-stack
