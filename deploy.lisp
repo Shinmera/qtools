@@ -31,6 +31,11 @@
   (qt::reload)
   (when (find-package :verbose)
     (funcall (find-symbol (string :remove-global-controller) :verbose)))
+  ;; Force ASDF to clear the qt wrapper systems and register them as preloaded.
+  (dolist (definition qt-libs::*foreign-library-systems-data*)
+    (let ((system (first definition)))
+      (asdf:register-preloaded-system system)
+      (asdf:clear-system system)))
   (setf cffi:*foreign-library-directories* ())
   (setf qt-libs:*standalone-libs-dir* "."))
 
