@@ -8,7 +8,7 @@
 (asdf:defsystem qtools-titter
   :name "Qtools-Titter"
   :version "1.0.1"
-  :license "Artistic"
+  :license "zlib"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "A primitive Twitter client."

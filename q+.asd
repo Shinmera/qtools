@@ -27,7 +27,7 @@
 
 (asdf:defsystem #:q+
   :version "0.2.1"
-  :license "Artistic"
+  :license "zlib"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "Precompiles all Q+ method wrappers for currently active smoke modules."

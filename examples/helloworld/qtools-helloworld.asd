@@ -8,7 +8,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 (asdf:defsystem qtools-helloworld
   :name "Qtools-HelloWorld"
   :version "1.0.0"
-  :license "Artistic"
+  :license "zlib"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
   :description "Your every day hello world."
