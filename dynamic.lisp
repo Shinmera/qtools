@@ -137,11 +137,12 @@
   (to-readtable-case
    (with-output-to-string (output)
      (loop for char = (peek-char NIL stream T NIL T)
-           do (if (or (char= char #\Space)
-                      (not (graphic-char-p char))
-                      (get-macro-character char))
-                  (loop-finish)
-                  (write-char (read-char stream T NIL T) output))))))
+	   do (if (or (char= char #\Space)
+		      (not (graphic-char-p char))
+		      #-allegro (get-macro-character char)
+		      #+allegro (not (eq #'excl::read-token (get-macro-character char))))
+		  (loop-finish)
+		  (write-char (read-char stream T NIL T) output))))))
 
 (defun target-package-symbol-string (&key (extern T) (symbol ""))
   (to-readtable-case
@@ -166,12 +167,26 @@
 (defvar *standard-paren-reader* (get-macro-character #\())
 (progn
   (defun read-paren (stream char)
+    #+allegro (declare (ignore char))
     (multiple-value-bind (q+-symbol-p consumed-stream) (q+-symbol-p stream)
       (let ((stream (make-concatenated-stream consumed-stream stream)))
+        ;; Allegro's EXCL::READ-LIST fails when reading from a
+        ;; CONCATENATED-STREAM in the context of LOAD/COMPILE-FILE, by
+        ;; attempting to call EXCL:FILE-CHARACTER-POSITION on it. So we avoid
+        ;; using EXCL::READ-LIST. This has the unfortunate side-effect of losing
+        ;; XREF info.
+        #+allegro
+        (let ((qname (when q+-symbol-p (q+-symbol-name (read-name stream))))
+              (contents (read-list-until #\) stream)))
+          (read-char stream)            ;  consume closing ).
+          (if q+-symbol-p
+              `(q+ ,qname ,@contents)
+              contents))
+        #-allegro
         (if q+-symbol-p
-            (let* ((name (q+-symbol-name (read-name stream)))
-                   (contents (read-list-until #\) stream)))
-              (read-char stream) ;consume closing ).
+            (let ((name (q+-symbol-name (read-name stream)))
+                  (contents (read-list-until #\) stream)))
+              (read-char stream)        ; consume closing ).
               `(q+ ,name ,@contents))
             (funcall *standard-paren-reader* stream char)))))
 
