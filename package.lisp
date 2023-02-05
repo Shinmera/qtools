@@ -223,5 +223,7 @@
   (:shadowing-import-from #:qtools #:with-main-window)
   (:shadow #:setf #:defun #:defgeneric #:defmethod #:fdefinition #:function))
 
-(do-symbols (symbol '#:cl+qt)
-  (export (list symbol) '#:cl+qt))
+(let ((list ()))
+  (do-symbols (s '#:cl+qt)
+    (push s list))
+  (export list '#:cl+qt))
